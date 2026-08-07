@@ -95,20 +95,18 @@ input {
 .teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    gap: 8px;
     margin-top: 10px;
     flex: 1; /* ocupa espaço restante */
     align-content: center;
-    justify-items: center;
 }
 
 .teclado button {
     width: 100%;
-    max-width: 76px;
-    aspect-ratio: 1;
-    font-size: 22px;
+    height: 50px;
+    font-size: 20px;
     border: none;
-    border-radius: 16px;
+    border-radius: 10px;
     background: #ffffff;
     color: #1976d2;
     font-weight: bold;
