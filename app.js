@@ -4,6 +4,7 @@
 let pesos = [];
 let relatorios = [];
 let audioCtx = null;
+let indicePesoParaExcluir = null;
 
 // ========================================
 // SISTEMA DE SOM (BIP)
@@ -95,8 +96,8 @@ function adicionarPeso(){
     atualizarStats();
 }
 
-function deletarUltimo(){
-    if(pesos.length === 0) return;
+function excluirPesoItem(idx){
+    indicePesoParaExcluir = idx;
     let modal = document.getElementById("modalConfirmacao");
     if(modal) modal.style.display = "flex";
 }
@@ -104,13 +105,14 @@ function deletarUltimo(){
 function fecharConfirmacao(confirmado){
     let modal = document.getElementById("modalConfirmacao");
     if(modal) modal.style.display = "none";
-    if(confirmado){
-        pesos.pop();
+    if(confirmado && indicePesoParaExcluir !== null){
+        pesos.splice(indicePesoParaExcluir, 1);
         if(typeof salvarPesagemAuto === "function") {
             salvarPesagemAuto();
         }
         atualizarStats();
     }
+    indicePesoParaExcluir = null;
 }
 
 function finalizarPesagem(){
@@ -166,7 +168,10 @@ function atualizarStats(){
         listaHTML += `
             <div class="itemPesagem">
                 <span>#${originalIdx + 1} - <b>${p.peso} kg</b> ${p.obs ? `(${p.obs})` : ''}</span>
-                <span style="color:#2e7d32">R$ ${(p.peso * valorKgNum).toFixed(2).replace(".", ",")}</span>
+                <span class="itemPesagemDireita">
+                    <span style="color:#2e7d32">R$ ${(p.peso * valorKgNum).toFixed(2).replace(".", ",")}</span>
+                    <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
+                </span>
             </div>
         `;
     });
@@ -530,13 +535,9 @@ function lancarPeso(){
 }
 
 // ========================================
-// DESFAZER
+// EXCLUSÃO DE ITEM DA PESAGEM
 // ========================================
 
-function desfazer(){
-    deletarUltimo();
-}
-
-function confirmarDesfazer(){
+function confirmarExclusaoPeso(){
     fecharConfirmacao(true);
 }

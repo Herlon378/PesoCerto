@@ -25,7 +25,6 @@
         <div class="statCard">Último<br><span id="ultimo">0</span></div>
         <div class="statCard">Último R$<br><span id="ultimoValor">0</span></div>
         <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
-        <button class="btnDesfazer" onclick="desfazer()">↩️ Desfazer último</button>
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
     <input id="displayPeso" readonly>
@@ -86,10 +85,10 @@
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
         <h2>⚠️ ATENÇÃO</h2>
-        <p>Deseja desfazer o último lançamento?</p>
+        <p>Deseja excluir esta pesagem?</p>
         <div class="botoes">
             <button class="btn-nao" onclick="fecharConfirmacao()">NÃO</button>
-            <button class="btn-sim" onclick="confirmarDesfazer()">SIM</button>
+            <button class="btn-sim" onclick="confirmarExclusaoPeso()">SIM</button>
         </div>
     </div>
 </div>

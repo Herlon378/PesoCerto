@@ -228,6 +228,20 @@ input:checked + .slider:before {
     border-bottom: none;
 }
 
+.itemPesagemDireita {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btnExcluirItem {
+    background: none;
+    border: none;
+    font-size: 17px;
+    padding: 4px 6px;
+    cursor: pointer;
+}
+
 /* MODAL */
 .modal {
     display: none;
@@ -268,31 +282,6 @@ input:checked + .slider:before {
     color: white;
     border: none;
     padding: 10px;
-}
-
-.btnDesfazer {
-  width: 100%;
-  padding: 18px;
-  font-size: 18px;
-  font-weight: bold;
-  background: #e53935; /* vermelho forte */
-  color: white;
-  border: none;
-  border-radius: 10px;
-  margin-top: 10px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  transition: all 0.2s ease;
-}
-
-/* efeito ao clicar */
-.btnDesfazer:active {
-  transform: scale(0.97);
-  background: #c62828;
-}
-
-/* hover (se for desktop) */
-.btnDesfazer:hover {
-  background: #d32f2f;
 }
 
 /* ================= IMPRESSÃO ================= */
