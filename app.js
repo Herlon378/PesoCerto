@@ -74,7 +74,7 @@ function adicionarPeso(){
     let inputObs = document.getElementById("obs");
     if(!inputPeso) return;
     
-    let pesoNum = parseFloat(inputPeso.value);
+    let pesoNum = parseFloat(inputPeso.value.replace(",", "."));
 
     if(!pesoNum || pesoNum <= 0){
         alert("Digite um peso válido!");
@@ -135,6 +135,11 @@ function finalizarPesagem(){
 // ========================================
 // REQUISITOS E ESTATÍSTICAS
 // ========================================
+function formatarPeso(n){
+    n = Number(n) || 0;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
+}
+
 function atualizarStats(){
     let qtd = pesos.length;
     let total = pesos.reduce((a, b) => a + b.peso, 0);
@@ -157,8 +162,8 @@ function atualizarStats(){
 
     if(qtdEl) qtdEl.innerText = qtd;
     if(medEl) medEl.innerText = media;
-    if(totEl) totEl.innerText = total;
-    if(ultEl) ultEl.innerText = ultimo;
+    if(totEl) totEl.innerText = formatarPeso(total);
+    if(ultEl) ultEl.innerText = formatarPeso(ultimo);
     if(uValEl) uValEl.innerText = "R$ " + ultimoValor.toFixed(2).replace(".", ",");
     if(tValEl) tValEl.innerText = "R$ " + totalValor.toFixed(2).replace(".", ",");
 
@@ -170,7 +175,7 @@ function atualizarStats(){
             let originalIdx = pesos.length - 1 - idx;
             listaHTML += `
                 <div class="itemPesagem">
-                    <span>#${originalIdx + 1} - <b>${p.peso} kg</b> ${p.obs ? `(${p.obs})` : ''}</span>
+                    <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b> ${p.obs ? `(${p.obs})` : ''}</span>
                     <span class="itemPesagemDireita">
                         <span style="color:#2e7d32">R$ ${(p.peso * valorKgNum).toFixed(2).replace(".", ",")}</span>
                         <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
@@ -206,7 +211,7 @@ function mostrarRelatorios(){
                         <b>Vendedor:</b> ${r.vendedor || "Não informado"}<br>
                         <b>Lote/Descrição:</b> ${r.descricao || "Sem descrição"}<br>
                         <b>Data:</b> ${r.data || "Sem data"}<br>
-                        <b>Animais:</b> ${r.pesos ? r.pesos.length : 0} | <b>Total:</b> ${totalKg} kg
+                        <b>Animais:</b> ${r.pesos ? r.pesos.length : 0} | <b>Total:</b> ${formatarPeso(totalKg)} kg
                     </div>
                 </label>
             </div>
@@ -272,7 +277,7 @@ async function gerarPDF() {
         
         y += 7;
         pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 10, y);
-        pdf.text(`Peso Acumulado: ${d.totalKg} kg`, 110, y);
+        pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 110, y);
         
         y += 7;
         pdf.text(`Faturamento Lote: R$ ${d.totalRS.toFixed(2).replace(".", ",")}`, 10, y);
@@ -304,7 +309,7 @@ async function gerarPDF() {
             let pAtual = p.peso || 0;
             let valorInd = pAtual * d.valorKgNum; // CORRIGIDO AQUI (Removido o "s" incorreto)
             pdf.text(String(i + 1), 10, y);
-            pdf.text(`${pAtual} kg`, 40, y);
+            pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
             pdf.text(`R$ ${valorInd.toFixed(2).replace(".", ",")}`, 90, y);
             pdf.text(p.obs || "-", 150, y);
             y += 7;
@@ -356,8 +361,8 @@ function calcularDadosCompletos(r) {
         totalAnimais: totalAnimais,
         mediaKg: totalAnimais ? Math.round(totalKg / totalAnimais) : 0,
         totalRS: totalKg * valorKgNum,
-        leves: pesosOrdenados.slice(0, 3).join(", ") + " kg",
-        pesados: pesosOrdenados.slice(-3).reverse().join(", ") + " kg",
+        leves: pesosOrdenados.slice(0, 3).map(formatarPeso).join(", ") + " kg",
+        pesados: pesosOrdenados.slice(-3).reverse().map(formatarPeso).join(", ") + " kg",
         dataHora: r.data || new Date().toLocaleString()
     };
 }
@@ -378,7 +383,7 @@ function prepararImpressao(){
         <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${d.dataHora}</p>
         <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${d.valorKgNum.toFixed(2).replace(".", ",")}</p>
         <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg} kg</p>
-        <p><b>Peso Acumulado:</b> ${d.totalKg} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${d.totalRS.toFixed(2).replace(".", ",")}</p>
+        <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${d.totalRS.toFixed(2).replace(".", ",")}</p>
         <br>
         <table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
             <thead>
@@ -390,7 +395,7 @@ function prepararImpressao(){
     r.pesos.forEach((p, i) => {
         let pAtual = p.peso || 0;
         let vInd = pAtual * d.valorKgNum;
-        html += `<tr><td>${i+1}</td><td>${pAtual} kg</td><td>R$ ${vInd.toFixed(2).replace(".", ",")}</td><td>${p.obs || "-"}</td></tr>`;
+        html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${vInd.toFixed(2).replace(".", ",")}</td><td>${p.obs || "-"}</td></tr>`;
     });
     
     html += `</tbody></table>`;
@@ -518,12 +523,31 @@ function digitar(numero){
     }
 }
 
+function digitarMeio(){
+    let display = document.getElementById("displayPeso");
+
+    if(!display) return;
+    if(display.value === "" || display.value.includes(",")) return;
+
+    display.value += ",5";
+
+    let auto = document.getElementById("autoLancamento");
+
+    if(auto && auto.checked){
+        lancarPeso();
+    }
+}
+
 function apagar(){
     let display = document.getElementById("displayPeso");
 
     if(!display) return;
 
-    display.value = display.value.slice(0, -1);
+    if(display.value.endsWith(",5")){
+        display.value = display.value.slice(0, -2);
+    } else {
+        display.value = display.value.slice(0, -1);
+    }
 }
 
 function limpar(){
