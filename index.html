@@ -14,11 +14,16 @@
 
 <div id="telaInicial" class="tela ativa">
     <h2>Nova Pesagem</h2>
+    <select id="tipoOperacao">
+        <option value="venda">Venda</option>
+        <option value="compra">Compra</option>
+    </select>
     <input id="nomeVendedor" placeholder="Nome do vendedor">
     <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
     <input id="descricao" placeholder="Descrição do lote">
     <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
     <button class="btnGrande" onclick="abrirRelatorios()">Relatórios</button>
+    <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
 </div>
 
 <div id="telaPesagem" class="tela">
@@ -64,6 +69,20 @@
         <div id="listaRelatorios"></div>
     </div>
     <button class="btnGrande" onclick="novaPesagem()">Nova Pesagem</button>
+</div>
+
+<div id="telaDashboard" class="tela">
+    <h2>Dashboard</h2>
+    <div class="stats">
+        <div class="statCard">Animais Ativos<br><span id="dashAtivos">0</span></div>
+        <div class="statCard">Comprados<br><span id="dashComprados">0</span></div>
+        <div class="statCard">Vendidos<br><span id="dashVendidos">0</span></div>
+        <div class="statCard">Kg Compra<br><span id="dashKgCompra">0</span></div>
+        <div class="statCard">Kg Venda<br><span id="dashKgVenda">0</span></div>
+        <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
+        <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
+    </div>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaInicial')">Voltar</button>
 </div>
 
 <div id="telaImpressao" class="tela">

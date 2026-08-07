@@ -40,6 +40,11 @@ function abrirRelatorios(){
     mostrarRelatorios();
 }
 
+function abrirDashboard(){
+    trocarTela("telaDashboard");
+    mostrarDashboard();
+}
+
 function iniciarPesagem(){
     trocarTela("telaPesagem");
     atualizarStats();
@@ -54,12 +59,14 @@ function novaPesagem() {
     let obs = document.getElementById("obs");
     let vKg = document.getElementById("valorKg");
     let dPeso = document.getElementById("displayPeso");
-    
+    let tipoEl = document.getElementById("tipoOperacao");
+
     if(nv) nv.value = "";
     if(desc) desc.value = "";
     if(obs) obs.value = "";
     if(vKg) vKg.value = "";
     if(dPeso) dPeso.value = "";
+    if(tipoEl) tipoEl.value = "venda";
     
     localStorage.removeItem("pesagemAtual");
     atualizarStats();
@@ -202,12 +209,17 @@ function mostrarRelatorios(){
     [...relatorios].reverse().forEach((r, idx) => {
         let originalIndex = relatorios.length - 1 - idx;
         let totalKg = r.pesos ? r.pesos.reduce((a, b) => a + (b.peso || 0), 0) : 0;
-        
+        let tipo = r.tipo || "venda";
+        let tagTipo = tipo === "compra"
+            ? `<span class="tagTipo tagTipoCompra">COMPRA</span>`
+            : `<span class="tagTipo tagTipoVenda">VENDA</span>`;
+
         html += `
             <div class="cardRelatorio">
                 <label>
                     <input type="radio" name="relatorioSelecionado" value="${originalIndex}">
                     <div class="infoRelatorio">
+                        ${tagTipo}<br>
                         <b>Vendedor:</b> ${r.vendedor || "Não informado"}<br>
                         <b>Lote/Descrição:</b> ${r.descricao || "Sem descrição"}<br>
                         <b>Data:</b> ${r.data || "Sem data"}<br>
@@ -227,6 +239,45 @@ function filtrarRelatorios() {
         let texto = card.innerText.toLowerCase();
         card.style.display = texto.includes(busca) ? "block" : "none";
     });
+}
+
+function mostrarDashboard(){
+    let animaisComprados = 0, animaisVendidos = 0;
+    let kgCompra = 0, kgVenda = 0;
+    let valorCompra = 0, valorVenda = 0;
+
+    relatorios.forEach(r => {
+        let tipo = r.tipo || "venda";
+        let d = calcularDadosCompletos(r);
+
+        if(tipo === "compra"){
+            animaisComprados += d.totalAnimais;
+            kgCompra += d.totalKg;
+            valorCompra += d.totalRS;
+        } else {
+            animaisVendidos += d.totalAnimais;
+            kgVenda += d.totalKg;
+            valorVenda += d.totalRS;
+        }
+    });
+
+    let animaisAtivos = animaisComprados - animaisVendidos;
+
+    let elAtivos = document.getElementById("dashAtivos");
+    let elComprados = document.getElementById("dashComprados");
+    let elVendidos = document.getElementById("dashVendidos");
+    let elKgCompra = document.getElementById("dashKgCompra");
+    let elKgVenda = document.getElementById("dashKgVenda");
+    let elValorCompra = document.getElementById("dashValorCompra");
+    let elValorVenda = document.getElementById("dashValorVenda");
+
+    if(elAtivos) elAtivos.innerText = animaisAtivos;
+    if(elComprados) elComprados.innerText = animaisComprados;
+    if(elVendidos) elVendidos.innerText = animaisVendidos;
+    if(elKgCompra) elKgCompra.innerText = formatarPeso(kgCompra);
+    if(elKgVenda) elKgVenda.innerText = formatarPeso(kgVenda);
+    if(elValorCompra) elValorCompra.innerText = "R$ " + valorCompra.toFixed(2).replace(".", ",");
+    if(elValorVenda) elValorVenda.innerText = "R$ " + valorVenda.toFixed(2).replace(".", ",");
 }
 
 function formatarValorKg(input) {
