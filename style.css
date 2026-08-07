@@ -16,12 +16,15 @@ body {
     display: none;
     position: fixed;   /* 🔥 trava na tela */
     top: 0;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
+    max-width: 480px;   /* mantém proporção de celular mesmo em tela grande */
     height: 100vh;
     background: #f0f0f0;
     padding: 10px;
     overflow-y: auto;  /* permite rolar dentro da tela */
+    box-shadow: 0 0 20px rgba(0,0,0,0.15);
 }
 
 
@@ -201,18 +204,23 @@ input:checked + .slider:before {
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
 .listaPesosAtual {
-    max-height: 110px;
+    max-height: 70px;
     overflow-y: auto;
     background: white;
     border-radius: 10px;
     margin-bottom: 6px;
 }
 
+.listaPesosAtual:empty {
+    max-height: 0;
+    margin-bottom: 0;
+}
+
 .itemPesagem {
     display: flex;
     justify-content: space-between;
-    padding: 6px 10px;
-    font-size: 14px;
+    padding: 4px 10px;
+    font-size: 13px;
     border-bottom: 1px solid #eee;
 }
 
