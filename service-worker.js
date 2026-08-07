@@ -1,12 +1,14 @@
-const CACHE_NAME = "pesagem-gado-v2";
+const CACHE_NAME = "pesagem-gado-v3";
 
 const urlsToCache = [
-"/",
+"./",
 "index.html",
 "style.css",
 "app.js",
 "db.js",
 "manifest.json",
+"icon-192.png",
+"icon-512.png",
 "lib/jspdf.umd.min.js",
 "lib/xlsx.full.min.js"
 ];
