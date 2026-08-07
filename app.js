@@ -163,18 +163,22 @@ function atualizarStats(){
     if(tValEl) tValEl.innerText = "R$ " + totalValor.toFixed(2).replace(".", ",");
 
     let listaHTML = "";
-    [...pesos].reverse().forEach((p, idx) => {
-        let originalIdx = pesos.length - 1 - idx;
-        listaHTML += `
-            <div class="itemPesagem">
-                <span>#${originalIdx + 1} - <b>${p.peso} kg</b> ${p.obs ? `(${p.obs})` : ''}</span>
-                <span class="itemPesagemDireita">
-                    <span style="color:#2e7d32">R$ ${(p.peso * valorKgNum).toFixed(2).replace(".", ",")}</span>
-                    <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
-                </span>
-            </div>
-        `;
-    });
+    if(pesos.length === 0){
+        listaHTML = `<div class="listaPesosAtualVazia">Nenhum peso lançado ainda</div>`;
+    } else {
+        [...pesos].reverse().forEach((p, idx) => {
+            let originalIdx = pesos.length - 1 - idx;
+            listaHTML += `
+                <div class="itemPesagem">
+                    <span>#${originalIdx + 1} - <b>${p.peso} kg</b> ${p.obs ? `(${p.obs})` : ''}</span>
+                    <span class="itemPesagemDireita">
+                        <span style="color:#2e7d32">R$ ${(p.peso * valorKgNum).toFixed(2).replace(".", ",")}</span>
+                        <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
+                    </span>
+                </div>
+            `;
+        });
+    }
     
     let containerLista = document.getElementById("listaPesosAtual");
     if(containerLista) containerLista.innerHTML = listaHTML;
