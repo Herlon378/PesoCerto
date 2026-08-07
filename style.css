@@ -98,21 +98,38 @@ input {
     gap: 10px;
     margin-top: 10px;
     flex: 1; /* ocupa espaço restante */
+    align-content: center;
+    justify-items: center;
 }
 
 .teclado button {
-   height: 100%;
-    font-size: 26px;
+    width: 100%;
+    max-width: 76px;
+    aspect-ratio: 1;
+    font-size: 22px;
     border: none;
-    border-radius: 15px;
-    background: #4fa3c7;
-    color: black;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #1976d2;
     font-weight: bold;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.teclado button:active {
+    transform: scale(0.90);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    background: #e3f2fd;
 }
 
 .teclado .btnMeio {
-    background: #37718e;
+    background: #1976d2;
     color: white;
+}
+
+.teclado .btnMeio:active {
+    background: #125aa3;
 }
 
 /* LINHA LANÇAR */
