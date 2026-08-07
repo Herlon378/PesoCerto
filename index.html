@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesagem de Gado</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="telaInicial" class="tela ativa">
+    <h2>Nova Pesagem</h2>
+    <input id="nomeVendedor" placeholder="Nome do vendedor">
+    <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
+    <input id="descricao" placeholder="Descrição do lote">
+    <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
+    <button class="btnGrande" onclick="abrirRelatorios()">Relatórios</button>
+</div>
+
+<div id="telaPesagem" class="tela">
+    <div class="stats">
+        <div class="statCard">Animais<br><span id="qtd">0</span></div>
+        <div class="statCard">Média<br><span id="media">0</span></div>
+        <div class="statCard">Total<br><span id="total">0</span></div>
+        <div class="statCard">Último<br><span id="ultimo">0</span></div>
+        <div class="statCard">Último R$<br><span id="ultimoValor">0</span></div>
+        <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
+        <button class="btnDesfazer" onclick="desfazer()">↩️ Desfazer último</button>
+    </div>
+    <div id="listaPesosAtual" class="listaPesosAtual"></div>
+    <input id="displayPeso" readonly>
+    <input id="obs" placeholder="Observação">
+    <div class="teclado">
+        <button onclick="digitar(1)">1</button><button onclick="digitar(2)">2</button><button onclick="digitar(3)">3</button>
+        <button onclick="digitar(4)">4</button><button onclick="digitar(5)">5</button><button onclick="digitar(6)">6</button>
+        <button onclick="digitar(7)">7</button><button onclick="digitar(8)">8</button><button onclick="digitar(9)">9</button>
+        <button onclick="limpar()">C</button><button onclick="digitar(0)">0</button><button onclick="apagar()">←</button>
+    </div>
+    <div class="linhaLancar">
+        <label class="switch">
+            <input type="checkbox" id="autoLancamento">
+            <span class="slider"></span>
+        </label>
+        <span class="autoTexto">Auto</span>
+        <button class="btnLancar" onclick="lancarPeso()">Lançar</button>
+    </div>
+    <button class="btnGrande" onclick="finalizarPesagem()">Finalizar Pesagem</button>
+</div>
+
+<div id="telaResultado" class="tela">
+    <h2>Relatórios</h2>
+    <input id="buscarVendedor" placeholder="Pesquisar vendedor" oninput="filtrarRelatorios()">
+    
+   <div class="botoesRelatorio">
+    <button onclick="excluirSelecionado()" style="background:#c62828">Excluir</button>
+    <button onclick="exportarExcel()" style="background:#2e7d32">Exportar Excel</button>
+    <button onclick="gerarPDF()" style="background:#0288d1">Gerar PDF (Zap)</button>
+    <button onclick="prepararImpressao()" style="background:#78909c">Imprimir Papel</button>
+</div>
+<div class="botoesRelatorio">
+    <button onclick="exportarBackup()" style="background:#6a1b9a">💾 Salvar Backup</button>
+    <button onclick="document.getElementById('inputRestaurarBackup').click()" style="background:#ef6c00">📂 Restaurar Backup</button>
+    <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
+</div>
+    
+    
+    <div id="relatorio">
+        <div id="listaRelatorios"></div>
+    </div>
+    <button class="btnGrande" onclick="novaPesagem()">Nova Pesagem</button>
+</div>
+
+<div id="telaImpressao" class="tela">
+    <div id="folhaRelatorio"></div>
+    <div class="botoes-impressao">
+        <button class="btnGrande" onclick="executarImpressao()">CONFIRMAR IMPRESSÃO / SALVAR PDF</button>
+        <button class="btnGrande" style="background:#666" onclick="trocarTela('telaResultado')">VOLTAR</button>
+    </div>
+</div>
+
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+
+<div id="modalConfirmacao" class="modal">
+    <div class="modal-box">
+        <h2>⚠️ ATENÇÃO</h2>
+        <p>Deseja desfazer o último lançamento?</p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharConfirmacao()">NÃO</button>
+            <button class="btn-sim" onclick="confirmarDesfazer()">SIM</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js"); }
+</script>
+
+</body>
+</html>
