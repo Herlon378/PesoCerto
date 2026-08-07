@@ -1,4 +1,4 @@
-const CACHE_NAME = "pesagem-gado-v3";
+const CACHE_NAME = "pesagem-gado-v4";
 
 const urlsToCache = [
 "./",
@@ -14,6 +14,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener("install", event => {
+self.skipWaiting();
 event.waitUntil(
 caches.open(CACHE_NAME)
 .then(cache => {
@@ -29,7 +30,7 @@ Promise.all(
 nomes.filter(nome => nome !== CACHE_NAME)
 .map(nome => caches.delete(nome))
 )
-)
+).then(() => self.clients.claim())
 );
 });
 
