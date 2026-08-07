@@ -515,12 +515,6 @@ function digitar(numero){
     if(!display) return;
 
     display.value += numero;
-
-    let auto = document.getElementById("autoLancamento");
-
-    if(auto && auto.checked){
-        lancarPeso();
-    }
 }
 
 function digitarMeio(){
@@ -530,12 +524,6 @@ function digitarMeio(){
     if(display.value === "" || display.value.includes(",")) return;
 
     display.value += ",5";
-
-    let auto = document.getElementById("autoLancamento");
-
-    if(auto && auto.checked){
-        lancarPeso();
-    }
 }
 
 function apagar(){
