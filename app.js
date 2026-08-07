@@ -550,14 +550,6 @@ function apagar(){
     }
 }
 
-function limpar(){
-    let display = document.getElementById("displayPeso");
-
-    if(!display) return;
-
-    display.value = "";
-}
-
 function lancarPeso(){
     adicionarPeso();
 }

@@ -111,7 +111,6 @@ input {
 }
 
 .teclado .btnMeio {
-    grid-column: 1 / -1;
     background: #37718e;
     color: white;
 }
