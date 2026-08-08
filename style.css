@@ -322,6 +322,23 @@ input, select {
     margin-top: 10px;
 }
 
+.linhaCheckboxCiente {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    text-align: left;
+    font-size: 13px;
+    color: #333;
+    margin-top: 14px;
+    cursor: pointer;
+}
+
+.linhaCheckboxCiente input[type="checkbox"] {
+    width: auto;
+    margin: 3px 0 0 0;
+    flex-shrink: 0;
+}
+
 .btn-nao {
     flex: 1;
     background: red;

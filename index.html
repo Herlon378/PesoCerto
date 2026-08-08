@@ -122,6 +122,21 @@
     </div>
 </div>
 
+<div id="modalConfirmarAcao" class="modal">
+    <div class="modal-box">
+        <h2 id="modalAcaoTitulo">⚠️ ATENÇÃO</h2>
+        <p id="modalAcaoTexto">Tem certeza?</p>
+        <label class="linhaCheckboxCiente" id="linhaCheckboxCiente" style="display:none">
+            <input type="checkbox" id="checkboxCiente">
+            <span>Estou ciente que todos os dados desta pesagem serão perdidos</span>
+        </label>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalAcao()">NÃO</button>
+            <button class="btn-sim" onclick="confirmarModalAcao()">SIM</button>
+        </div>
+    </div>
+</div>
+
 <script>
     if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js"); }
 </script>

@@ -79,10 +79,9 @@ function alternarTipoPesagem(){
     if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : "Valor por kg (R$)";
 }
 
-function novaPesagem() {
-    if(pesos.length > 0 && !confirm("Deseja descartar a pesagem atual e iniciar uma nova?")) return;
+function resetarPesagemAtual() {
     pesos = [];
-    
+
     let nv = document.getElementById("nomeVendedor");
     let desc = document.getElementById("descricao");
     let obs = document.getElementById("obs");
@@ -105,6 +104,59 @@ function novaPesagem() {
     localStorage.removeItem("pesagemAtual");
     atualizarStats();
     trocarTela("telaInicial");
+}
+
+function novaPesagem() {
+    if(pesos.length > 0 && !confirm("Deseja descartar a pesagem atual e iniciar uma nova?")) return;
+    resetarPesagemAtual();
+}
+
+// ========================================
+// MODAL CANCELAR / FINALIZAR PESAGEM (ARRASTE)
+// ========================================
+let acaoModalPendente = null;
+
+function solicitarCancelarPesagem(){
+    if(pesos.length === 0){
+        resetarPesagemAtual();
+        return;
+    }
+    acaoModalPendente = "cancelar";
+    document.getElementById("modalAcaoTitulo").innerText = "⚠️ Cancelar Pesagem";
+    document.getElementById("modalAcaoTexto").innerText = "Tem certeza que deseja cancelar esta pesagem?";
+    document.getElementById("linhaCheckboxCiente").style.display = "flex";
+    document.getElementById("checkboxCiente").checked = false;
+    document.getElementById("modalConfirmarAcao").style.display = "flex";
+}
+
+function solicitarFinalizarPesagem(){
+    acaoModalPendente = "finalizar";
+    document.getElementById("modalAcaoTitulo").innerText = "✅ Finalizar Pesagem";
+    document.getElementById("modalAcaoTexto").innerText = "Tem certeza que deseja finalizar esta pesagem?";
+    document.getElementById("linhaCheckboxCiente").style.display = "none";
+    document.getElementById("modalConfirmarAcao").style.display = "flex";
+}
+
+function fecharModalAcao(){
+    document.getElementById("modalConfirmarAcao").style.display = "none";
+    acaoModalPendente = null;
+}
+
+function confirmarModalAcao(){
+    if(acaoModalPendente === "cancelar"){
+        let checkbox = document.getElementById("checkboxCiente");
+        if(checkbox && !checkbox.checked){
+            alert("Marque a caixinha confirmando que está ciente da perda dos dados.");
+            return;
+        }
+        document.getElementById("modalConfirmarAcao").style.display = "none";
+        acaoModalPendente = null;
+        resetarPesagemAtual();
+    } else if(acaoModalPendente === "finalizar"){
+        document.getElementById("modalConfirmarAcao").style.display = "none";
+        acaoModalPendente = null;
+        finalizarPesagem();
+    }
 }
 
 // ========================================
@@ -698,9 +750,9 @@ function inicializarSliderFinalizar(){
         deltaX = 0;
 
         if(resultado === "cancelar"){
-            novaPesagem();
+            solicitarCancelarPesagem();
         } else if(resultado === "finalizar"){
-            finalizarPesagem();
+            solicitarFinalizarPesagem();
         }
     }
 
