@@ -188,7 +188,7 @@ function converterParaArroba(pesoKg, rendimentoPct){
 function atualizarStats(){
     let qtd = pesos.length;
     let total = pesos.reduce((a, b) => a + b.peso, 0);
-    let media = qtd > 0 ? Math.round(total / qtd) : 0;
+    let media = qtd > 0 ? (total / qtd) : 0;
     let ultimo = qtd > 0 ? pesos[qtd - 1].peso : 0;
 
     let vKgEl = document.getElementById("valorKg");
@@ -202,6 +202,7 @@ function atualizarStats(){
 
     let ultimoArroba = converterParaArroba(ultimo, rendimentoNum);
     let totalArroba = converterParaArroba(total, rendimentoNum);
+    let mediaArroba = qtd > 0 ? (totalArroba / qtd) : 0;
 
     let ultimoValor = (ehArroba ? ultimoArroba : ultimo) * valorKgNum;
     let totalValor = (ehArroba ? totalArroba : total) * valorKgNum;
@@ -212,22 +213,30 @@ function atualizarStats(){
     let ultEl = document.getElementById("ultimo");
     let uValEl = document.getElementById("ultimoValor");
     let tValEl = document.getElementById("totalValor");
-    let cardUltimoArrobaEl = document.getElementById("cardUltimoArroba");
+    let cardUltimoKgEl = document.getElementById("cardUltimoKg");
+    let cardUltimoValorEl = document.getElementById("cardUltimoValor");
     let cardTotalArrobaEl = document.getElementById("cardTotalArroba");
-    let ultimoArrobaEl = document.getElementById("ultimoArroba");
+    let cardMediaArrobaEl = document.getElementById("cardMediaArroba");
+    let cardUltimaArrobaEl = document.getElementById("cardUltimaArroba");
     let totalArrobaEl = document.getElementById("totalArroba");
+    let mediaArrobaEl = document.getElementById("mediaArroba");
+    let ultimaArrobaEl = document.getElementById("ultimaArroba");
 
     if(qtdEl) qtdEl.innerText = qtd;
-    if(medEl) medEl.innerText = media;
+    if(medEl) medEl.innerText = media.toFixed(2).replace(".", ",");
     if(totEl) totEl.innerText = formatarPeso(total);
     if(ultEl) ultEl.innerText = formatarPeso(ultimo);
     if(uValEl) uValEl.innerText = "R$ " + ultimoValor.toFixed(2).replace(".", ",");
     if(tValEl) tValEl.innerText = "R$ " + totalValor.toFixed(2).replace(".", ",");
 
-    if(cardUltimoArrobaEl) cardUltimoArrobaEl.style.display = ehArroba ? "block" : "none";
+    if(cardUltimoKgEl) cardUltimoKgEl.style.display = ehArroba ? "none" : "block";
+    if(cardUltimoValorEl) cardUltimoValorEl.style.display = ehArroba ? "none" : "block";
     if(cardTotalArrobaEl) cardTotalArrobaEl.style.display = ehArroba ? "block" : "none";
-    if(ultimoArrobaEl) ultimoArrobaEl.innerText = ultimoArroba.toFixed(2).replace(".", ",");
+    if(cardMediaArrobaEl) cardMediaArrobaEl.style.display = ehArroba ? "block" : "none";
+    if(cardUltimaArrobaEl) cardUltimaArrobaEl.style.display = ehArroba ? "block" : "none";
     if(totalArrobaEl) totalArrobaEl.innerText = totalArroba.toFixed(2).replace(".", ",");
+    if(mediaArrobaEl) mediaArrobaEl.innerText = mediaArroba.toFixed(2).replace(".", ",");
+    if(ultimaArrobaEl) ultimaArrobaEl.innerText = ultimoArroba.toFixed(2).replace(".", ",");
 
     let listaHTML = "";
     if(pesos.length === 0){
@@ -390,7 +399,7 @@ async function gerarPDF() {
         
         y += 7;
         pdf.text(`Faturamento Lote: R$ ${d.totalRS.toFixed(2).replace(".", ",")}`, 10, y);
-        pdf.text(`Média por Animal: ${d.mediaKg} kg`, 110, y);
+        pdf.text(`Média por Animal: ${d.mediaKg.toFixed(2).replace(".", ",")} kg`, 110, y);
 
         if(d.ehArroba){
             y += 7;
@@ -477,7 +486,7 @@ function calcularDadosCompletos(r) {
         valorKgNum: valorKgNum,
         totalKg: totalKg,
         totalAnimais: totalAnimais,
-        mediaKg: totalAnimais ? Math.round(totalKg / totalAnimais) : 0,
+        mediaKg: totalAnimais ? (totalKg / totalAnimais) : 0,
         totalRS: (ehArroba ? totalArroba : totalKg) * valorKgNum,
         totalArroba: totalArroba,
         ehArroba: ehArroba,
@@ -504,7 +513,7 @@ function prepararImpressao(){
         <hr>
         <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${d.dataHora}</p>
         <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${d.valorKgNum.toFixed(2).replace(".", ",")}</p>
-        <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg} kg</p>
+        <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg.toFixed(2).replace(".", ",")} kg</p>
         <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${d.totalRS.toFixed(2).replace(".", ",")}</p>
         ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
         <br>
