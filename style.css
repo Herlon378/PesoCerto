@@ -184,7 +184,7 @@ input, select {
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
 .listaPesosAtual {
-    height: 90px;
+    height: 170px;
     overflow-y: auto;
     background: white;
     border-radius: 10px;
