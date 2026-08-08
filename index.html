@@ -43,7 +43,11 @@
         <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
-    <input id="displayPeso" readonly>
+    <div class="pesoAtualCard">
+        <span class="pesoAtualLabel">PESO ATUAL</span>
+        <input id="displayPeso" readonly placeholder="0">
+        <span class="pesoAtualUnidade">kg</span>
+    </div>
     <input id="obs" placeholder="Observação">
     <div class="teclado">
         <button onclick="digitar(1)">1</button><button onclick="digitar(2)">2</button><button onclick="digitar(3)">3</button>

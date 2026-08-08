@@ -74,30 +74,64 @@ input, select {
 .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-    margin-bottom: 6px;
+    gap: 4px;
+    margin-bottom: 5px;
 }
 
 .statCard {
     background: white;
-    padding: 6px;
+    padding: 4px;
     border-radius: 8px;
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
+    line-height: 1.3;
 }
 
 .statCard span {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
+}
+
+/* PESO ATUAL (display em destaque) */
+.pesoAtualCard {
+    background: white;
+    border-radius: 14px;
+    padding: 6px 16px 8px;
+    text-align: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    margin: 6px 0;
+}
+
+.pesoAtualLabel {
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    color: #999;
+    letter-spacing: 1px;
+}
+
+.pesoAtualUnidade {
+    display: block;
+    font-size: 13px;
+    color: #999;
+    margin-top: -6px;
 }
 
 /* DISPLAY PESO */
 #displayPeso {
-    font-size: 42px;
-    height: 70px;
+    font-size: 44px;
+    height: auto;
     text-align: center;
     font-weight: bold;
-    background: #fff;
+    background: transparent;
+    color: #1976d2;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#displayPeso::placeholder {
+    color: #ccc;
 }
 
 /* TECLADO */
