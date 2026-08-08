@@ -161,7 +161,6 @@ function finalizarPesagem(){
         alert("Nenhum peso lançado!");
         return;
     }
-    if(!confirm("Deseja finalizar esta pesagem?")) return;
 
     if(typeof salvarPesagem === "function") {
         salvarPesagem();
@@ -629,6 +628,89 @@ function excluirSelecionado(){
 }
 
 // ========================================
+// SLIDER CANCELAR / FINALIZAR
+// ========================================
+function avaliarArraste(deltaX, maxOffset, limiar){
+    if(maxOffset <= 0) return null;
+    let proporcao = deltaX / maxOffset;
+    if(proporcao <= -limiar) return "cancelar";
+    if(proporcao >= limiar) return "finalizar";
+    return null;
+}
+
+function inicializarSliderFinalizar(){
+    let track = document.getElementById("sliderTrack");
+    let handle = document.getElementById("sliderHandle");
+    if(!track || !handle) return;
+
+    const LIMIAR = 0.7;
+    let arrastando = false;
+    let startX = 0;
+    let deltaX = 0;
+    let maxOffset = 0;
+
+    function corDoArraste(){
+        let proporcao = maxOffset > 0 ? deltaX / maxOffset : 0;
+        if(proporcao <= -0.2){
+            handle.style.background = "#e53935";
+            handle.style.color = "#fff";
+            handle.innerText = "✕";
+        } else if(proporcao >= 0.2){
+            handle.style.background = "#2e7d32";
+            handle.style.color = "#fff";
+            handle.innerText = "✓";
+        } else {
+            handle.style.background = "#ffffff";
+            handle.style.color = "#555";
+            handle.innerText = "↔";
+        }
+    }
+
+    function inicio(clientX, pointerId){
+        arrastando = true;
+        startX = clientX;
+        deltaX = 0;
+        maxOffset = (track.offsetWidth - handle.offsetWidth) / 2 - 4;
+        handle.style.transition = "none";
+        if(track.setPointerCapture && pointerId !== undefined){
+            try { track.setPointerCapture(pointerId); } catch(e){}
+        }
+    }
+
+    function mover(clientX){
+        if(!arrastando) return;
+        let bruto = clientX - startX;
+        deltaX = Math.max(-maxOffset, Math.min(maxOffset, bruto));
+        handle.style.transform = `translateX(calc(-50% + ${deltaX}px))`;
+        corDoArraste();
+    }
+
+    function fim(){
+        if(!arrastando) return;
+        arrastando = false;
+        handle.style.transition = "transform 0.25s ease";
+        handle.style.transform = "translateX(-50%)";
+        handle.style.background = "#ffffff";
+        handle.style.color = "#555";
+        handle.innerText = "↔";
+
+        let resultado = avaliarArraste(deltaX, maxOffset, LIMIAR);
+        deltaX = 0;
+
+        if(resultado === "cancelar"){
+            novaPesagem();
+        } else if(resultado === "finalizar"){
+            finalizarPesagem();
+        }
+    }
+
+    track.addEventListener("pointerdown", e => inicio(e.clientX, e.pointerId));
+    track.addEventListener("pointermove", e => mover(e.clientX));
+    track.addEventListener("pointerup", fim);
+    track.addEventListener("pointercancel", fim);
+}
+
+// ========================================
 // INICIALIZAÇÃO ÚNICA (ONLOAD)
 // ========================================
 window.onload = function() {
@@ -636,6 +718,7 @@ window.onload = function() {
     if(typeof restaurarPesagem === "function") {
         restaurarPesagem();
     }
+    inicializarSliderFinalizar();
 };
 
 // ========================================

@@ -52,7 +52,13 @@
         <button onclick="digitar(0)">0</button><button class="btnMeio" onclick="digitarMeio()">,5</button><button onclick="apagar()">←</button>
     </div>
     <button class="btnLancar" onclick="lancarPeso()">✓ Lançar Peso</button>
-    <button class="btnGrande" onclick="finalizarPesagem()">Finalizar Pesagem</button>
+    <div class="sliderConfirm">
+        <div class="sliderTrack" id="sliderTrack">
+            <span class="sliderLabelEsquerda">✕ Cancelar</span>
+            <span class="sliderLabelDireita">Finalizar ✓</span>
+            <div class="sliderHandle" id="sliderHandle">↔</div>
+        </div>
+    </div>
 </div>
 
 <div id="telaResultado" class="tela">
