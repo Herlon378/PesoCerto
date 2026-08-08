@@ -217,10 +217,8 @@ function atualizarStats(){
     let cardUltimoValorEl = document.getElementById("cardUltimoValor");
     let cardTotalArrobaEl = document.getElementById("cardTotalArroba");
     let cardMediaArrobaEl = document.getElementById("cardMediaArroba");
-    let cardUltimaArrobaEl = document.getElementById("cardUltimaArroba");
     let totalArrobaEl = document.getElementById("totalArroba");
     let mediaArrobaEl = document.getElementById("mediaArroba");
-    let ultimaArrobaEl = document.getElementById("ultimaArroba");
 
     if(qtdEl) qtdEl.innerText = qtd;
     if(medEl) medEl.innerText = media.toFixed(2).replace(".", ",");
@@ -233,10 +231,8 @@ function atualizarStats(){
     if(cardUltimoValorEl) cardUltimoValorEl.style.display = ehArroba ? "none" : "block";
     if(cardTotalArrobaEl) cardTotalArrobaEl.style.display = ehArroba ? "block" : "none";
     if(cardMediaArrobaEl) cardMediaArrobaEl.style.display = ehArroba ? "block" : "none";
-    if(cardUltimaArrobaEl) cardUltimaArrobaEl.style.display = ehArroba ? "block" : "none";
     if(totalArrobaEl) totalArrobaEl.innerText = totalArroba.toFixed(2).replace(".", ",");
     if(mediaArrobaEl) mediaArrobaEl.innerText = mediaArroba.toFixed(2).replace(".", ",");
-    if(ultimaArrobaEl) ultimaArrobaEl.innerText = ultimoArroba.toFixed(2).replace(".", ",");
 
     let listaHTML = "";
     if(pesos.length === 0){
