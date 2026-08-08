@@ -6,12 +6,16 @@ function salvarPesagem(){
     let descricao = document.getElementById("descricao").value;
     let valorKg = document.getElementById("valorKg").value;
     let tipoEl = document.getElementById("tipoOperacao");
+    let tipoPesagemEl = document.getElementById("tipoPesagem");
+    let rendEl = document.getElementById("rendimentoArroba");
 
     let dados = {
         vendedor: vendedor || "Geral",
         descricao: descricao || "Sem descrição",
         valorKg: valorKg || "R$ 0,00",
         tipo: tipoEl ? tipoEl.value : "venda",
+        tipoPesagem: tipoPesagemEl ? tipoPesagemEl.value : "vivo",
+        rendimento: rendEl ? rendEl.value : "",
         pesos: pesos,
         data: new Date().toLocaleString("pt-BR")
     };
@@ -29,12 +33,16 @@ function salvarPesagemAuto(){
     let valorKg = document.getElementById("valorKg").value;
     let descricao = document.getElementById("descricao").value;
     let tipoEl = document.getElementById("tipoOperacao");
+    let tipoPesagemEl = document.getElementById("tipoPesagem");
+    let rendEl = document.getElementById("rendimentoArroba");
 
     let dados = {
         vendedor: vendedor,
         valorKg: valorKg,
         descricao: descricao,
         tipo: tipoEl ? tipoEl.value : "venda",
+        tipoPesagem: tipoPesagemEl ? tipoPesagemEl.value : "vivo",
+        rendimento: rendEl ? rendEl.value : "",
         pesos: pesos,
         data: new Date()
     };
@@ -57,6 +65,15 @@ function restaurarPesagem(){
         }
         if(document.getElementById("tipoOperacao") && dados.tipo) {
             document.getElementById("tipoOperacao").value = dados.tipo;
+        }
+        if(document.getElementById("tipoPesagem") && dados.tipoPesagem) {
+            document.getElementById("tipoPesagem").value = dados.tipoPesagem;
+        }
+        if(document.getElementById("rendimentoArroba") && dados.rendimento) {
+            document.getElementById("rendimentoArroba").value = dados.rendimento;
+        }
+        if(typeof alternarTipoPesagem === "function") {
+            alternarTipoPesagem();
         }
 
         if(typeof atualizarStats === "function") {

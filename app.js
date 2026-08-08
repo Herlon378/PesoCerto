@@ -46,8 +46,37 @@ function abrirDashboard(){
 }
 
 function iniciarPesagem(){
+    let nv = document.getElementById("nomeVendedor");
+    let vKg = document.getElementById("valorKg");
+    let tipoPesagemEl = document.getElementById("tipoPesagem");
+    let rendEl = document.getElementById("rendimentoArroba");
+
+    if(!nv || !nv.value.trim()){
+        alert("Preencha o nome do vendedor!");
+        return;
+    }
+    if(!vKg || !vKg.value.trim()){
+        alert("Preencha o valor por kg/arroba!");
+        return;
+    }
+    if(tipoPesagemEl && tipoPesagemEl.value === "arroba" && (!rendEl || !rendEl.value.trim())){
+        alert("Preencha o % de rendimento da arroba!");
+        return;
+    }
+
     trocarTela("telaPesagem");
     atualizarStats();
+}
+
+function alternarTipoPesagem(){
+    let tipoPesagemEl = document.getElementById("tipoPesagem");
+    let rendEl = document.getElementById("rendimentoArroba");
+    let vKgEl = document.getElementById("valorKg");
+    if(!tipoPesagemEl || !rendEl) return;
+
+    let ehArroba = tipoPesagemEl.value === "arroba";
+    rendEl.style.display = ehArroba ? "block" : "none";
+    if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : "Valor por kg (R$)";
 }
 
 function novaPesagem() {
@@ -60,6 +89,8 @@ function novaPesagem() {
     let vKg = document.getElementById("valorKg");
     let dPeso = document.getElementById("displayPeso");
     let tipoEl = document.getElementById("tipoOperacao");
+    let tipoPesagemEl = document.getElementById("tipoPesagem");
+    let rendEl = document.getElementById("rendimentoArroba");
 
     if(nv) nv.value = "";
     if(desc) desc.value = "";
@@ -67,7 +98,10 @@ function novaPesagem() {
     if(vKg) vKg.value = "";
     if(dPeso) dPeso.value = "";
     if(tipoEl) tipoEl.value = "venda";
-    
+    if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
+    if(rendEl) rendEl.value = "";
+    alternarTipoPesagem();
+
     localStorage.removeItem("pesagemAtual");
     atualizarStats();
     trocarTela("telaInicial");
@@ -147,6 +181,10 @@ function formatarPeso(n){
     return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
 }
 
+function converterParaArroba(pesoKg, rendimentoPct){
+    return (pesoKg * rendimentoPct / 100) / 15;
+}
+
 function atualizarStats(){
     let qtd = pesos.length;
     let total = pesos.reduce((a, b) => a + b.peso, 0);
@@ -157,8 +195,16 @@ function atualizarStats(){
     let valorKgTexto = vKgEl ? vKgEl.value : "0";
     let valorKgNum = parseFloat(valorKgTexto.replace("R$ ", "").replace(/\./g, "").replace(",", ".")) || 0;
 
-    let ultimoValor = ultimo * valorKgNum;
-    let totalValor = total * valorKgNum;
+    let tipoPesagemEl = document.getElementById("tipoPesagem");
+    let ehArroba = tipoPesagemEl ? tipoPesagemEl.value === "arroba" : false;
+    let rendEl = document.getElementById("rendimentoArroba");
+    let rendimentoNum = rendEl ? (parseFloat(rendEl.value.replace(",", ".")) || 0) : 0;
+
+    let ultimoArroba = converterParaArroba(ultimo, rendimentoNum);
+    let totalArroba = converterParaArroba(total, rendimentoNum);
+
+    let ultimoValor = (ehArroba ? ultimoArroba : ultimo) * valorKgNum;
+    let totalValor = (ehArroba ? totalArroba : total) * valorKgNum;
 
     let qtdEl = document.getElementById("qtd");
     let medEl = document.getElementById("media");
@@ -166,6 +212,10 @@ function atualizarStats(){
     let ultEl = document.getElementById("ultimo");
     let uValEl = document.getElementById("ultimoValor");
     let tValEl = document.getElementById("totalValor");
+    let cardUltimoArrobaEl = document.getElementById("cardUltimoArroba");
+    let cardTotalArrobaEl = document.getElementById("cardTotalArroba");
+    let ultimoArrobaEl = document.getElementById("ultimoArroba");
+    let totalArrobaEl = document.getElementById("totalArroba");
 
     if(qtdEl) qtdEl.innerText = qtd;
     if(medEl) medEl.innerText = media;
@@ -174,24 +224,32 @@ function atualizarStats(){
     if(uValEl) uValEl.innerText = "R$ " + ultimoValor.toFixed(2).replace(".", ",");
     if(tValEl) tValEl.innerText = "R$ " + totalValor.toFixed(2).replace(".", ",");
 
+    if(cardUltimoArrobaEl) cardUltimoArrobaEl.style.display = ehArroba ? "block" : "none";
+    if(cardTotalArrobaEl) cardTotalArrobaEl.style.display = ehArroba ? "block" : "none";
+    if(ultimoArrobaEl) ultimoArrobaEl.innerText = ultimoArroba.toFixed(2).replace(".", ",");
+    if(totalArrobaEl) totalArrobaEl.innerText = totalArroba.toFixed(2).replace(".", ",");
+
     let listaHTML = "";
     if(pesos.length === 0){
         listaHTML = `<div class="listaPesosAtualVazia">Nenhum peso lançado ainda</div>`;
     } else {
         [...pesos].reverse().forEach((p, idx) => {
             let originalIdx = pesos.length - 1 - idx;
+            let arrobaItem = converterParaArroba(p.peso, rendimentoNum);
+            let valorItem = (ehArroba ? arrobaItem : p.peso) * valorKgNum;
+            let textoArroba = ehArroba ? ` (${arrobaItem.toFixed(2).replace(".", ",")} @)` : "";
             listaHTML += `
                 <div class="itemPesagem">
-                    <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b> ${p.obs ? `(${p.obs})` : ''}</span>
+                    <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b>${textoArroba} ${p.obs ? `(${p.obs})` : ''}</span>
                     <span class="itemPesagemDireita">
-                        <span style="color:#2e7d32">R$ ${(p.peso * valorKgNum).toFixed(2).replace(".", ",")}</span>
+                        <span style="color:#2e7d32">R$ ${valorItem.toFixed(2).replace(".", ",")}</span>
                         <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
                     </span>
                 </div>
             `;
         });
     }
-    
+
     let containerLista = document.getElementById("listaPesosAtual");
     if(containerLista) containerLista.innerHTML = listaHTML;
 }
@@ -334,6 +392,11 @@ async function gerarPDF() {
         pdf.text(`Faturamento Lote: R$ ${d.totalRS.toFixed(2).replace(".", ",")}`, 10, y);
         pdf.text(`Média por Animal: ${d.mediaKg} kg`, 110, y);
 
+        if(d.ehArroba){
+            y += 7;
+            pdf.text(`Total em Arrobas: ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rend. ${d.rendimentoNum}%)`, 10, y);
+        }
+
         y += 10;
         pdf.setFont("helvetica", "bold");
         pdf.text(`3 Mais Leves: ${d.leves}`, 10, y);
@@ -358,7 +421,7 @@ async function gerarPDF() {
             }
             
             let pAtual = p.peso || 0;
-            let valorInd = pAtual * d.valorKgNum; // CORRIGIDO AQUI (Removido o "s" incorreto)
+            let valorInd = (d.ehArroba ? d.arrobaDe(pAtual) : pAtual) * d.valorKgNum;
             pdf.text(String(i + 1), 10, y);
             pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
             pdf.text(`R$ ${valorInd.toFixed(2).replace(".", ",")}`, 90, y);
@@ -400,18 +463,26 @@ async function gerarPDF() {
 function calcularDadosCompletos(r) {
     let stringValor = String(r.valorKg || "0");
     let valorKgNum = parseFloat(stringValor.replace("R$ ", "").replace(/\./g, "").replace(",", ".")) || 0;
-    
+
+    let ehArroba = r.tipoPesagem === "arroba";
+    let rendimentoNum = parseFloat(String(r.rendimento || "0").replace(",", ".")) || 0;
+
     let listaPesos = r.pesos ? r.pesos.map(p => p.peso || 0) : [];
     let pesosOrdenados = [...listaPesos].sort((a, b) => a - b);
     let totalKg = pesosOrdenados.reduce((sum, w) => sum + w, 0);
     let totalAnimais = pesosOrdenados.length;
-    
+    let totalArroba = converterParaArroba(totalKg, rendimentoNum);
+
     return {
         valorKgNum: valorKgNum,
         totalKg: totalKg,
         totalAnimais: totalAnimais,
         mediaKg: totalAnimais ? Math.round(totalKg / totalAnimais) : 0,
-        totalRS: totalKg * valorKgNum,
+        totalRS: (ehArroba ? totalArroba : totalKg) * valorKgNum,
+        totalArroba: totalArroba,
+        ehArroba: ehArroba,
+        rendimentoNum: rendimentoNum,
+        arrobaDe: pesoKg => converterParaArroba(pesoKg, rendimentoNum),
         leves: pesosOrdenados.slice(0, 3).map(formatarPeso).join(", ") + " kg",
         pesados: pesosOrdenados.slice(-3).reverse().map(formatarPeso).join(", ") + " kg",
         dataHora: r.data || new Date().toLocaleString()
@@ -435,6 +506,7 @@ function prepararImpressao(){
         <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${d.valorKgNum.toFixed(2).replace(".", ",")}</p>
         <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg} kg</p>
         <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${d.totalRS.toFixed(2).replace(".", ",")}</p>
+        ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
         <br>
         <table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
             <thead>
@@ -445,7 +517,7 @@ function prepararImpressao(){
     
     r.pesos.forEach((p, i) => {
         let pAtual = p.peso || 0;
-        let vInd = pAtual * d.valorKgNum;
+        let vInd = (d.ehArroba ? d.arrobaDe(pAtual) : pAtual) * d.valorKgNum;
         html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${vInd.toFixed(2).replace(".", ",")}</td><td>${p.obs || "-"}</td></tr>`;
     });
     
@@ -468,16 +540,21 @@ function executarImpressao(){
 function exportarExcel(){
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     if(!sel){ alert("Selecione um relatório"); return; }
-    
+
     let r = relatorios[sel.value];
+    let d = calcularDadosCompletos(r);
     let dataExcel = [];
-    
+
     r.pesos.forEach((p, i) => {
-        dataExcel.push({
+        let linha = {
             "Ordem": i + 1,
-            "Peso (kg)": p.peso || 0,
-            "Anotação": p.obs || ""
-        });
+            "Peso (kg)": p.peso || 0
+        };
+        if(d.ehArroba){
+            linha["Arrobas (@)"] = Number(d.arrobaDe(p.peso || 0).toFixed(2));
+        }
+        linha["Anotação"] = p.obs || "";
+        dataExcel.push(linha);
     });
     
     let worksheet = XLSX.utils.json_to_sheet(dataExcel);
