@@ -45,28 +45,53 @@ async function carregarUsuarios() {
                 <td>${u.nome}</td>
                 <td>${u.usuario}</td>
                 <td>${u.papel === "admin" ? "Administrador" : "Operador"}</td>
+                <td>${u.papel === "admin" ? "—" : `
+                    <span class="tagPermissao">${rotuloPermTipo(u.permissaoTipoPesagem)}</span>
+                    <span class="tagPermissao">Dash: ${rotuloPermEscopo(u.permissaoDashboard)}</span>
+                    <span class="tagPermissao">Rel: ${rotuloPermEscopo(u.permissaoRelatorios)}</span>
+                `}</td>
                 <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
-                    <button onclick='abrirModalUsuario(${JSON.stringify(u.id)}, ${JSON.stringify(u.nome)}, ${JSON.stringify(u.usuario)}, ${JSON.stringify(u.papel)})'>✏️</button>
+                    <button onclick='abrirModalUsuario(${JSON.stringify(u)})'>✏️</button>
                     <button onclick='alternarAtivoUsuario(${JSON.stringify(u.id)}, ${!u.ativo})'>${u.ativo ? "🚫" : "✅"}</button>
                     <button onclick='excluirUsuario(${JSON.stringify(u.id)}, ${JSON.stringify(u.nome)})'>🗑️</button>
                 </td>
             </tr>
         `).join("");
     } catch (e) {
-        corpo.innerHTML = `<tr><td colspan="5">Erro ao carregar usuários.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="6">Erro ao carregar usuários.</td></tr>`;
     }
 }
 
-function abrirModalUsuario(id, nome, usuario, papel) {
-    usuarioEditandoId = id || null;
-    document.getElementById("modalUsuarioTitulo").innerText = id ? "✏️ Editar Usuário" : "➕ Novo Usuário";
-    document.getElementById("usuarioNomeInput").value = nome || "";
-    document.getElementById("usuarioLoginInput").value = usuario || "";
-    document.getElementById("usuarioLoginInput").disabled = !!id;
+function rotuloPermTipo(v) {
+    if (v === "venda") return "Só Venda";
+    if (v === "compra") return "Só Compra";
+    return "Venda+Compra";
+}
+
+function rotuloPermEscopo(v) {
+    return v === "proprio" ? "Próprio" : "Geral";
+}
+
+function alternarCamposPermissao() {
+    let bloco = document.getElementById("blocoPermissoesUsuario");
+    let ehAdmin = document.getElementById("usuarioPapelInput").value === "admin";
+    if (bloco) bloco.style.display = ehAdmin ? "none" : "block";
+}
+
+function abrirModalUsuario(usuarioExistente) {
+    usuarioEditandoId = usuarioExistente ? usuarioExistente.id : null;
+    document.getElementById("modalUsuarioTitulo").innerText = usuarioEditandoId ? "✏️ Editar Usuário" : "➕ Novo Usuário";
+    document.getElementById("usuarioNomeInput").value = usuarioExistente ? usuarioExistente.nome : "";
+    document.getElementById("usuarioLoginInput").value = usuarioExistente ? usuarioExistente.usuario : "";
+    document.getElementById("usuarioLoginInput").disabled = !!usuarioEditandoId;
     document.getElementById("usuarioSenhaInput").value = "";
-    document.getElementById("usuarioSenhaInput").placeholder = id ? "Nova senha (deixe em branco pra manter)" : "Senha";
-    document.getElementById("usuarioPapelInput").value = papel || "operador";
+    document.getElementById("usuarioSenhaInput").placeholder = usuarioEditandoId ? "Nova senha (deixe em branco pra manter)" : "Senha";
+    document.getElementById("usuarioPapelInput").value = (usuarioExistente && usuarioExistente.papel) || "operador";
+    document.getElementById("usuarioPermTipoInput").value = (usuarioExistente && usuarioExistente.permissaoTipoPesagem) || "ambos";
+    document.getElementById("usuarioPermDashboardInput").value = (usuarioExistente && usuarioExistente.permissaoDashboard) || "geral";
+    document.getElementById("usuarioPermRelatoriosInput").value = (usuarioExistente && usuarioExistente.permissaoRelatorios) || "geral";
+    alternarCamposPermissao();
     let erroEl = document.getElementById("usuarioErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
     document.getElementById("modalUsuario").style.display = "flex";
@@ -91,6 +116,9 @@ async function salvarUsuario() {
         let usuario = document.getElementById("usuarioLoginInput").value.trim();
         let senha = document.getElementById("usuarioSenhaInput").value;
         let papel = document.getElementById("usuarioPapelInput").value;
+        let permissaoTipoPesagem = document.getElementById("usuarioPermTipoInput").value;
+        let permissaoDashboard = document.getElementById("usuarioPermDashboardInput").value;
+        let permissaoRelatorios = document.getElementById("usuarioPermRelatoriosInput").value;
 
         if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
             mostrarErro("Preencha todos os campos.");
@@ -99,7 +127,7 @@ async function salvarUsuario() {
 
         let resp;
         if (usuarioEditandoId) {
-            let corpo = { nome, papel };
+            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios };
             if (senha) corpo.senha = senha;
             resp = await fetch(`${API_URL}/api/usuarios/${usuarioEditandoId}`, {
                 method: "PUT",
@@ -110,7 +138,7 @@ async function salvarUsuario() {
             resp = await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                body: JSON.stringify({ nome, usuario, senha, papel })
+                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios })
             });
         }
         let dados = await resp.json().catch(() => ({}));

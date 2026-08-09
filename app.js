@@ -100,6 +100,7 @@ function resetarPesagemAtual() {
     if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
     if(rendEl) rendEl.value = "";
     alternarTipoPesagem();
+    aplicarRestricoesUsuario();
 
     localStorage.removeItem("pesagemAtual");
     atualizarStats();
@@ -314,14 +315,26 @@ function mostrarRelatorios(){
     let container = document.getElementById("listaRelatorios");
     if(!container) return;
 
-    if(relatorios.length === 0){
+    // O índice usado no valor do rádio (originalIndex) precisa sempre apontar
+    // pra posição real dentro do array "relatorios" completo — mesmo quando a
+    // lista exibida está filtrada por permissão — porque excluirSelecionado(),
+    // gerarPDF(), exportarExcel() e prepararImpressao() usam relatorios[valor]
+    // diretamente.
+    let restringir = obterPapelLogado() !== "admin" && obterPermRelatorios() === "proprio";
+    let meuNome = obterUsuarioLogado();
+    let itens = relatorios
+        .map((r, idx) => ({ r, originalIndex: idx }))
+        .filter(item => !restringir || item.r.criadoPor === meuNome);
+
+    if(itens.length === 0){
         container.innerHTML = "<p style='text-align:center; padding:20px; color:#666;'>Nenhum relatório salvo.</p>";
         return;
     }
 
     let html = "";
-    [...relatorios].reverse().forEach((r, idx) => {
-        let originalIndex = relatorios.length - 1 - idx;
+    [...itens].reverse().forEach(item => {
+        let r = item.r;
+        let originalIndex = item.originalIndex;
         let totalKg = r.pesos ? r.pesos.reduce((a, b) => a + (b.peso || 0), 0) : 0;
         let tipo = r.tipo || "venda";
         let tagTipo = tipo === "compra"
@@ -361,7 +374,13 @@ function mostrarDashboard(){
     let kgCompra = 0, kgVenda = 0;
     let valorCompra = 0, valorVenda = 0;
 
-    relatorios.forEach(r => {
+    let baseDashboard = relatorios;
+    if(obterPapelLogado() !== "admin" && obterPermDashboard() === "proprio"){
+        let meuNome = obterUsuarioLogado();
+        baseDashboard = relatorios.filter(r => r.criadoPor === meuNome);
+    }
+
+    baseDashboard.forEach(r => {
         let tipo = r.tipo || "venda";
         let d = calcularDadosCompletos(r);
 
@@ -808,6 +827,33 @@ function obterPapelLogado(){
     return localStorage.getItem("usuarioPapel") || "";
 }
 
+function obterPermTipoPesagem(){
+    return localStorage.getItem("permTipoPesagem") || "ambos";
+}
+
+function obterPermDashboard(){
+    return localStorage.getItem("permDashboard") || "geral";
+}
+
+function obterPermRelatorios(){
+    return localStorage.getItem("permRelatorios") || "geral";
+}
+
+function aplicarRestricoesUsuario(){
+    let selectTipo = document.getElementById("tipoOperacao");
+    if(!selectTipo) return;
+
+    Array.from(selectTipo.options).forEach(o => { o.disabled = false; });
+
+    let permTipo = obterPermTipoPesagem();
+    if(obterPapelLogado() !== "admin" && permTipo !== "ambos"){
+        Array.from(selectTipo.options).forEach(o => {
+            if(o.value !== permTipo) o.disabled = true;
+        });
+        selectTipo.value = permTipo;
+    }
+}
+
 function abrirModalLogin(obrigatorio){
     let modal = document.getElementById("modalLogin");
     if(!modal) return;
@@ -858,8 +904,12 @@ async function enviarLogin(){
         localStorage.setItem("sessionToken", dados.token);
         localStorage.setItem("usuarioNome", dados.nome);
         localStorage.setItem("usuarioPapel", dados.papel);
+        localStorage.setItem("permTipoPesagem", dados.permissaoTipoPesagem || "ambos");
+        localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
+        localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");
         fecharModalLogin();
         atualizarBotaoLogin();
+        aplicarRestricoesUsuario();
         sincronizarAgora();
     } catch(e) {
         mostrarErro("Erro de conexão.");
@@ -877,7 +927,11 @@ function sair(){
     localStorage.removeItem("sessionToken");
     localStorage.removeItem("usuarioNome");
     localStorage.removeItem("usuarioPapel");
+    localStorage.removeItem("permTipoPesagem");
+    localStorage.removeItem("permDashboard");
+    localStorage.removeItem("permRelatorios");
     atualizarBotaoLogin();
+    aplicarRestricoesUsuario();
     atualizarStatusSync("👤 Não conectado");
 }
 
@@ -942,6 +996,7 @@ async function sincronizarAgora(){
         let sessaoExpirada = false;
 
         let naoSincronizados = lista.filter(r => !r.sincronizado);
+        let idsRejeitadosPermissao = [];
         if(naoSincronizados.length > 0){
             let resp = await fetch(`${API_URL}/api/pesagens/sync`, {
                 method: "POST",
@@ -950,7 +1005,15 @@ async function sincronizarAgora(){
             });
             if(resp.status === 401) sessaoExpirada = true;
             if(!resp.ok) throw new Error(sessaoExpirada ? "sessão expirada, faça login de novo" : "falha ao enviar");
-            naoSincronizados.forEach(r => r.sincronizado = true);
+            let respostaSync = await resp.json().catch(() => ({}));
+            idsRejeitadosPermissao = respostaSync.idsRejeitados || [];
+            // só marca como sincronizado o que o servidor realmente aceitou —
+            // um HTTP 200 não significa que TODOS os registros do lote foram
+            // gravados, já que o servidor descarta silenciosamente pesagens
+            // de um tipo que o usuário não tem permissão de lançar
+            naoSincronizados.forEach(r => {
+                if(!idsRejeitadosPermissao.includes(r.id)) r.sincronizado = true;
+            });
             localStorage.setItem("pesagens", JSON.stringify(lista));
         }
 
@@ -994,7 +1057,11 @@ async function sincronizarAgora(){
             mostrarDashboard();
         }
 
-        atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
+        if(idsRejeitadosPermissao.length > 0){
+            atualizarStatusSync("⚠️ " + idsRejeitadosPermissao.length + " pesagem(ns) não sincronizada(s): tipo não autorizado");
+        } else {
+            atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
+        }
     } catch(e) {
         if(e.message.includes("sessão expirada")){
             localStorage.removeItem("sessionToken");
@@ -1018,6 +1085,7 @@ window.onload = function() {
     }
     inicializarSliderFinalizar();
     atualizarBotaoLogin();
+    aplicarRestricoesUsuario();
     sincronizarAgora();
 
     if(!obterToken()){

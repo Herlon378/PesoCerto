@@ -127,7 +127,7 @@
     </div>
     <table class="tabelaUsuarios">
         <thead>
-            <tr><th>Nome</th><th>Usuário</th><th>Papel</th><th>Status</th><th>Ações</th></tr>
+            <tr><th>Nome</th><th>Usuário</th><th>Papel</th><th>Permissões</th><th>Status</th><th>Ações</th></tr>
         </thead>
         <tbody id="corpoTabelaUsuarios"></tbody>
     </table>
@@ -194,10 +194,32 @@
         <input id="usuarioNomeInput" placeholder="Nome completo">
         <input id="usuarioLoginInput" placeholder="Usuário (login)">
         <input id="usuarioSenhaInput" type="password" placeholder="Senha">
-        <select id="usuarioPapelInput">
+        <select id="usuarioPapelInput" onchange="alternarCamposPermissao()">
             <option value="operador">Operador</option>
             <option value="admin">Administrador</option>
         </select>
+
+        <div id="blocoPermissoesUsuario">
+            <span class="rotuloPermissao">Pode lançar pesagem de</span>
+            <select id="usuarioPermTipoInput">
+                <option value="ambos">Venda e Compra</option>
+                <option value="venda">Somente Venda</option>
+                <option value="compra">Somente Compra</option>
+            </select>
+
+            <span class="rotuloPermissao">Pode ver no Dashboard</span>
+            <select id="usuarioPermDashboardInput">
+                <option value="geral">Tudo (geral)</option>
+                <option value="proprio">Só o que ele lançou</option>
+            </select>
+
+            <span class="rotuloPermissao">Pode ver nos Relatórios</span>
+            <select id="usuarioPermRelatoriosInput">
+                <option value="geral">Tudo (geral)</option>
+                <option value="proprio">Só o que ele lançou</option>
+            </select>
+        </div>
+
         <p id="usuarioErro" class="loginErro" style="display:none"></p>
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalUsuario()">Cancelar</button>

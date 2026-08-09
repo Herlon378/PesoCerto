@@ -1,4 +1,4 @@
-const CACHE_NAME = "pesagem-gado-v20";
+const CACHE_NAME = "pesagem-gado-v21";
 
 const urlsToCache = [
 "./",
