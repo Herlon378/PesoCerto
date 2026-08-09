@@ -1,0 +1,156 @@
+/* ================= LAYOUT DESKTOP ================= */
+body.modoDesktop {
+    background: #eef1f4;
+}
+
+/* barra de navegação fixa no topo */
+.navDesktop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1976d2;
+    color: white;
+    padding: 12px 20px;
+    flex-wrap: wrap;
+}
+
+.navTitulo {
+    font-weight: bold;
+    font-size: 18px;
+    margin-right: 20px;
+}
+
+.navDesktop > button {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.navDesktop > button:hover {
+    background: rgba(255,255,255,0.28);
+}
+
+.navDesktop > button.navAtivo {
+    background: white;
+    color: #1976d2;
+}
+
+.navSync {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    background: rgba(255,255,255,0.12);
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+
+.navSync button {
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.85);
+    color: #1976d2;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* painel central: as "telas" do app viram um cartão largo centralizado
+   em vez de ocupar a tela inteira como no celular */
+.painelDesktop {
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 60px;
+}
+
+body.modoDesktop .tela {
+    position: static;
+    display: none;
+    max-width: 1100px;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    padding: 28px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    transform: none;
+    left: auto;
+    top: auto;
+}
+
+body.modoDesktop .tela.ativa {
+    display: block !important;
+}
+
+/* dashboard: cartões maiores e organizados em mais colunas na tela larga */
+body.modoDesktop .statsDashboardDesktop {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+body.modoDesktop .statsDashboardDesktop .statCard {
+    padding: 18px;
+    font-size: 14px;
+}
+
+body.modoDesktop .statsDashboardDesktop .statCard span {
+    font-size: 26px;
+}
+
+/* pesagem: teclado e formulário lado a lado em vez de empilhados */
+body.modoDesktop #telaPesagem {
+    display: grid !important;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+}
+
+body.modoDesktop #telaPesagem .stats {
+    grid-column: 1 / -1;
+}
+
+body.modoDesktop #telaPesagem .listaPesosAtual {
+    grid-column: 1;
+    height: 320px;
+}
+
+body.modoDesktop #telaPesagem .pesoAtualCard,
+body.modoDesktop #telaPesagem #obs,
+body.modoDesktop #telaPesagem .teclado,
+body.modoDesktop #telaPesagem .btnLancar,
+body.modoDesktop #telaPesagem .sliderConfirm {
+    grid-column: 2;
+}
+
+body.modoDesktop #telaPesagem .teclado {
+    max-width: 320px;
+}
+
+/* relatórios: cartões em grade em vez de lista vertical única */
+body.modoDesktop #listaRelatorios {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 720px) {
+    body.modoDesktop #telaPesagem {
+        display: block;
+    }
+    .navDesktop {
+        justify-content: center;
+    }
+    .navSync {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
+}

@@ -10,6 +10,7 @@ function salvarPesagem(){
     let rendEl = document.getElementById("rendimentoArroba");
 
     let dados = {
+        id: crypto.randomUUID(),
         vendedor: vendedor || "Geral",
         descricao: descricao || "Sem descrição",
         valorKg: valorKg || "R$ 0,00",
@@ -17,7 +18,8 @@ function salvarPesagem(){
         tipoPesagem: tipoPesagemEl ? tipoPesagemEl.value : "vivo",
         rendimento: rendEl ? rendEl.value : "",
         pesos: pesos,
-        data: new Date().toLocaleString("pt-BR")
+        data: new Date().toLocaleString("pt-BR"),
+        sincronizado: false
     };
 
     let lista = JSON.parse(localStorage.getItem("pesagens") || "[]");
@@ -25,6 +27,10 @@ function salvarPesagem(){
 
     localStorage.setItem("pesagens", JSON.stringify(lista));
     localStorage.removeItem("pesagemAtual");
+
+    if(typeof sincronizarAgora === "function") {
+        sincronizarAgora();
+    }
 }
 
 /* salvamento automático */

@@ -3,16 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pesagem de Gado</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1976d2">
+    <title>PesoCerto - Gerenciamento</title>
     <link rel="icon" href="icon-192.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
 </head>
-<body>
+<body class="modoDesktop">
 
-<div id="telaInicial" class="tela ativa">
+<div class="navDesktop">
+    <span class="navTitulo">🐂 PesoCerto — Gerenciamento</span>
+    <button data-tela="telaDashboard" onclick="abrirDashboard()">📊 Dashboard</button>
+    <button data-tela="telaInicial" onclick="trocarTela('telaInicial')">➕ Nova Pesagem</button>
+    <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
+    <span class="navSync">
+        <span id="statusSync">⚠️ Sincronização não configurada</span>
+        <button onclick="configurarChaveApi()">🔑 Configurar</button>
+        <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
+    </span>
+</div>
+
+<div class="painelDesktop">
+
+<div id="telaInicial" class="tela">
     <h2>Nova Pesagem</h2>
     <select id="tipoOperacao">
         <option value="venda">Venda</option>
@@ -27,8 +39,6 @@
     <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
     <input id="descricao" placeholder="Descrição do lote">
     <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
-    <button class="btnGrande" onclick="abrirRelatorios()">Relatórios</button>
-    <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
 </div>
 
 <div id="telaPesagem" class="tela">
@@ -68,7 +78,7 @@
 <div id="telaResultado" class="tela">
     <h2>Relatórios</h2>
     <input id="buscarVendedor" placeholder="Pesquisar vendedor" oninput="filtrarRelatorios()">
-    
+
    <div class="botoesRelatorio">
     <button onclick="excluirSelecionado()" style="background:#c62828">Excluir</button>
     <button onclick="exportarExcel()" style="background:#2e7d32">Exportar Excel</button>
@@ -80,21 +90,15 @@
     <button onclick="document.getElementById('inputRestaurarBackup').click()" style="background:#ef6c00">📂 Restaurar Backup</button>
     <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
 </div>
-<div class="barraSync">
-    <span id="statusSync">⚠️ Sincronização não configurada</span>
-    <button onclick="configurarChaveApi()">🔑 Configurar</button>
-    <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
-</div>
 
     <div id="relatorio">
         <div id="listaRelatorios"></div>
     </div>
-    <button class="btnGrande" onclick="novaPesagem()">Nova Pesagem</button>
 </div>
 
-<div id="telaDashboard" class="tela">
+<div id="telaDashboard" class="tela ativa">
     <h2>Dashboard</h2>
-    <div class="stats">
+    <div class="stats statsDashboardDesktop">
         <div class="statCard">Animais Ativos<br><span id="dashAtivos">0</span></div>
         <div class="statCard">Comprados<br><span id="dashComprados">0</span></div>
         <div class="statCard">Vendidos<br><span id="dashVendidos">0</span></div>
@@ -103,7 +107,6 @@
         <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
         <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
     </div>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaInicial')">Voltar</button>
 </div>
 
 <div id="telaImpressao" class="tela">
@@ -114,10 +117,13 @@
     </div>
 </div>
 
+</div>
+
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+<script src="admin.js"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
@@ -144,10 +150,6 @@
         </div>
     </div>
 </div>
-
-<script>
-    if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js"); }
-</script>
 
 </body>
 </html>

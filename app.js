@@ -673,9 +673,15 @@ function excluirSelecionado(){
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     if(!sel){ alert("Selecione um relatório"); return; }
     if(!confirm("Deseja excluir este relatório permanentemente?")) return;
-    
+
+    let removido = relatorios[sel.value];
     relatorios.splice(sel.value, 1);
     localStorage.setItem("pesagens", JSON.stringify(relatorios));
+
+    if(removido && removido.id && typeof registrarExclusaoPendente === "function"){
+        registrarExclusaoPendente(removido.id);
+    }
+
     mostrarRelatorios();
 }
 
@@ -763,6 +769,122 @@ function inicializarSliderFinalizar(){
 }
 
 // ========================================
+// SINCRONIZAÇÃO COM SERVIDOR (ONLINE/OFFLINE)
+// ========================================
+const API_URL = "https://pesocerto-api-production.up.railway.app";
+
+function obterChaveApi(){
+    return localStorage.getItem("apiKey") || "";
+}
+
+function configurarChaveApi(){
+    let atual = obterChaveApi();
+    let nova = prompt("Digite a chave de sincronização (fornecida pelo administrador):", atual);
+    if(nova === null) return;
+    localStorage.setItem("apiKey", nova.trim());
+    sincronizarAgora();
+}
+
+function registrarExclusaoPendente(id){
+    let lista = JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]");
+    if(!lista.includes(id)) lista.push(id);
+    localStorage.setItem("exclusoesPendentes", JSON.stringify(lista));
+}
+
+function atualizarStatusSync(texto){
+    let el = document.getElementById("statusSync");
+    if(el) el.innerText = texto;
+}
+
+async function sincronizarAgora(){
+    let chave = obterChaveApi();
+    if(!chave){
+        atualizarStatusSync("⚠️ Toque em Configurar pra ativar a sincronização");
+        return;
+    }
+    if(!navigator.onLine){
+        atualizarStatusSync("📴 Offline — sincroniza quando voltar internet");
+        return;
+    }
+
+    // Trabalha do início ao fim com uma cópia LOCAL lida direto do localStorage,
+    // nunca com a variável global "relatorios" — ela pode ser reatribuída por
+    // outro código (ex: finalizarPesagem) enquanto este await está pendente,
+    // e usar a global no meio da função perde mutações feitas aqui.
+    let lista = JSON.parse(localStorage.getItem("pesagens") || "[]");
+    let precisaSalvarIds = false;
+    lista.forEach(r => {
+        if(!r.id){
+            r.id = crypto.randomUUID();
+            r.sincronizado = false;
+            precisaSalvarIds = true;
+        }
+    });
+    if(precisaSalvarIds) localStorage.setItem("pesagens", JSON.stringify(lista));
+
+    atualizarStatusSync("🔄 Sincronizando...");
+
+    try {
+        let naoSincronizados = lista.filter(r => !r.sincronizado);
+        if(naoSincronizados.length > 0){
+            let resp = await fetch(`${API_URL}/api/pesagens/sync`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-API-Key": chave },
+                body: JSON.stringify({ pesagens: naoSincronizados })
+            });
+            if(!resp.ok) throw new Error(resp.status === 401 ? "chave incorreta" : "falha ao enviar");
+            naoSincronizados.forEach(r => r.sincronizado = true);
+            localStorage.setItem("pesagens", JSON.stringify(lista));
+        }
+
+        let exclusoesPendentes = JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]");
+        for(let id of [...exclusoesPendentes]){
+            let respDel = await fetch(`${API_URL}/api/pesagens/${id}`, {
+                method: "DELETE",
+                headers: { "X-API-Key": chave }
+            });
+            if(respDel.ok){
+                exclusoesPendentes = exclusoesPendentes.filter(x => x !== id);
+            }
+        }
+        localStorage.setItem("exclusoesPendentes", JSON.stringify(exclusoesPendentes));
+
+        let respGet = await fetch(`${API_URL}/api/pesagens`, {
+            headers: { "X-API-Key": chave }
+        });
+        if(!respGet.ok) throw new Error(respGet.status === 401 ? "chave incorreta" : "falha ao buscar dados");
+        let doServidor = await respGet.json();
+
+        let mapa = {};
+        doServidor.forEach(r => { mapa[r.id] = Object.assign({}, r, { sincronizado: true }); });
+        lista.forEach(r => {
+            if(!r.sincronizado && r.id && !exclusoesPendentes.includes(r.id)){
+                mapa[r.id] = r;
+            }
+        });
+        exclusoesPendentes.forEach(id => { delete mapa[id]; });
+
+        relatorios = Object.values(mapa);
+        localStorage.setItem("pesagens", JSON.stringify(relatorios));
+
+        let telaResultado = document.getElementById("telaResultado");
+        if(telaResultado && telaResultado.classList.contains("ativa")){
+            mostrarRelatorios();
+        }
+        let telaDashboard = document.getElementById("telaDashboard");
+        if(telaDashboard && telaDashboard.classList.contains("ativa")){
+            mostrarDashboard();
+        }
+
+        atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
+    } catch(e) {
+        atualizarStatusSync("❌ Erro ao sincronizar (" + e.message + ")");
+    }
+}
+
+window.addEventListener("online", () => sincronizarAgora());
+
+// ========================================
 // INICIALIZAÇÃO ÚNICA (ONLOAD)
 // ========================================
 window.onload = function() {
@@ -771,6 +893,7 @@ window.onload = function() {
         restaurarPesagem();
     }
     inicializarSliderFinalizar();
+    sincronizarAgora();
 };
 
 // ========================================
