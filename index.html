@@ -12,7 +12,19 @@
 </head>
 <body>
 
-<div id="telaInicial" class="tela ativa">
+<div id="telaMenu" class="tela ativa">
+    <h2>🐂 PesoCerto</h2>
+    <div class="barraSync">
+        <span id="statusSync">⚠️ Sincronização não configurada</span>
+        <button id="btnLoginLogout" onclick="abrirModalLogin()">👤 Entrar</button>
+        <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
+    </div>
+    <button class="btnGrande" onclick="trocarTela('telaInicial')">➕ Nova Pesagem</button>
+    <button class="btnGrande" onclick="abrirRelatorios()">📋 Relatórios</button>
+    <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
+</div>
+
+<div id="telaInicial" class="tela">
     <h2>Nova Pesagem</h2>
     <select id="tipoOperacao">
         <option value="venda">Venda</option>
@@ -29,8 +41,7 @@
         <option value="">Sem lote</option>
     </select>
     <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
-    <button class="btnGrande" onclick="abrirRelatorios()">Relatórios</button>
-    <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
 <div id="telaPesagem" class="tela">
@@ -70,7 +81,7 @@
 <div id="telaResultado" class="tela">
     <h2>Relatórios</h2>
     <input id="buscarVendedor" placeholder="Pesquisar vendedor" oninput="filtrarRelatorios()">
-    
+
    <div class="botoesRelatorio">
     <button onclick="excluirSelecionado()" style="background:#c62828">Excluir</button>
     <button onclick="exportarExcel()" style="background:#2e7d32">Exportar Excel</button>
@@ -82,16 +93,12 @@
     <button onclick="document.getElementById('inputRestaurarBackup').click()" style="background:#ef6c00">📂 Restaurar Backup</button>
     <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
 </div>
-<div class="barraSync">
-    <span id="statusSync">⚠️ Sincronização não configurada</span>
-    <button id="btnLoginLogout" onclick="abrirModalLogin()">👤 Entrar</button>
-    <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
-</div>
 
     <div id="relatorio">
         <div id="listaRelatorios"></div>
     </div>
     <button class="btnGrande" onclick="novaPesagem()">Nova Pesagem</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
 <div id="telaDashboard" class="tela">
@@ -105,7 +112,7 @@
         <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
         <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
     </div>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaInicial')">Voltar</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
 <div id="telaImpressao" class="tela">
