@@ -16,6 +16,7 @@
     <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
     <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
     <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes();">🏷️ Lotes</button>
+    <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado')">📦 Almoxarifado</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
         <button id="btnLoginLogout" onclick="trocarTela('telaLogin')">👤 Entrar</button>
@@ -181,6 +182,95 @@
     </table>
 </div>
 
+<div id="telaAlmoxarifado" class="tela">
+    <h2>📦 Almoxarifado</h2>
+    <div class="almoxHubGrade">
+        <button class="almoxHubBotao" onclick="trocarTela('telaProdutos'); carregarProdutos();">
+            <span class="almoxHubIcone">🏷️</span>
+            <span>Produtos</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaEstoque'); carregarEstoque();">
+            <span class="almoxHubIcone">📥</span>
+            <span>Estoque</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();">
+            <span class="almoxHubIcone">📤</span>
+            <span>Saída</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaCustoLote'); mostrarCustoPorLote();">
+            <span class="almoxHubIcone">💰</span>
+            <span>Custo por Lote</span>
+        </button>
+    </div>
+</div>
+
+<div id="telaProdutos" class="tela">
+    <h2>Produtos</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalProduto()" style="background:#2e7d32">➕ Novo Produto</button>
+        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Descrição</th><th>Código de Barra</th><th>Departamento</th><th>Unid.</th><th>Saldo</th><th>Custo Médio</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaProdutos"></tbody>
+    </table>
+</div>
+
+<div id="telaEstoque" class="tela">
+    <h2>Estoque</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalEstoqueEntrada()" style="background:#2e7d32">➕ Nova Entrada</button>
+        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Produto</th><th>Saldo Atual</th><th>Custo Médio</th></tr>
+        </thead>
+        <tbody id="corpoTabelaEstoqueSaldo"></tbody>
+    </table>
+</div>
+
+<div id="telaSaidaEstoque" class="tela">
+    <h2>Saída de Produtos</h2>
+    <div class="botoesRelatorio">
+        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+    </div>
+
+    <select id="saidaLoteInput">
+        <option value="">Selecione o lote</option>
+    </select>
+    <select id="saidaProdutoInput" onchange="atualizarPreviewSaidaDesktop()">
+        <option value="">Selecione o produto</option>
+    </select>
+    <input id="saidaQuantidadeInput" placeholder="Quantidade" inputmode="decimal" oninput="atualizarPreviewSaidaDesktop()">
+    <p id="saidaPreview" class="loginSubtitulo"></p>
+    <p id="saidaErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" onclick="confirmarSaidaEstoqueDesktop()">Confirmar Saída</button>
+
+    <h2 style="margin-top:24px">Histórico</h2>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Data</th><th>Produto</th><th>Lote</th><th>Qtd</th><th>Valor</th><th>Lançado por</th></tr>
+        </thead>
+        <tbody id="corpoTabelaSaidas"></tbody>
+    </table>
+</div>
+
+<div id="telaCustoLote" class="tela">
+    <h2>Custo por Lote</h2>
+    <div class="botoesRelatorio">
+        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Lote</th><th>Animais Atuais</th><th>Custo Compra</th><th>Custo Insumos</th><th>Custo Total</th><th>Custo Médio/Animal</th></tr>
+        </thead>
+        <tbody id="corpoTabelaCustoLote"></tbody>
+    </table>
+</div>
+
 <div id="telaImpressao" class="tela">
     <div id="folhaRelatorio"></div>
     <div class="botoes-impressao">
@@ -235,6 +325,57 @@
     </div>
 </div>
 
+<div id="modalProduto" class="modal">
+    <div class="modal-box">
+        <h2 id="modalProdutoTitulo">➕ Novo Produto</h2>
+        <input id="produtoDescricaoInput" placeholder="Descrição do produto">
+        <input id="produtoCodigoBarraInput" placeholder="Código de barra (opcional)">
+        <div class="linhaComBotao">
+            <select id="produtoDepartamentoInput">
+                <option value="">Sem departamento</option>
+            </select>
+            <button type="button" class="btnPequeno" onclick="abrirModalDepartamento()">+ Novo</button>
+        </div>
+        <input id="produtoUnidadeInput" placeholder="Unidade (ex: saco, kg, litro, unidade)">
+        <p id="produtoErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalProduto()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarProduto()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalDepartamento" class="modal">
+    <div class="modal-box">
+        <h2>🏷️ Departamentos</h2>
+        <div id="listaDepartamentosModal" class="listaDepartamentosModal"></div>
+        <input id="departamentoNomeInput" placeholder="Novo departamento">
+        <p id="departamentoErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalDepartamento()">Fechar</button>
+            <button class="btn-sim" onclick="salvarDepartamento()">Adicionar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalEstoqueEntrada" class="modal">
+    <div class="modal-box">
+        <h2>➕ Nova Entrada de Estoque</h2>
+        <select id="entradaProdutoInput" onchange="atualizarPreviewEntrada()">
+            <option value="">Selecione o produto</option>
+        </select>
+        <input id="entradaQuantidadeInput" placeholder="Quantidade" inputmode="decimal" oninput="atualizarPreviewEntrada()">
+        <input id="entradaValorUnitarioInput" placeholder="Valor unitário (R$)" inputmode="decimal" oninput="atualizarPreviewEntrada()">
+        <p id="entradaPreviewTotal" class="loginSubtitulo"></p>
+        <input id="entradaNumeroNotaInput" placeholder="Número da nota fiscal (opcional)">
+        <p id="entradaErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalEstoqueEntrada()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarEstoqueEntrada()">Salvar</button>
+        </div>
+    </div>
+</div>
+
 <div id="modalUsuario" class="modal">
     <div class="modal-box">
         <h2 id="modalUsuarioTitulo">➕ Novo Usuário</h2>
@@ -268,6 +409,11 @@
 
             <span class="rotuloPermissao">Valor máximo de compra (R$/kg ou @) — opcional</span>
             <input id="usuarioValorMaxCompraInput" placeholder="Ex: 13,50 (vazio = sem limite)" inputmode="decimal">
+
+            <label class="linhaCheckboxCiente">
+                <input type="checkbox" id="usuarioPermAlmoxarifadoInput">
+                <span>Pode lançar saída de almoxarifado pelo celular</span>
+            </label>
         </div>
 
         <p id="usuarioErro" class="loginErro" style="display:none"></p>

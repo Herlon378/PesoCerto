@@ -1121,7 +1121,8 @@ function atualizarBotaoLogin(){
         { id: "telaDashboard", soAdmin: false },
         { id: "telaResultado", soAdmin: false },
         { id: "telaUsuarios", soAdmin: true },
-        { id: "telaLotes", soAdmin: true }
+        { id: "telaLotes", soAdmin: true },
+        { id: "telaAlmoxarifado", soAdmin: true }
     ].forEach(({ id, soAdmin }) => {
         let navBtn = document.querySelector(`[data-tela="${id}"]`);
         if(!navBtn) return;

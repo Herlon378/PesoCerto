@@ -342,3 +342,99 @@ body.modoDesktop #listaRelatorios {
         justify-content: center;
     }
 }
+
+/* ============ ALMOXARIFADO ============ */
+.almoxHubGrade {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.almoxHubBotao {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: #fcfcfb;
+    border: 1px solid rgba(11,11,11,0.10);
+    border-radius: 14px;
+    padding: 28px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #0b0b0b;
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.almoxHubBotao:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10);
+    transform: translateY(-2px);
+}
+
+.almoxHubIcone {
+    font-size: 32px;
+}
+
+@media (max-width: 720px) {
+    .almoxHubGrade {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.linhaComBotao {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.linhaComBotao select {
+    flex: 1;
+    margin: 0;
+}
+
+.btnPequeno {
+    border: none;
+    border-radius: 8px;
+    padding: 0 14px;
+    height: 42px;
+    background: #1976d2;
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.listaDepartamentosModal {
+    max-height: 180px;
+    overflow-y: auto;
+    text-align: left;
+    background: #f7f7f5;
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+}
+
+.itemDepartamentoModal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+}
+
+.itemDepartamentoModal:last-child {
+    border-bottom: none;
+}
+
+.itemDepartamentoModal button {
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    background: #eee;
+    cursor: pointer;
+    font-size: 12px;
+}
