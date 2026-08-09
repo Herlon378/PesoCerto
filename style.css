@@ -387,6 +387,24 @@ input, select {
     text-align: center;
 }
 
+.leitorCodigoBarraBox {
+    background: white;
+    padding: 16px;
+    border-radius: 14px;
+    width: 92%;
+    max-width: 420px;
+    text-align: center;
+}
+
+.videoLeitorCodigoBarra {
+    width: 100%;
+    border-radius: 10px;
+    background: #000;
+    margin: 10px 0;
+    max-height: 320px;
+    object-fit: cover;
+}
+
 .modal .botoes {
     display: flex;
     gap: 10px;

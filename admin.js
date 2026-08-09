@@ -749,7 +749,7 @@ async function confirmarSaidaEstoqueDesktop() {
         document.getElementById("saidaQuantidadeInput").value = "";
         await carregarProdutosAdmin();
         atualizarPreviewSaidaDesktop();
-        carregarHistoricoSaidas();
+        await carregarHistoricoSaidas();
     } catch (e) {
         mostrarErro("Erro de conexão: " + e.message);
     }

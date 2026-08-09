@@ -31,6 +31,7 @@
     <button class="btnGrande" onclick="trocarTela('telaInicial')">➕ Nova Pesagem</button>
     <button class="btnGrande" onclick="abrirRelatorios()">📋 Relatórios</button>
     <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
+    <button class="btnGrande" id="btnMenuAlmoxarifado" style="background:#00695c; display:none" onclick="trocarTela('telaSaidaAlmoxarifado'); abrirTelaSaidaAlmoxarifadoMobile();">📦 Saída de Produtos</button>
 </div>
 
 <div id="telaInicial" class="tela">
@@ -50,6 +51,22 @@
         <option value="">Sem lote</option>
     </select>
     <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+</div>
+
+<div id="telaSaidaAlmoxarifado" class="tela">
+    <h2>📦 Saída de Produtos</h2>
+    <select id="saidaMobLoteInput">
+        <option value="">Selecione o lote</option>
+    </select>
+    <select id="saidaMobProdutoInput" onchange="atualizarPreviewSaidaMobile()">
+        <option value="">Selecione o produto</option>
+    </select>
+    <button class="btnGrande" style="background:#0288d1" onclick="abrirLeitorCodigoBarra()">📷 Ler Código de Barras</button>
+    <input id="saidaMobQuantidadeInput" placeholder="Quantidade" inputmode="decimal" oninput="atualizarPreviewSaidaMobile()">
+    <p id="saidaMobPreview" class="loginSubtitulo"></p>
+    <p id="saidaMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" onclick="confirmarSaidaEstoqueMobile()">Confirmar Saída</button>
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
@@ -128,8 +145,18 @@
 
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
+<script src="lib/zxing-browser.min.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+
+<div id="modalLeitorCodigoBarra" class="modal">
+    <div class="leitorCodigoBarraBox">
+        <h2>📷 Ler Código de Barras</h2>
+        <video id="videoLeitorCodigoBarra" class="videoLeitorCodigoBarra" autoplay playsinline muted></video>
+        <p id="leitorCodigoBarraStatus" class="loginSubtitulo">Aponte a câmera pro código de barras do produto</p>
+        <button class="btnGrande" style="background:#666" onclick="fecharLeitorCodigoBarra()">Cancelar</button>
+    </div>
+</div>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">

@@ -989,6 +989,10 @@ function obterValorMaximoCompra(){
     return Number.isFinite(n) ? n : null;
 }
 
+function obterPermAlmoxarifado(){
+    return localStorage.getItem("permAlmoxarifado") === "1";
+}
+
 function aplicarRestricoesUsuario(){
     let selectTipo = document.getElementById("tipoOperacao");
     if(!selectTipo) return;
@@ -1069,6 +1073,7 @@ async function enviarLogin(){
         localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
         localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");
         localStorage.setItem("valorMaximoCompra", dados.valorMaximoCompra != null ? String(dados.valorMaximoCompra) : "");
+        localStorage.setItem("permAlmoxarifado", dados.permissaoAlmoxarifado ? "1" : "");
         irParaTelaPrincipal();
         atualizarBotaoLogin();
         aplicarRestricoesUsuario();
@@ -1093,6 +1098,8 @@ function sair(){
     localStorage.removeItem("permDashboard");
     localStorage.removeItem("permRelatorios");
     localStorage.removeItem("valorMaximoCompra");
+    localStorage.removeItem("permAlmoxarifado");
+    localStorage.removeItem("produtosCache");
     limparDadosVisiveis();
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
@@ -1129,6 +1136,14 @@ function atualizarBotaoLogin(){
         let podeVer = logado && (!soAdmin || obterPapelLogado() === "admin");
         navBtn.style.display = podeVer ? "inline-block" : "none";
     });
+
+    // Botão de Saída de Almoxarifado no menu do celular: só aparece pra admin
+    // ou pra quem o admin autorizou especificamente (permissaoAlmoxarifado).
+    let btnAlmoxMenu = document.getElementById("btnMenuAlmoxarifado");
+    if(btnAlmoxMenu){
+        let podeAlmoxarifado = logado && (obterPapelLogado() === "admin" || obterPermAlmoxarifado());
+        btnAlmoxMenu.style.display = podeAlmoxarifado ? "inline-block" : "none";
+    }
 }
 
 function carregarLotesSelect(){
@@ -1139,6 +1154,144 @@ function carregarLotesSelect(){
     select.innerHTML = `<option value="">Sem lote</option>` +
         lotes.map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
     select.value = valorAtual;
+}
+
+function carregarLotesSelectSaida(){
+    let select = document.getElementById("saidaMobLoteInput");
+    if(!select) return;
+    let lotes = JSON.parse(localStorage.getItem("lotesCache") || "[]");
+    let valorAtual = select.value;
+    select.innerHTML = `<option value="">Selecione o lote</option>` +
+        lotes.map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+    select.value = valorAtual;
+}
+
+function carregarProdutosSelectMobile(){
+    let select = document.getElementById("saidaMobProdutoInput");
+    if(!select) return;
+    let produtos = JSON.parse(localStorage.getItem("produtosCache") || "[]");
+    let valorAtual = select.value;
+    select.innerHTML = `<option value="">Selecione o produto</option>` +
+        produtos.map(p => `<option value="${p.id}">${p.descricao}</option>`).join("");
+    select.value = valorAtual;
+    atualizarPreviewSaidaMobile();
+}
+
+function obterProdutoCache(id){
+    let produtos = JSON.parse(localStorage.getItem("produtosCache") || "[]");
+    return produtos.find(p => p.id === id) || null;
+}
+
+function atualizarPreviewSaidaMobile(){
+    let preview = document.getElementById("saidaMobPreview");
+    if(!preview) return;
+    let produtoId = document.getElementById("saidaMobProdutoInput").value;
+    let qtd = parseFloat((document.getElementById("saidaMobQuantidadeInput").value || "").replace(",", ".")) || 0;
+    let produto = obterProdutoCache(produtoId);
+    if(!produto){ preview.innerText = ""; return; }
+
+    let texto = "Estoque disponível: " + formatarPeso(produto.saldoAtual) + " " + produto.unidade +
+        " · Custo médio: R$ " + formatarMoeda(produto.custoMedioUnitario);
+    if(qtd > 0) texto += " · Total estimado: R$ " + formatarMoeda(qtd * produto.custoMedioUnitario);
+    preview.innerText = texto;
+}
+
+function abrirTelaSaidaAlmoxarifadoMobile(){
+    carregarLotesSelectSaida();
+    carregarProdutosSelectMobile();
+    document.getElementById("saidaMobQuantidadeInput").value = "";
+    let erroEl = document.getElementById("saidaMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+    atualizarPreviewSaidaMobile();
+}
+
+async function confirmarSaidaEstoqueMobile(){
+    let erroEl = document.getElementById("saidaMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    let loteNome = document.getElementById("saidaMobLoteInput").value;
+    let produtoId = document.getElementById("saidaMobProdutoInput").value;
+    let quantidade = parseFloat((document.getElementById("saidaMobQuantidadeInput").value || "").replace(",", "."));
+
+    if(!loteNome){ mostrarErro("Selecione o lote."); return; }
+    if(!produtoId){ mostrarErro("Selecione o produto."); return; }
+    if(!Number.isFinite(quantidade) || quantidade <= 0){ mostrarErro("Quantidade inválida."); return; }
+
+    let produto = obterProdutoCache(produtoId);
+    if(produto && quantidade > produto.saldoAtual){
+        mostrarErro("Estoque insuficiente (disponível: " + formatarPeso(produto.saldoAtual) + " " + produto.unidade + ").");
+        return;
+    }
+
+    let lista = JSON.parse(localStorage.getItem("estoqueSaidas") || "[]");
+    lista.push({
+        id: crypto.randomUUID(),
+        produtoId: produtoId,
+        loteNome: loteNome,
+        quantidade: quantidade,
+        data: new Date().toLocaleString("pt-BR"),
+        sincronizado: false
+    });
+    localStorage.setItem("estoqueSaidas", JSON.stringify(lista));
+
+    alert("Saída registrada! Assim que sincronizar, o estoque é atualizado.");
+    document.getElementById("saidaMobQuantidadeInput").value = "";
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+    sincronizarAgora();
+}
+
+// ========================================
+// LEITOR DE CÓDIGO DE BARRAS (câmera)
+// ========================================
+let leitorZXing = null;
+
+async function abrirLeitorCodigoBarra(){
+    let statusEl = document.getElementById("leitorCodigoBarraStatus");
+    if(typeof ZXingBrowser === "undefined"){
+        alert("Leitor de código de barras não carregou. Selecione o produto manualmente.");
+        return;
+    }
+    let modal = document.getElementById("modalLeitorCodigoBarra");
+    if(!modal) return;
+    modal.style.display = "flex";
+    if(statusEl) statusEl.innerText = "Aponte a câmera pro código de barras do produto";
+
+    try {
+        leitorZXing = new ZXingBrowser.BrowserMultiFormatReader();
+        let dispositivos = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
+        // prefere a câmera traseira quando o navegador identifica isso no label
+        let traseira = dispositivos.find(d => /back|traseira|rear|environment/i.test(d.label)) || dispositivos[dispositivos.length - 1];
+        let deviceId = traseira ? traseira.deviceId : undefined;
+
+        await leitorZXing.decodeFromVideoDevice(deviceId, "videoLeitorCodigoBarra", (resultado) => {
+            if(resultado){
+                processarCodigoBarraLido(resultado.getText());
+            }
+        });
+    } catch(e){
+        if(statusEl) statusEl.innerText = "Não foi possível acessar a câmera. Selecione o produto manualmente.";
+    }
+}
+
+function fecharLeitorCodigoBarra(){
+    let modal = document.getElementById("modalLeitorCodigoBarra");
+    if(modal) modal.style.display = "none";
+    if(leitorZXing){
+        try { leitorZXing.reset(); } catch(e){}
+        leitorZXing = null;
+    }
+}
+
+function processarCodigoBarraLido(codigo){
+    let produtos = JSON.parse(localStorage.getItem("produtosCache") || "[]");
+    let produto = produtos.find(p => p.codigoBarra === codigo);
+    fecharLeitorCodigoBarra();
+    if(!produto){
+        alert("Nenhum produto cadastrado com esse código de barra. Cadastre no computador primeiro, ou selecione manualmente.");
+        return;
+    }
+    document.getElementById("saidaMobProdutoInput").value = produto.id;
+    atualizarPreviewSaidaMobile();
 }
 
 function registrarExclusaoPendente(id){
@@ -1231,6 +1384,45 @@ async function sincronizarAgora(){
             let lotesDoServidor = await respLotes.json();
             localStorage.setItem("lotesCache", JSON.stringify(lotesDoServidor.filter(l => l.ativo)));
             carregarLotesSelect();
+            carregarLotesSelectSaida();
+        }
+
+        // Almoxarifado: só sincroniza pra quem tem acesso (admin ou permissão
+        // concedida), evitando requisições à toa pra todo mundo mais.
+        let idsRejeitadosSaidas = [];
+        if(obterPapelLogado() === "admin" || obterPermAlmoxarifado()){
+            let listaSaidas = JSON.parse(localStorage.getItem("estoqueSaidas") || "[]");
+            let precisaSalvarSaidas = false;
+            listaSaidas.forEach(s => {
+                if(!s.id){ s.id = crypto.randomUUID(); s.sincronizado = false; precisaSalvarSaidas = true; }
+            });
+            if(precisaSalvarSaidas) localStorage.setItem("estoqueSaidas", JSON.stringify(listaSaidas));
+
+            let naoSincronizadasSaidas = listaSaidas.filter(s => !s.sincronizado);
+            if(naoSincronizadasSaidas.length > 0){
+                let respSaida = await fetch(`${API_URL}/api/estoque-saidas/sync`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    body: JSON.stringify({ saidas: naoSincronizadasSaidas })
+                });
+                if(respSaida.ok){
+                    let respostaSaida = await respSaida.json().catch(() => ({}));
+                    idsRejeitadosSaidas = respostaSaida.idsRejeitados || [];
+                    naoSincronizadasSaidas.forEach(s => {
+                        if(!idsRejeitadosSaidas.includes(s.id)) s.sincronizado = true;
+                    });
+                    localStorage.setItem("estoqueSaidas", JSON.stringify(listaSaidas));
+                }
+            }
+
+            let respProdutos = await fetch(`${API_URL}/api/produtos`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            if(respProdutos.ok){
+                let produtosDoServidor = await respProdutos.json();
+                localStorage.setItem("produtosCache", JSON.stringify(produtosDoServidor.filter(p => p.ativo)));
+                carregarProdutosSelectMobile();
+            }
         }
 
         let mapa = {};
@@ -1255,8 +1447,11 @@ async function sincronizarAgora(){
             mostrarDashboard();
         }
 
-        if(idsRejeitadosPermissao.length > 0){
-            atualizarStatusSync("⚠️ " + idsRejeitadosPermissao.length + " pesagem(ns) não sincronizada(s): não autorizada(s)");
+        if(idsRejeitadosPermissao.length > 0 || idsRejeitadosSaidas.length > 0){
+            let partes = [];
+            if(idsRejeitadosPermissao.length > 0) partes.push(idsRejeitadosPermissao.length + " pesagem(ns)");
+            if(idsRejeitadosSaidas.length > 0) partes.push(idsRejeitadosSaidas.length + " saída(s) de estoque");
+            atualizarStatusSync("⚠️ " + partes.join(" e ") + " não sincronizada(s): não autorizada(s) ou estoque insuficiente");
         } else {
             atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
         }
@@ -1279,6 +1474,8 @@ window.addEventListener("online", () => sincronizarAgora());
 window.onload = function() {
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
     carregarLotesSelect();
+    carregarLotesSelectSaida();
+    carregarProdutosSelectMobile();
     if(typeof restaurarPesagem === "function") {
         restaurarPesagem();
     }
