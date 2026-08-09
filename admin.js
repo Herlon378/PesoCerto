@@ -49,6 +49,7 @@ async function carregarUsuarios() {
                     <span class="tagPermissao">${rotuloPermTipo(u.permissaoTipoPesagem)}</span>
                     <span class="tagPermissao">Dash: ${rotuloPermEscopo(u.permissaoDashboard)}</span>
                     <span class="tagPermissao">Rel: ${rotuloPermEscopo(u.permissaoRelatorios)}</span>
+                    ${u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined ? `<span class="tagPermissao">Máx compra: ${formatarValorReais(u.valorMaximoCompra)}</span>` : ""}
                 `}</td>
                 <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
@@ -73,6 +74,10 @@ function rotuloPermEscopo(v) {
     return v === "proprio" ? "Próprio" : "Geral";
 }
 
+function formatarValorReais(n) {
+    return "R$ " + Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function alternarCamposPermissao() {
     let bloco = document.getElementById("blocoPermissoesUsuario");
     let ehAdmin = document.getElementById("usuarioPapelInput").value === "admin";
@@ -91,6 +96,9 @@ function abrirModalUsuario(usuarioExistente) {
     document.getElementById("usuarioPermTipoInput").value = (usuarioExistente && usuarioExistente.permissaoTipoPesagem) || "ambos";
     document.getElementById("usuarioPermDashboardInput").value = (usuarioExistente && usuarioExistente.permissaoDashboard) || "geral";
     document.getElementById("usuarioPermRelatoriosInput").value = (usuarioExistente && usuarioExistente.permissaoRelatorios) || "geral";
+    document.getElementById("usuarioValorMaxCompraInput").value = (usuarioExistente && usuarioExistente.valorMaximoCompra !== null && usuarioExistente.valorMaximoCompra !== undefined)
+        ? String(usuarioExistente.valorMaximoCompra).replace(".", ",")
+        : "";
     alternarCamposPermissao();
     let erroEl = document.getElementById("usuarioErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
@@ -119,6 +127,12 @@ async function salvarUsuario() {
         let permissaoTipoPesagem = document.getElementById("usuarioPermTipoInput").value;
         let permissaoDashboard = document.getElementById("usuarioPermDashboardInput").value;
         let permissaoRelatorios = document.getElementById("usuarioPermRelatoriosInput").value;
+        let valorMaxTexto = document.getElementById("usuarioValorMaxCompraInput").value.trim();
+        let valorMaximoCompra = valorMaxTexto ? parseFloat(valorMaxTexto.replace(/\./g, "").replace(",", ".")) : null;
+        if (valorMaxTexto && !Number.isFinite(valorMaximoCompra)) {
+            mostrarErro("Valor máximo de compra inválido.");
+            return;
+        }
 
         if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
             mostrarErro("Preencha todos os campos.");
@@ -127,7 +141,7 @@ async function salvarUsuario() {
 
         let resp;
         if (usuarioEditandoId) {
-            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios };
+            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra };
             if (senha) corpo.senha = senha;
             resp = await fetch(`${API_URL}/api/usuarios/${usuarioEditandoId}`, {
                 method: "PUT",
@@ -138,7 +152,7 @@ async function salvarUsuario() {
             resp = await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios })
+                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra })
             });
         }
         let dados = await resp.json().catch(() => ({}));

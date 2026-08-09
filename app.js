@@ -64,6 +64,18 @@ function iniciarPesagem(){
         return;
     }
 
+    let tipoOperacaoEl = document.getElementById("tipoOperacao");
+    if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin"){
+        let limite = obterValorMaximoCompra();
+        if(limite !== null){
+            let valorDigitado = parseFloat(vKg.value.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
+            if(valorDigitado > limite){
+                alert("Valor de compra não autorizado, consulte o administrador.");
+                return;
+            }
+        }
+    }
+
     trocarTela("telaPesagem");
     atualizarStats();
 }
@@ -839,6 +851,13 @@ function obterPermRelatorios(){
     return localStorage.getItem("permRelatorios") || "geral";
 }
 
+function obterValorMaximoCompra(){
+    let v = localStorage.getItem("valorMaximoCompra");
+    if(v === null || v === "") return null;
+    let n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+}
+
 function aplicarRestricoesUsuario(){
     let selectTipo = document.getElementById("tipoOperacao");
     if(!selectTipo) return;
@@ -907,6 +926,7 @@ async function enviarLogin(){
         localStorage.setItem("permTipoPesagem", dados.permissaoTipoPesagem || "ambos");
         localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
         localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");
+        localStorage.setItem("valorMaximoCompra", dados.valorMaximoCompra != null ? String(dados.valorMaximoCompra) : "");
         fecharModalLogin();
         atualizarBotaoLogin();
         aplicarRestricoesUsuario();
@@ -930,6 +950,7 @@ function sair(){
     localStorage.removeItem("permTipoPesagem");
     localStorage.removeItem("permDashboard");
     localStorage.removeItem("permRelatorios");
+    localStorage.removeItem("valorMaximoCompra");
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
     atualizarStatusSync("👤 Não conectado");
@@ -1058,7 +1079,7 @@ async function sincronizarAgora(){
         }
 
         if(idsRejeitadosPermissao.length > 0){
-            atualizarStatusSync("⚠️ " + idsRejeitadosPermissao.length + " pesagem(ns) não sincronizada(s): tipo não autorizado");
+            atualizarStatusSync("⚠️ " + idsRejeitadosPermissao.length + " pesagem(ns) não sincronizada(s): não autorizada(s)");
         } else {
             atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
         }
