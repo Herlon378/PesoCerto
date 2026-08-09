@@ -75,7 +75,7 @@ function rotuloPermEscopo(v) {
 }
 
 function formatarValorReais(n) {
-    return "R$ " + Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return "R$ " + formatarMoeda(n);
 }
 
 function alternarCamposPermissao() {

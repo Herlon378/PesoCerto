@@ -241,6 +241,11 @@ function formatarPeso(n){
     return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
 }
 
+function formatarMoeda(n){
+    n = Number(n) || 0;
+    return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function converterParaArroba(pesoKg, rendimentoPct){
     return (pesoKg * rendimentoPct / 100) / 15;
 }
@@ -284,8 +289,8 @@ function atualizarStats(){
     if(medEl) medEl.innerText = media.toFixed(2).replace(".", ",");
     if(totEl) totEl.innerText = formatarPeso(total);
     if(ultEl) ultEl.innerText = formatarPeso(ultimo);
-    if(uValEl) uValEl.innerText = "R$ " + ultimoValor.toFixed(2).replace(".", ",");
-    if(tValEl) tValEl.innerText = "R$ " + totalValor.toFixed(2).replace(".", ",");
+    if(uValEl) uValEl.innerText = "R$ " + formatarMoeda(ultimoValor);
+    if(tValEl) tValEl.innerText = "R$ " + formatarMoeda(totalValor);
 
     if(cardUltimoKgEl) cardUltimoKgEl.style.display = ehArroba ? "none" : "block";
     if(cardUltimoValorEl) cardUltimoValorEl.style.display = ehArroba ? "none" : "block";
@@ -307,7 +312,7 @@ function atualizarStats(){
                 <div class="itemPesagem">
                     <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b>${textoArroba} ${p.obs ? `(${p.obs})` : ''}</span>
                     <span class="itemPesagemDireita">
-                        <span style="color:#2e7d32">R$ ${valorItem.toFixed(2).replace(".", ",")}</span>
+                        <span style="color:#2e7d32">R$ ${formatarMoeda(valorItem)}</span>
                         <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
                     </span>
                 </div>
@@ -487,14 +492,14 @@ function mostrarDashboard(){
     set("dashVendidos", animaisVendidos);
     set("dashKgCompra", formatarPeso(kgCompra));
     set("dashKgVenda", formatarPeso(kgVenda));
-    set("dashValorCompra", "R$ " + valorCompra.toFixed(2).replace(".", ","));
-    set("dashValorVenda", "R$ " + valorVenda.toFixed(2).replace(".", ","));
+    set("dashValorCompra", "R$ " + formatarMoeda(valorCompra));
+    set("dashValorVenda", "R$ " + formatarMoeda(valorVenda));
 
     // cartões extras e comparativo Compra x Venda (só existem na tela de gerenciamento)
     let elSaldo = document.getElementById("dashSaldo");
     if(elSaldo){
         let positivo = saldo >= 0;
-        elSaldo.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + Math.abs(saldo).toFixed(2).replace(".", ",");
+        elSaldo.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + formatarMoeda(Math.abs(saldo));
         elSaldo.style.color = positivo ? "#0ca30c" : "#d03b3b";
     }
     set("dashKgTotal", formatarPeso(kgTotal) + " kg");
@@ -509,9 +514,8 @@ function mostrarDashboard(){
 }
 
 function formatarValorKg(input) {
-    let valor = input.value.replace(/\D/g, "");
-    valor = (valor / 100).toFixed(2).replace(".", ",");
-    input.value = valor === "0,00" ? "" : "R$ " + valor;
+    let numero = Number(input.value.replace(/\D/g, "")) / 100;
+    input.value = numero === 0 ? "" : "R$ " + formatarMoeda(numero);
     atualizarStats();
 }
 
@@ -556,14 +560,14 @@ async function gerarPDF() {
         
         y += 7;
         pdf.text(`Lote/Desc: ${r.descricao || 'Sem Descrição'}`, 10, y);
-        pdf.text(`Valor base/kg: R$ ${d.valorKgNum.toFixed(2).replace(".", ",")}`, 110, y);
+        pdf.text(`Valor base/kg: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
         
         y += 7;
         pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 10, y);
         pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 110, y);
         
         y += 7;
-        pdf.text(`Faturamento Lote: R$ ${d.totalRS.toFixed(2).replace(".", ",")}`, 10, y);
+        pdf.text(`Faturamento Lote: R$ ${formatarMoeda(d.totalRS)}`, 10, y);
         pdf.text(`Média por Animal: ${d.mediaKg.toFixed(2).replace(".", ",")} kg`, 110, y);
 
         if(d.ehArroba){
@@ -598,7 +602,7 @@ async function gerarPDF() {
             let valorInd = (d.ehArroba ? d.arrobaDe(pAtual) : pAtual) * d.valorKgNum;
             pdf.text(String(i + 1), 10, y);
             pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
-            pdf.text(`R$ ${valorInd.toFixed(2).replace(".", ",")}`, 90, y);
+            pdf.text(`R$ ${formatarMoeda(valorInd)}`, 90, y);
             pdf.text(p.obs || "-", 150, y);
             y += 7;
         });
@@ -683,9 +687,9 @@ function prepararImpressao(){
         <h2>Pesagem Estância Reis ${r.numero ? "— Nº " + r.numero : ""}</h2>
         <hr>
         <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${d.dataHora}</p>
-        <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${d.valorKgNum.toFixed(2).replace(".", ",")}</p>
+        <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${formatarMoeda(d.valorKgNum)}</p>
         <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg.toFixed(2).replace(".", ",")} kg</p>
-        <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${d.totalRS.toFixed(2).replace(".", ",")}</p>
+        <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${formatarMoeda(d.totalRS)}</p>
         ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
         <br>
         <table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
@@ -698,7 +702,7 @@ function prepararImpressao(){
     r.pesos.forEach((p, i) => {
         let pAtual = p.peso || 0;
         let vInd = (d.ehArroba ? d.arrobaDe(pAtual) : pAtual) * d.valorKgNum;
-        html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${vInd.toFixed(2).replace(".", ",")}</td><td>${p.obs || "-"}</td></tr>`;
+        html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${p.obs || "-"}</td></tr>`;
     });
     
     html += `</tbody></table>`;
@@ -747,6 +751,8 @@ function exportarExcel(){
 // COMPARTILHAR NO WHATSAPP
 // ========================================
 function montarMensagemWhatsApp(r, d){
+    let valorMedio = d.totalAnimais ? d.totalRS / d.totalAnimais : 0;
+
     let linhas = [];
     linhas.push("📋 *RELATÓRIO DE PESAGEM*" + (r.numero ? " — Nº " + r.numero : ""));
     linhas.push("");
@@ -754,7 +760,7 @@ function montarMensagemWhatsApp(r, d){
     linhas.push("*Vendedor:* " + (r.vendedor || "Não informado"));
     linhas.push("*Lote/Descrição:* " + (r.descricao || "Sem descrição"));
     linhas.push("*Data:* " + d.dataHora);
-    linhas.push("*Valor:* R$ " + d.valorKgNum.toFixed(2).replace(".", ",") + (d.ehArroba ? " por @" : " por kg"));
+    linhas.push("*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehArroba ? " por @" : " por kg"));
     linhas.push("");
     linhas.push("*RESUMO*");
     linhas.push("Total de animais: " + d.totalAnimais);
@@ -763,22 +769,25 @@ function montarMensagemWhatsApp(r, d){
     if(d.ehArroba){
         linhas.push("Total em arrobas: " + d.totalArroba.toFixed(2).replace(".", ",") + " @ (Rend. " + d.rendimentoNum + "%)");
     }
-    linhas.push("*Faturamento total: R$ " + d.totalRS.toFixed(2).replace(".", ",") + "*");
+    linhas.push("Valor médio por animal: R$ " + formatarMoeda(valorMedio));
+    linhas.push("3 mais pesados: " + d.pesados);
+    linhas.push("3 mais leves: " + d.leves);
+    linhas.push("*Faturamento total: R$ " + formatarMoeda(d.totalRS) + "*");
     linhas.push("");
     linhas.push("*PESAGENS*");
     (r.pesos || []).forEach((p, i) => {
         let pesoKg = p.peso || 0;
         let valorInd = (d.ehArroba ? d.arrobaDe(pesoKg) : pesoKg) * d.valorKgNum;
-        let linha = (i + 1) + ". " + formatarPeso(pesoKg) + " kg";
+        let linha = (i + 1) + " - " + formatarPeso(pesoKg) + "kg";
         if(d.ehArroba){
             linha += " (" + d.arrobaDe(pesoKg).toFixed(2).replace(".", ",") + " @)";
         }
-        linha += " — R$ " + valorInd.toFixed(2).replace(".", ",");
+        linha += " - R$ " + formatarMoeda(valorInd);
         if(p.obs) linha += " [" + p.obs + "]";
         linhas.push(linha);
     });
     linhas.push("");
-    linhas.push("💰 *Total: R$ " + d.totalRS.toFixed(2).replace(".", ",") + "*");
+    linhas.push("💰 *Total: R$ " + formatarMoeda(d.totalRS) + "*");
     return linhas.join("\n");
 }
 
