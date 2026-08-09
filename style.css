@@ -417,6 +417,13 @@ input, select {
     text-align: left;
 }
 
+.loginSubtitulo {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+
 .btn-nao {
     flex: 1;
     background: red;

@@ -948,26 +948,37 @@ function aplicarRestricoesUsuario(){
     }
 }
 
-function abrirModalLogin(obrigatorio){
-    let modal = document.getElementById("modalLogin");
-    if(!modal) return;
+function mostrarTelaLogin(){
     let erroEl = document.getElementById("loginErro");
     if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
     let campoUsuario = document.getElementById("loginUsuario");
     let campoSenha = document.getElementById("loginSenha");
     if(campoUsuario) campoUsuario.value = "";
     if(campoSenha) campoSenha.value = "";
-    let btnCancelar = document.getElementById("btnCancelarLogin");
-    if(btnCancelar) btnCancelar.style.display = obrigatorio ? "none" : "block";
-    let tituloEl = document.getElementById("loginTitulo");
-    if(tituloEl) tituloEl.innerText = obrigatorio ? "👤 Entre para usar o app" : "👤 Entrar";
-    modal.style.display = "flex";
+    trocarTela("telaLogin");
     if(campoUsuario) campoUsuario.focus();
 }
 
-function fecharModalLogin(){
-    let modal = document.getElementById("modalLogin");
-    if(modal) modal.style.display = "none";
+function limparDadosVisiveis(){
+    let listaRel = document.getElementById("listaRelatorios");
+    if(listaRel) listaRel.innerHTML = "";
+    let corpoUsuarios = document.getElementById("corpoTabelaUsuarios");
+    if(corpoUsuarios) corpoUsuarios.innerHTML = "";
+    let corpoLotes = document.getElementById("corpoTabelaLotes");
+    if(corpoLotes) corpoLotes.innerHTML = "";
+    ["dashAtivos", "dashComprados", "dashVendidos", "dashKgCompra", "dashKgVenda",
+     "dashValorCompra", "dashValorVenda", "dashSaldo", "dashKgTotal", "dashAnimaisTotal"].forEach(id => {
+        let el = document.getElementById(id);
+        if(el) el.innerText = "0";
+    });
+}
+
+function irParaTelaPrincipal(){
+    if(document.getElementById("telaMenu")){
+        trocarTela("telaMenu");
+    } else if(document.getElementById("telaDashboard")){
+        abrirDashboard();
+    }
 }
 
 async function enviarLogin(){
@@ -1002,7 +1013,7 @@ async function enviarLogin(){
         localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
         localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");
         localStorage.setItem("valorMaximoCompra", dados.valorMaximoCompra != null ? String(dados.valorMaximoCompra) : "");
-        fecharModalLogin();
+        irParaTelaPrincipal();
         atualizarBotaoLogin();
         aplicarRestricoesUsuario();
         sincronizarAgora();
@@ -1026,31 +1037,41 @@ function sair(){
     localStorage.removeItem("permDashboard");
     localStorage.removeItem("permRelatorios");
     localStorage.removeItem("valorMaximoCompra");
+    limparDadosVisiveis();
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
     atualizarStatusSync("👤 Não conectado");
+    mostrarTelaLogin();
 }
 
 function atualizarBotaoLogin(){
+    let logado = !!obterToken();
+
     let btn = document.getElementById("btnLoginLogout");
-    if(!btn) return;
-    let nome = obterUsuarioLogado();
-    if(nome){
-        btn.innerText = "🚪 Sair (" + nome + ")";
-        btn.onclick = sair;
-    } else {
-        btn.innerText = "👤 Entrar";
-        btn.onclick = abrirModalLogin;
+    if(btn){
+        let nome = obterUsuarioLogado();
+        if(nome){
+            btn.innerText = "🚪 Sair (" + nome + ")";
+            btn.onclick = sair;
+        } else {
+            btn.innerText = "👤 Entrar";
+            btn.onclick = mostrarTelaLogin;
+        }
     }
 
-    let navUsuarios = document.querySelector('[data-tela="telaUsuarios"]');
-    if(navUsuarios){
-        navUsuarios.style.display = (obterPapelLogado() === "admin") ? "inline-block" : "none";
-    }
-    let navLotes = document.querySelector('[data-tela="telaLotes"]');
-    if(navLotes){
-        navLotes.style.display = (obterPapelLogado() === "admin") ? "inline-block" : "none";
-    }
+    // Nav do gerenciamento (desktop): cada botão só aparece se o usuário
+    // estiver logado, e Usuários/Lotes exigem também o papel admin.
+    [
+        { id: "telaDashboard", soAdmin: false },
+        { id: "telaResultado", soAdmin: false },
+        { id: "telaUsuarios", soAdmin: true },
+        { id: "telaLotes", soAdmin: true }
+    ].forEach(({ id, soAdmin }) => {
+        let navBtn = document.querySelector(`[data-tela="${id}"]`);
+        if(!navBtn) return;
+        let podeVer = logado && (!soAdmin || obterPapelLogado() === "admin");
+        navBtn.style.display = podeVer ? "inline-block" : "none";
+    });
 }
 
 function carregarLotesSelect(){
@@ -1207,11 +1228,13 @@ window.onload = function() {
     inicializarSliderFinalizar();
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
-    sincronizarAgora();
 
-    if(!obterToken()){
-        abrirModalLogin(true);
+    if(obterToken()){
+        irParaTelaPrincipal();
+    } else {
+        mostrarTelaLogin();
     }
+    sincronizarAgora();
 };
 
 // ========================================
