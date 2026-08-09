@@ -120,11 +120,6 @@ function resetarPesagemAtual() {
     trocarTela("telaInicial");
 }
 
-function novaPesagem() {
-    if(pesos.length > 0 && !confirm("Deseja descartar a pesagem atual e iniciar uma nova?")) return;
-    resetarPesagemAtual();
-}
-
 // ========================================
 // MODAL CANCELAR / FINALIZAR PESAGEM (ARRASTE)
 // ========================================
@@ -746,6 +741,58 @@ function exportarExcel(){
     let workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Pesagem");
     XLSX.writeFile(workbook, nomeArquivoPesagem(r, "xlsx"));
+}
+
+// ========================================
+// COMPARTILHAR NO WHATSAPP
+// ========================================
+function montarMensagemWhatsApp(r, d){
+    let linhas = [];
+    linhas.push("📋 *RELATÓRIO DE PESAGEM*" + (r.numero ? " — Nº " + r.numero : ""));
+    linhas.push("");
+    linhas.push("*Tipo:* " + ((r.tipo || "venda") === "compra" ? "Compra" : "Venda"));
+    linhas.push("*Vendedor:* " + (r.vendedor || "Não informado"));
+    linhas.push("*Lote/Descrição:* " + (r.descricao || "Sem descrição"));
+    linhas.push("*Data:* " + d.dataHora);
+    linhas.push("*Valor:* R$ " + d.valorKgNum.toFixed(2).replace(".", ",") + (d.ehArroba ? " por @" : " por kg"));
+    linhas.push("");
+    linhas.push("*RESUMO*");
+    linhas.push("Total de animais: " + d.totalAnimais);
+    linhas.push("Peso total: " + formatarPeso(d.totalKg) + " kg");
+    linhas.push("Peso médio: " + d.mediaKg.toFixed(2).replace(".", ",") + " kg");
+    if(d.ehArroba){
+        linhas.push("Total em arrobas: " + d.totalArroba.toFixed(2).replace(".", ",") + " @ (Rend. " + d.rendimentoNum + "%)");
+    }
+    linhas.push("*Faturamento total: R$ " + d.totalRS.toFixed(2).replace(".", ",") + "*");
+    linhas.push("");
+    linhas.push("*PESAGENS*");
+    (r.pesos || []).forEach((p, i) => {
+        let pesoKg = p.peso || 0;
+        let valorInd = (d.ehArroba ? d.arrobaDe(pesoKg) : pesoKg) * d.valorKgNum;
+        let linha = (i + 1) + ". " + formatarPeso(pesoKg) + " kg";
+        if(d.ehArroba){
+            linha += " (" + d.arrobaDe(pesoKg).toFixed(2).replace(".", ",") + " @)";
+        }
+        linha += " — R$ " + valorInd.toFixed(2).replace(".", ",");
+        if(p.obs) linha += " [" + p.obs + "]";
+        linhas.push(linha);
+    });
+    linhas.push("");
+    linhas.push("💰 *Total: R$ " + d.totalRS.toFixed(2).replace(".", ",") + "*");
+    return linhas.join("\n");
+}
+
+function compartilharWhatsApp(){
+    let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
+    if(!sel){ alert("Selecione um relatório primeiro!"); return; }
+
+    let indiceReal = parseInt(sel.value);
+    let r = relatorios[indiceReal];
+    if(!r || !r.pesos){ alert("Erro ao ler os dados do relatório selecionado."); return; }
+
+    let d = calcularDadosCompletos(r);
+    let mensagem = montarMensagemWhatsApp(r, d);
+    window.open("https://wa.me/?text=" + encodeURIComponent(mensagem), "_blank");
 }
 
 // ========================================
