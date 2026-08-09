@@ -25,7 +25,9 @@
     </select>
     <input id="rendimentoArroba" placeholder="% de Rendimento (ex: 50)" inputmode="decimal" style="display:none">
     <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
-    <input id="descricao" placeholder="Descrição do lote">
+    <select id="descricao">
+        <option value="">Sem lote</option>
+    </select>
     <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
     <button class="btnGrande" onclick="abrirRelatorios()">Relatórios</button>
     <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>

@@ -15,6 +15,7 @@
     <button data-tela="telaDashboard" onclick="abrirDashboard()">📊 Dashboard</button>
     <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
     <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
+    <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes();">🏷️ Lotes</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
         <button id="btnLoginLogout" onclick="abrirModalLogin()">👤 Entrar</button>
@@ -133,6 +134,19 @@
     </table>
 </div>
 
+<div id="telaLotes" class="tela">
+    <h2>Lotes</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalLote()" style="background:#2e7d32">➕ Novo Lote</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Nome</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaLotes"></tbody>
+    </table>
+</div>
+
 <div id="telaImpressao" class="tela">
     <div id="folhaRelatorio"></div>
     <div class="botoes-impressao">
@@ -171,6 +185,18 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalAcao()">NÃO</button>
             <button class="btn-sim" onclick="confirmarModalAcao()">SIM</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalLote" class="modal">
+    <div class="modal-box">
+        <h2 id="modalLoteTitulo">➕ Novo Lote</h2>
+        <input id="loteNomeInput" placeholder="Nome do lote">
+        <p id="loteErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalLote()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarLote()">Salvar</button>
         </div>
     </div>
 </div>

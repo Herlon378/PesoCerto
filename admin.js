@@ -205,3 +205,134 @@ async function excluirUsuario(id, nome) {
         alert("Erro de conexão: " + e.message);
     }
 }
+
+// ========================================
+// GERENCIAMENTO DE LOTES
+// ========================================
+let loteEditandoId = null;
+
+async function carregarLotes() {
+    let token = obterToken();
+    let corpo = document.getElementById("corpoTabelaLotes");
+    if (!token || !corpo) return;
+
+    try {
+        let resp = await fetch(`${API_URL}/api/lotes`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        if (!resp.ok) {
+            corpo.innerHTML = `<tr><td colspan="3">Sessão expirada ou sem acesso.</td></tr>`;
+            return;
+        }
+        let lotes = await resp.json();
+        if (lotes.length === 0) {
+            corpo.innerHTML = `<tr><td colspan="3">Nenhum lote cadastrado ainda.</td></tr>`;
+            return;
+        }
+        corpo.innerHTML = lotes.map(l => `
+            <tr>
+                <td>${l.nome}</td>
+                <td>${l.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
+                <td class="acoesUsuario">
+                    <button onclick='abrirModalLote(${JSON.stringify(l)})'>✏️</button>
+                    <button onclick='alternarAtivoLote(${JSON.stringify(l.id)}, ${!l.ativo})'>${l.ativo ? "🚫" : "✅"}</button>
+                    <button onclick='excluirLote(${JSON.stringify(l.id)}, ${JSON.stringify(l.nome)})'>🗑️</button>
+                </td>
+            </tr>
+        `).join("");
+    } catch (e) {
+        corpo.innerHTML = `<tr><td colspan="3">Erro ao carregar lotes.</td></tr>`;
+    }
+}
+
+function abrirModalLote(loteExistente) {
+    loteEditandoId = loteExistente ? loteExistente.id : null;
+    document.getElementById("modalLoteTitulo").innerText = loteEditandoId ? "✏️ Editar Lote" : "➕ Novo Lote";
+    document.getElementById("loteNomeInput").value = loteExistente ? loteExistente.nome : "";
+    let erroEl = document.getElementById("loteErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalLote").style.display = "flex";
+}
+
+function fecharModalLote() {
+    document.getElementById("modalLote").style.display = "none";
+    loteEditandoId = null;
+}
+
+async function salvarLote() {
+    let erroEl = document.getElementById("loteErro");
+    function mostrarErro(msg) {
+        if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; }
+    }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou. Feche este aviso e entre de novo."); return; }
+
+        let nome = document.getElementById("loteNomeInput").value.trim();
+        if (!nome) { mostrarErro("Informe o nome do lote."); return; }
+
+        let resp;
+        if (loteEditandoId) {
+            resp = await fetch(`${API_URL}/api/lotes/${loteEditandoId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify({ nome })
+            });
+        } else {
+            resp = await fetch(`${API_URL}/api/lotes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify({ nome })
+            });
+        }
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            mostrarErro(dados.erro || `Erro ao salvar lote (HTTP ${resp.status}).`);
+            return;
+        }
+        fecharModalLote();
+        carregarLotes();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function alternarAtivoLote(id, novoAtivo) {
+    if (!confirm(novoAtivo ? "Reativar este lote?" : "Desativar este lote? Ele deixa de aparecer na lista do celular.")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/lotes/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ ativo: novoAtivo })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            alert(dados.erro || `Erro ao atualizar lote (HTTP ${resp.status}).`);
+            return;
+        }
+        carregarLotes();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirLote(id, nome) {
+    if (!confirm(`Excluir o lote "${nome}" permanentemente?`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/lotes/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            alert(dados.erro || `Erro ao excluir lote (HTTP ${resp.status}).`);
+            return;
+        }
+        carregarLotes();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}

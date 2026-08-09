@@ -972,6 +972,20 @@ function atualizarBotaoLogin(){
     if(navUsuarios){
         navUsuarios.style.display = (obterPapelLogado() === "admin") ? "inline-block" : "none";
     }
+    let navLotes = document.querySelector('[data-tela="telaLotes"]');
+    if(navLotes){
+        navLotes.style.display = (obterPapelLogado() === "admin") ? "inline-block" : "none";
+    }
+}
+
+function carregarLotesSelect(){
+    let select = document.getElementById("descricao");
+    if(!select) return;
+    let lotes = JSON.parse(localStorage.getItem("lotesCache") || "[]");
+    let valorAtual = select.value;
+    select.innerHTML = `<option value="">Sem lote</option>` +
+        lotes.map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+    select.value = valorAtual;
 }
 
 function registrarExclusaoPendente(id){
@@ -1057,6 +1071,15 @@ async function sincronizarAgora(){
         if(!respGet.ok) throw new Error(sessaoExpirada ? "sessão expirada, faça login de novo" : "falha ao buscar dados");
         let doServidor = await respGet.json();
 
+        let respLotes = await fetch(`${API_URL}/api/lotes`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        if(respLotes.ok){
+            let lotesDoServidor = await respLotes.json();
+            localStorage.setItem("lotesCache", JSON.stringify(lotesDoServidor.filter(l => l.ativo)));
+            carregarLotesSelect();
+        }
+
         let mapa = {};
         doServidor.forEach(r => { mapa[r.id] = Object.assign({}, r, { sincronizado: true }); });
         lista.forEach(r => {
@@ -1101,6 +1124,7 @@ window.addEventListener("online", () => sincronizarAgora());
 // ========================================
 window.onload = function() {
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
+    carregarLotesSelect();
     if(typeof restaurarPesagem === "function") {
         restaurarPesagem();
     }
