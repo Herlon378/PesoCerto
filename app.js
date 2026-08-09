@@ -786,7 +786,7 @@ function obterPapelLogado(){
     return localStorage.getItem("usuarioPapel") || "";
 }
 
-function abrirModalLogin(){
+function abrirModalLogin(obrigatorio){
     let modal = document.getElementById("modalLogin");
     if(!modal) return;
     let erroEl = document.getElementById("loginErro");
@@ -795,6 +795,10 @@ function abrirModalLogin(){
     let campoSenha = document.getElementById("loginSenha");
     if(campoUsuario) campoUsuario.value = "";
     if(campoSenha) campoSenha.value = "";
+    let btnCancelar = document.getElementById("btnCancelarLogin");
+    if(btnCancelar) btnCancelar.style.display = obrigatorio ? "none" : "block";
+    let tituloEl = document.getElementById("loginTitulo");
+    if(tituloEl) tituloEl.innerText = obrigatorio ? "👤 Entre para usar o app" : "👤 Entrar";
     modal.style.display = "flex";
     if(campoUsuario) campoUsuario.focus();
 }
@@ -993,6 +997,10 @@ window.onload = function() {
     inicializarSliderFinalizar();
     atualizarBotaoLogin();
     sincronizarAgora();
+
+    if(!obterToken()){
+        abrirModalLogin(true);
+    }
 };
 
 // ========================================

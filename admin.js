@@ -11,9 +11,6 @@
         document.querySelectorAll(".navDesktop [data-tela]").forEach(b => {
             b.classList.toggle("navAtivo", b.dataset.tela === "telaDashboard");
         });
-        if (!obterToken()) {
-            setTimeout(abrirModalLogin, 300);
-        }
     });
 
     // atualização periódica: tela de gerenciamento fica sempre com dado fresco
@@ -81,23 +78,25 @@ function fecharModalUsuario() {
 }
 
 async function salvarUsuario() {
-    let token = obterToken();
-    let nome = document.getElementById("usuarioNomeInput").value.trim();
-    let usuario = document.getElementById("usuarioLoginInput").value.trim();
-    let senha = document.getElementById("usuarioSenhaInput").value;
-    let papel = document.getElementById("usuarioPapelInput").value;
     let erroEl = document.getElementById("usuarioErro");
-
     function mostrarErro(msg) {
         if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; }
     }
 
-    if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
-        mostrarErro("Preencha todos os campos.");
-        return;
-    }
-
     try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou. Feche este aviso e entre de novo."); return; }
+
+        let nome = document.getElementById("usuarioNomeInput").value.trim();
+        let usuario = document.getElementById("usuarioLoginInput").value.trim();
+        let senha = document.getElementById("usuarioSenhaInput").value;
+        let papel = document.getElementById("usuarioPapelInput").value;
+
+        if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
+            mostrarErro("Preencha todos os campos.");
+            return;
+        }
+
         let resp;
         if (usuarioEditandoId) {
             let corpo = { nome, papel };
@@ -114,47 +113,53 @@ async function salvarUsuario() {
                 body: JSON.stringify({ nome, usuario, senha, papel })
             });
         }
-        let dados = await resp.json();
+        let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            mostrarErro(dados.erro || "Erro ao salvar usuário.");
+            mostrarErro(dados.erro || `Erro ao salvar usuário (HTTP ${resp.status}).`);
             return;
         }
         fecharModalUsuario();
         carregarUsuarios();
     } catch (e) {
-        mostrarErro("Erro de conexão.");
+        mostrarErro("Erro de conexão: " + e.message);
     }
 }
 
 async function alternarAtivoUsuario(id, novoAtivo) {
-    let token = obterToken();
     if (!confirm(novoAtivo ? "Reativar este usuário?" : "Desativar este usuário? Ele não conseguirá mais entrar.")) return;
-
-    let resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ ativo: novoAtivo })
-    });
-    let dados = await resp.json().catch(() => ({}));
-    if (!resp.ok) {
-        alert(dados.erro || "Erro ao atualizar usuário.");
-        return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ ativo: novoAtivo })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            alert(dados.erro || `Erro ao atualizar usuário (HTTP ${resp.status}).`);
+            return;
+        }
+        carregarUsuarios();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
     }
-    carregarUsuarios();
 }
 
 async function excluirUsuario(id, nome) {
-    let token = obterToken();
     if (!confirm(`Excluir o usuário "${nome}" permanentemente?`)) return;
-
-    let resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
-        method: "DELETE",
-        headers: { "Authorization": "Bearer " + token }
-    });
-    let dados = await resp.json().catch(() => ({}));
-    if (!resp.ok) {
-        alert(dados.erro || "Erro ao excluir usuário.");
-        return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+            alert(dados.erro || `Erro ao excluir usuário (HTTP ${resp.status}).`);
+            return;
+        }
+        carregarUsuarios();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
     }
-    carregarUsuarios();
 }

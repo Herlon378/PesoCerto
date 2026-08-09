@@ -115,12 +115,12 @@
 
 <div id="modalLogin" class="modal">
     <div class="modal-box">
-        <h2>👤 Entrar</h2>
+        <h2 id="loginTitulo">👤 Entrar</h2>
         <input id="loginUsuario" placeholder="Usuário">
         <input id="loginSenha" type="password" placeholder="Senha">
         <p id="loginErro" class="loginErro" style="display:none"></p>
         <div class="botoes">
-            <button class="btn-nao" onclick="fecharModalLogin()">Cancelar</button>
+            <button class="btn-nao" id="btnCancelarLogin" onclick="fecharModalLogin()">Cancelar</button>
             <button class="btn-sim" onclick="enviarLogin()">Entrar</button>
         </div>
     </div>
