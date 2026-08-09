@@ -47,14 +47,76 @@
 
 <div id="telaDashboard" class="tela ativa">
     <h2>Dashboard</h2>
-    <div class="stats statsDashboardDesktop">
-        <div class="statCard">Animais Ativos<br><span id="dashAtivos">0</span></div>
-        <div class="statCard">Comprados<br><span id="dashComprados">0</span></div>
-        <div class="statCard">Vendidos<br><span id="dashVendidos">0</span></div>
-        <div class="statCard">Kg Compra<br><span id="dashKgCompra">0</span></div>
-        <div class="statCard">Kg Venda<br><span id="dashKgVenda">0</span></div>
-        <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
-        <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
+
+    <div class="dashHero">
+        <span class="dashHeroLabel">🐄 Animais ativos no rebanho</span>
+        <span class="dashHeroValor" id="dashAtivos">0</span>
+    </div>
+
+    <div class="dashKpiRow">
+        <div class="statTile">
+            <span class="statTileLabel">Saldo (venda − compra)</span>
+            <span class="statTileValor" id="dashSaldo">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">Kg movimentado</span>
+            <span class="statTileValor" id="dashKgTotal">0 kg</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">Animais movimentados</span>
+            <span class="statTileValor" id="dashAnimaisTotal">0</span>
+        </div>
+    </div>
+
+    <div class="dashComparativo">
+        <div class="dashLegenda">
+            <span class="dashLegendaItem"><span class="dashDot dashDotCompra"></span>Compra</span>
+            <span class="dashLegendaItem"><span class="dashDot dashDotVenda"></span>Venda</span>
+        </div>
+
+        <div class="dashGradeMini">
+            <div class="dashMiniChart">
+                <span class="dashMiniChartTitulo">Animais</span>
+                <div class="dashBarLinha">
+                    <span class="dashBarRotulo">Compra</span>
+                    <div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barAnimaisCompra"></div></div>
+                    <span class="dashBarValor" id="dashComprados">0</span>
+                </div>
+                <div class="dashBarLinha">
+                    <span class="dashBarRotulo">Venda</span>
+                    <div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barAnimaisVenda"></div></div>
+                    <span class="dashBarValor" id="dashVendidos">0</span>
+                </div>
+            </div>
+
+            <div class="dashMiniChart">
+                <span class="dashMiniChartTitulo">Quilos</span>
+                <div class="dashBarLinha">
+                    <span class="dashBarRotulo">Compra</span>
+                    <div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barKgCompra"></div></div>
+                    <span class="dashBarValor" id="dashKgCompra">0</span>
+                </div>
+                <div class="dashBarLinha">
+                    <span class="dashBarRotulo">Venda</span>
+                    <div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barKgVenda"></div></div>
+                    <span class="dashBarValor" id="dashKgVenda">0</span>
+                </div>
+            </div>
+
+            <div class="dashMiniChart">
+                <span class="dashMiniChartTitulo">Faturamento</span>
+                <div class="dashBarLinha">
+                    <span class="dashBarRotulo">Compra</span>
+                    <div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barValorCompra"></div></div>
+                    <span class="dashBarValor" id="dashValorCompra">0</span>
+                </div>
+                <div class="dashBarLinha">
+                    <span class="dashBarRotulo">Venda</span>
+                    <div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barValorVenda"></div></div>
+                    <span class="dashBarValor" id="dashValorVenda">0</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

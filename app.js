@@ -377,22 +377,44 @@ function mostrarDashboard(){
     });
 
     let animaisAtivos = animaisComprados - animaisVendidos;
+    let saldo = valorVenda - valorCompra;
+    let kgTotal = kgCompra + kgVenda;
+    let animaisTotal = animaisComprados + animaisVendidos;
 
-    let elAtivos = document.getElementById("dashAtivos");
-    let elComprados = document.getElementById("dashComprados");
-    let elVendidos = document.getElementById("dashVendidos");
-    let elKgCompra = document.getElementById("dashKgCompra");
-    let elKgVenda = document.getElementById("dashKgVenda");
-    let elValorCompra = document.getElementById("dashValorCompra");
-    let elValorVenda = document.getElementById("dashValorVenda");
+    function set(id, texto){
+        let el = document.getElementById(id);
+        if(el) el.innerText = texto;
+    }
+    function setLargura(id, valor, maximo){
+        let el = document.getElementById(id);
+        if(!el) return;
+        el.style.width = (maximo > 0 ? (valor / maximo * 100) : 0) + "%";
+    }
 
-    if(elAtivos) elAtivos.innerText = animaisAtivos;
-    if(elComprados) elComprados.innerText = animaisComprados;
-    if(elVendidos) elVendidos.innerText = animaisVendidos;
-    if(elKgCompra) elKgCompra.innerText = formatarPeso(kgCompra);
-    if(elKgVenda) elKgVenda.innerText = formatarPeso(kgVenda);
-    if(elValorCompra) elValorCompra.innerText = "R$ " + valorCompra.toFixed(2).replace(".", ",");
-    if(elValorVenda) elValorVenda.innerText = "R$ " + valorVenda.toFixed(2).replace(".", ",");
+    set("dashAtivos", animaisAtivos);
+    set("dashComprados", animaisComprados);
+    set("dashVendidos", animaisVendidos);
+    set("dashKgCompra", formatarPeso(kgCompra));
+    set("dashKgVenda", formatarPeso(kgVenda));
+    set("dashValorCompra", "R$ " + valorCompra.toFixed(2).replace(".", ","));
+    set("dashValorVenda", "R$ " + valorVenda.toFixed(2).replace(".", ","));
+
+    // cartões extras e comparativo Compra x Venda (só existem na tela de gerenciamento)
+    let elSaldo = document.getElementById("dashSaldo");
+    if(elSaldo){
+        let positivo = saldo >= 0;
+        elSaldo.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + Math.abs(saldo).toFixed(2).replace(".", ",");
+        elSaldo.style.color = positivo ? "#0ca30c" : "#d03b3b";
+    }
+    set("dashKgTotal", formatarPeso(kgTotal) + " kg");
+    set("dashAnimaisTotal", animaisTotal);
+
+    setLargura("barAnimaisCompra", animaisComprados, Math.max(animaisComprados, animaisVendidos));
+    setLargura("barAnimaisVenda", animaisVendidos, Math.max(animaisComprados, animaisVendidos));
+    setLargura("barKgCompra", kgCompra, Math.max(kgCompra, kgVenda));
+    setLargura("barKgVenda", kgVenda, Math.max(kgCompra, kgVenda));
+    setLargura("barValorCompra", valorCompra, Math.max(valorCompra, valorVenda));
+    setLargura("barValorVenda", valorVenda, Math.max(valorCompra, valorVenda));
 }
 
 function formatarValorKg(input) {
