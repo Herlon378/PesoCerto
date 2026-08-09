@@ -354,12 +354,14 @@ function mostrarRelatorios(){
             ? `<span class="tagTipo tagTipoCompra">COMPRA</span>`
             : `<span class="tagTipo tagTipoVenda">VENDA</span>`;
 
+        let numeroTexto = r.numero ? ("Nº " + r.numero) : "Pendente";
+
         html += `
             <div class="cardRelatorio">
                 <label>
                     <input type="radio" name="relatorioSelecionado" value="${originalIndex}">
                     <div class="infoRelatorio">
-                        ${tagTipo}<br>
+                        ${tagTipo} <span class="numeroRelatorio">${numeroTexto}</span><br>
                         <b>Vendedor:</b> ${r.vendedor || "Não informado"}<br>
                         <b>Lote/Descrição:</b> ${r.descricao || "Sem descrição"}<br>
                         <b>Data:</b> ${r.data || "Sem data"}<br>
@@ -544,12 +546,16 @@ async function gerarPDF() {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(20);
         pdf.text("RELATÓRIO DE PESAGEM", 105, 20, { align: "center" });
+        if(r.numero){
+            pdf.setFontSize(12);
+            pdf.text(`Nº ${r.numero}`, 200, 20, { align: "right" });
+        }
         pdf.line(10, 25, 200, 25);
 
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(11);
         let y = 35;
-        
+
         pdf.text(`Vendedor: ${r.vendedor || 'Geral'}`, 10, y);
         pdf.text(`Data/Hora: ${d.dataHora}`, 110, y);
         
@@ -605,13 +611,13 @@ async function gerarPDF() {
         let pluginsNativos = window.Capacitor ? window.Capacitor.Plugins : null;
         if (!pluginsNativos || !pluginsNativos.Filesystem || !pluginsNativos.Share) {
             alert("Salvando arquivo localmente...");
-            pdf.save(`Pesagem_${(r.vendedor || 'lote').replace(/\s+/g, '_')}.pdf`);
+            pdf.save(nomeArquivoPesagem(r, "pdf"));
             return;
         }
 
         let pdfOutput = pdf.output('datauristring');
         let base64Data = pdfOutput.split(',')[1];
-        let nomeArquivo = `Pesagem_${(r.vendedor || 'lote').replace(/\s+/g, '_')}.pdf`;
+        let nomeArquivo = nomeArquivoPesagem(r, "pdf");
 
         const { Filesystem, Share } = pluginsNativos;
 
@@ -631,6 +637,12 @@ async function gerarPDF() {
     } catch (e) {
         alert("Ocorreu um erro no processamento do PDF: " + e.message);
     }
+}
+
+function nomeArquivoPesagem(r, extensao){
+    let prefixo = r.numero ? `Pesagem_${r.numero}` : "Pesagem";
+    let vendedor = (r.vendedor || "lote").replace(/\s+/g, "_");
+    return `${prefixo}_${vendedor}.${extensao}`;
 }
 
 function calcularDadosCompletos(r) {
@@ -673,7 +685,7 @@ function prepararImpressao(){
     let d = calcularDadosCompletos(r);
     
     let html = `
-        <h2>Pesagem Estância Reis</h2>
+        <h2>Pesagem Estância Reis ${r.numero ? "— Nº " + r.numero : ""}</h2>
         <hr>
         <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${d.dataHora}</p>
         <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${d.valorKgNum.toFixed(2).replace(".", ",")}</p>
@@ -733,7 +745,7 @@ function exportarExcel(){
     let worksheet = XLSX.utils.json_to_sheet(dataExcel);
     let workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Pesagem");
-    XLSX.writeFile(workbook, `Pesagem_${(r.vendedor || 'lote').replace(/\s+/g, '_')}.xlsx`);
+    XLSX.writeFile(workbook, nomeArquivoPesagem(r, "xlsx"));
 }
 
 // ========================================
