@@ -91,6 +91,36 @@ body.modoDesktop .tela.ativa {
 }
 
 /* ============ DASHBOARD ============ */
+.dashFiltros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.dashFiltros select {
+    width: auto;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(11,11,11,0.15);
+    background: #fcfcfb;
+    font-size: 13px;
+    color: #0b0b0b;
+}
+
+.dashBtnLimparFiltros {
+    margin-left: auto;
+    background: #78909c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
 .dashHero {
     background: linear-gradient(135deg, #2a78d6, #1c5cab);
     color: white;

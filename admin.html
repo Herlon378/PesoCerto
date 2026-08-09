@@ -49,6 +49,31 @@
 <div id="telaDashboard" class="tela ativa">
     <h2>Dashboard</h2>
 
+    <div class="dashFiltros">
+        <select id="filtroMes" onchange="mostrarDashboard()">
+            <option value="">Mês: Todos</option>
+            <option value="0">Janeiro</option>
+            <option value="1">Fevereiro</option>
+            <option value="2">Março</option>
+            <option value="3">Abril</option>
+            <option value="4">Maio</option>
+            <option value="5">Junho</option>
+            <option value="6">Julho</option>
+            <option value="7">Agosto</option>
+            <option value="8">Setembro</option>
+            <option value="9">Outubro</option>
+            <option value="10">Novembro</option>
+            <option value="11">Dezembro</option>
+        </select>
+        <select id="filtroAno" onchange="mostrarDashboard()">
+            <option value="">Ano: Todos</option>
+        </select>
+        <select id="filtroLote" onchange="mostrarDashboard()">
+            <option value="">Lote: Todos</option>
+        </select>
+        <button class="dashBtnLimparFiltros" onclick="limparFiltrosDashboard()">Limpar filtros</button>
+    </div>
+
     <div class="dashHero">
         <span class="dashHeroLabel">🐄 Animais ativos no rebanho</span>
         <span class="dashHeroValor" id="dashAtivos">0</span>

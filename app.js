@@ -42,6 +42,7 @@ function abrirRelatorios(){
 
 function abrirDashboard(){
     trocarTela("telaDashboard");
+    preencherFiltrosDashboard();
     mostrarDashboard();
 }
 
@@ -381,6 +382,48 @@ function filtrarRelatorios() {
     });
 }
 
+function extrairMesAnoDaData(dataStr){
+    let match = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if(!match) return null;
+    return { mes: parseInt(match[2], 10) - 1, ano: parseInt(match[3], 10) };
+}
+
+function preencherFiltrosDashboard(){
+    let filtroAnoEl = document.getElementById("filtroAno");
+    if(filtroAnoEl){
+        let anoSelecionado = filtroAnoEl.value;
+        let anos = new Set();
+        relatorios.forEach(r => {
+            let dm = extrairMesAnoDaData(r.data);
+            if(dm) anos.add(dm.ano);
+        });
+        let anosOrdenados = Array.from(anos).sort((a, b) => b - a);
+        filtroAnoEl.innerHTML = `<option value="">Ano: Todos</option>` +
+            anosOrdenados.map(a => `<option value="${a}">${a}</option>`).join("");
+        filtroAnoEl.value = anosOrdenados.includes(parseInt(anoSelecionado, 10)) ? anoSelecionado : "";
+    }
+
+    let filtroLoteEl = document.getElementById("filtroLote");
+    if(filtroLoteEl){
+        let loteSelecionado = filtroLoteEl.value;
+        let lotes = JSON.parse(localStorage.getItem("lotesCache") || "[]");
+        filtroLoteEl.innerHTML = `<option value="">Lote: Todos</option>` +
+            `<option value="Sem descrição">Sem lote</option>` +
+            lotes.map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+        filtroLoteEl.value = loteSelecionado;
+    }
+}
+
+function limparFiltrosDashboard(){
+    let filtroMesEl = document.getElementById("filtroMes");
+    let filtroAnoEl = document.getElementById("filtroAno");
+    let filtroLoteEl = document.getElementById("filtroLote");
+    if(filtroMesEl) filtroMesEl.value = "";
+    if(filtroAnoEl) filtroAnoEl.value = "";
+    if(filtroLoteEl) filtroLoteEl.value = "";
+    mostrarDashboard();
+}
+
 function mostrarDashboard(){
     let animaisComprados = 0, animaisVendidos = 0;
     let kgCompra = 0, kgVenda = 0;
@@ -390,6 +433,26 @@ function mostrarDashboard(){
     if(obterPapelLogado() !== "admin" && obterPermDashboard() === "proprio"){
         let meuNome = obterUsuarioLogado();
         baseDashboard = relatorios.filter(r => r.criadoPor === meuNome);
+    }
+
+    let filtroMesEl = document.getElementById("filtroMes");
+    let filtroAnoEl = document.getElementById("filtroAno");
+    let filtroLoteEl = document.getElementById("filtroLote");
+    let mesFiltro = filtroMesEl && filtroMesEl.value !== "" ? parseInt(filtroMesEl.value, 10) : null;
+    let anoFiltro = filtroAnoEl && filtroAnoEl.value !== "" ? parseInt(filtroAnoEl.value, 10) : null;
+    let loteFiltro = filtroLoteEl && filtroLoteEl.value !== "" ? filtroLoteEl.value : null;
+
+    if(mesFiltro !== null || anoFiltro !== null){
+        baseDashboard = baseDashboard.filter(r => {
+            let dm = extrairMesAnoDaData(r.data);
+            if(!dm) return false;
+            if(mesFiltro !== null && dm.mes !== mesFiltro) return false;
+            if(anoFiltro !== null && dm.ano !== anoFiltro) return false;
+            return true;
+        });
+    }
+    if(loteFiltro !== null){
+        baseDashboard = baseDashboard.filter(r => (r.descricao || "Sem descrição") === loteFiltro);
     }
 
     baseDashboard.forEach(r => {
@@ -1098,6 +1161,7 @@ async function sincronizarAgora(){
         }
         let telaDashboard = document.getElementById("telaDashboard");
         if(telaDashboard && telaDashboard.classList.contains("ativa")){
+            preencherFiltrosDashboard();
             mostrarDashboard();
         }
 
