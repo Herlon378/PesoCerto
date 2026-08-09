@@ -13,67 +13,16 @@
 <div class="navDesktop">
     <span class="navTitulo">🐂 PesoCerto — Gerenciamento</span>
     <button data-tela="telaDashboard" onclick="abrirDashboard()">📊 Dashboard</button>
-    <button data-tela="telaInicial" onclick="trocarTela('telaInicial')">➕ Nova Pesagem</button>
     <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
+    <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
-        <button onclick="configurarChaveApi()">🔑 Configurar</button>
+        <button id="btnLoginLogout" onclick="abrirModalLogin()">👤 Entrar</button>
         <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
     </span>
 </div>
 
 <div class="painelDesktop">
-
-<div id="telaInicial" class="tela">
-    <h2>Nova Pesagem</h2>
-    <select id="tipoOperacao">
-        <option value="venda">Venda</option>
-        <option value="compra">Compra</option>
-    </select>
-    <input id="nomeVendedor" placeholder="Nome do vendedor">
-    <select id="tipoPesagem" onchange="alternarTipoPesagem()">
-        <option value="vivo">Peso Vivo (Kg)</option>
-        <option value="arroba">Arroba (@)</option>
-    </select>
-    <input id="rendimentoArroba" placeholder="% de Rendimento (ex: 50)" inputmode="decimal" style="display:none">
-    <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
-    <input id="descricao" placeholder="Descrição do lote">
-    <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
-</div>
-
-<div id="telaPesagem" class="tela">
-    <div class="stats">
-        <div class="statCard">Animais<br><span id="qtd">0</span></div>
-        <div class="statCard">Média<br><span id="media">0</span></div>
-        <div class="statCard">Total<br><span id="total">0</span></div>
-        <div class="statCard" id="cardUltimoKg">Último<br><span id="ultimo">0</span></div>
-        <div class="statCard" id="cardTotalArroba" style="display:none">Total @<br><span id="totalArroba">0</span></div>
-        <div class="statCard" id="cardUltimoValor">Último R$<br><span id="ultimoValor">0</span></div>
-        <div class="statCard" id="cardMediaArroba" style="display:none">Média @<br><span id="mediaArroba">0</span></div>
-        <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
-    </div>
-    <div id="listaPesosAtual" class="listaPesosAtual"></div>
-    <div class="pesoAtualCard">
-        <span class="pesoAtualLabel">PESO ATUAL</span>
-        <input id="displayPeso" readonly placeholder="0">
-        <span class="pesoAtualUnidade">kg</span>
-    </div>
-    <input id="obs" placeholder="Observação">
-    <div class="teclado">
-        <button onclick="digitar(1)">1</button><button onclick="digitar(2)">2</button><button onclick="digitar(3)">3</button>
-        <button onclick="digitar(4)">4</button><button onclick="digitar(5)">5</button><button onclick="digitar(6)">6</button>
-        <button onclick="digitar(7)">7</button><button onclick="digitar(8)">8</button><button onclick="digitar(9)">9</button>
-        <button onclick="digitar(0)">0</button><button class="btnMeio" onclick="digitarMeio()">,5</button><button onclick="apagar()">←</button>
-    </div>
-    <button class="btnLancar" onclick="lancarPeso()">✓ Lançar Peso</button>
-    <div class="sliderConfirm">
-        <div class="sliderTrack" id="sliderTrack">
-            <span class="sliderLabelEsquerda">✕ Cancelar</span>
-            <span class="sliderLabelDireita">Finalizar ✓</span>
-            <div class="sliderHandle" id="sliderHandle">↔</div>
-        </div>
-    </div>
-</div>
 
 <div id="telaResultado" class="tela">
     <h2>Relatórios</h2>
@@ -107,6 +56,19 @@
         <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
         <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
     </div>
+</div>
+
+<div id="telaUsuarios" class="tela">
+    <h2>Usuários</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalUsuario()" style="background:#2e7d32">➕ Novo Usuário</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Nome</th><th>Usuário</th><th>Papel</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaUsuarios"></tbody>
+    </table>
 </div>
 
 <div id="telaImpressao" class="tela">
@@ -147,6 +109,37 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalAcao()">NÃO</button>
             <button class="btn-sim" onclick="confirmarModalAcao()">SIM</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalLogin" class="modal">
+    <div class="modal-box">
+        <h2>👤 Entrar</h2>
+        <input id="loginUsuario" placeholder="Usuário">
+        <input id="loginSenha" type="password" placeholder="Senha">
+        <p id="loginErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalLogin()">Cancelar</button>
+            <button class="btn-sim" onclick="enviarLogin()">Entrar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalUsuario" class="modal">
+    <div class="modal-box">
+        <h2 id="modalUsuarioTitulo">➕ Novo Usuário</h2>
+        <input id="usuarioNomeInput" placeholder="Nome completo">
+        <input id="usuarioLoginInput" placeholder="Usuário (login)">
+        <input id="usuarioSenhaInput" type="password" placeholder="Senha">
+        <select id="usuarioPapelInput">
+            <option value="operador">Operador</option>
+            <option value="admin">Administrador</option>
+        </select>
+        <p id="usuarioErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalUsuario()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarUsuario()">Salvar</button>
         </div>
     </div>
 </div>

@@ -82,7 +82,7 @@
 </div>
 <div class="barraSync">
     <span id="statusSync">⚠️ Sincronização não configurada</span>
-    <button onclick="configurarChaveApi()">🔑 Configurar</button>
+    <button id="btnLoginLogout" onclick="abrirModalLogin()">👤 Entrar</button>
     <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
 </div>
 
@@ -141,6 +141,19 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalAcao()">NÃO</button>
             <button class="btn-sim" onclick="confirmarModalAcao()">SIM</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalLogin" class="modal">
+    <div class="modal-box">
+        <h2>👤 Entrar</h2>
+        <input id="loginUsuario" placeholder="Usuário">
+        <input id="loginSenha" type="password" placeholder="Senha">
+        <p id="loginErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalLogin()">Cancelar</button>
+            <button class="btn-sim" onclick="enviarLogin()">Entrar</button>
         </div>
     </div>
 </div>

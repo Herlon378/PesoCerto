@@ -337,6 +337,7 @@ function mostrarRelatorios(){
                         <b>Vendedor:</b> ${r.vendedor || "Não informado"}<br>
                         <b>Lote/Descrição:</b> ${r.descricao || "Sem descrição"}<br>
                         <b>Data:</b> ${r.data || "Sem data"}<br>
+                        ${r.criadoPor ? `<b>Lançado por:</b> ${r.criadoPor}<br>` : ""}
                         <b>Animais:</b> ${r.pesos ? r.pesos.length : 0} | <b>Total:</b> ${formatarPeso(totalKg)} kg
                     </div>
                 </label>
@@ -773,16 +774,103 @@ function inicializarSliderFinalizar(){
 // ========================================
 const API_URL = "https://pesocerto-api-production.up.railway.app";
 
-function obterChaveApi(){
-    return localStorage.getItem("apiKey") || "";
+function obterToken(){
+    return localStorage.getItem("sessionToken") || "";
 }
 
-function configurarChaveApi(){
-    let atual = obterChaveApi();
-    let nova = prompt("Digite a chave de sincronização (fornecida pelo administrador):", atual);
-    if(nova === null) return;
-    localStorage.setItem("apiKey", nova.trim());
-    sincronizarAgora();
+function obterUsuarioLogado(){
+    return localStorage.getItem("usuarioNome") || "";
+}
+
+function obterPapelLogado(){
+    return localStorage.getItem("usuarioPapel") || "";
+}
+
+function abrirModalLogin(){
+    let modal = document.getElementById("modalLogin");
+    if(!modal) return;
+    let erroEl = document.getElementById("loginErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+    let campoUsuario = document.getElementById("loginUsuario");
+    let campoSenha = document.getElementById("loginSenha");
+    if(campoUsuario) campoUsuario.value = "";
+    if(campoSenha) campoSenha.value = "";
+    modal.style.display = "flex";
+    if(campoUsuario) campoUsuario.focus();
+}
+
+function fecharModalLogin(){
+    let modal = document.getElementById("modalLogin");
+    if(modal) modal.style.display = "none";
+}
+
+async function enviarLogin(){
+    let usuario = document.getElementById("loginUsuario").value.trim();
+    let senha = document.getElementById("loginSenha").value;
+    let erroEl = document.getElementById("loginErro");
+
+    function mostrarErro(msg){
+        if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; }
+    }
+
+    if(!usuario || !senha){
+        mostrarErro("Preencha usuário e senha.");
+        return;
+    }
+
+    try {
+        let resp = await fetch(`${API_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario, senha })
+        });
+        let dados = await resp.json();
+        if(!resp.ok){
+            mostrarErro(dados.erro || "Não foi possível entrar.");
+            return;
+        }
+        localStorage.setItem("sessionToken", dados.token);
+        localStorage.setItem("usuarioNome", dados.nome);
+        localStorage.setItem("usuarioPapel", dados.papel);
+        fecharModalLogin();
+        atualizarBotaoLogin();
+        sincronizarAgora();
+    } catch(e) {
+        mostrarErro("Erro de conexão.");
+    }
+}
+
+function sair(){
+    let token = obterToken();
+    if(token){
+        fetch(`${API_URL}/api/auth/logout`, {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+        }).catch(() => {});
+    }
+    localStorage.removeItem("sessionToken");
+    localStorage.removeItem("usuarioNome");
+    localStorage.removeItem("usuarioPapel");
+    atualizarBotaoLogin();
+    atualizarStatusSync("👤 Não conectado");
+}
+
+function atualizarBotaoLogin(){
+    let btn = document.getElementById("btnLoginLogout");
+    if(!btn) return;
+    let nome = obterUsuarioLogado();
+    if(nome){
+        btn.innerText = "🚪 Sair (" + nome + ")";
+        btn.onclick = sair;
+    } else {
+        btn.innerText = "👤 Entrar";
+        btn.onclick = abrirModalLogin;
+    }
+
+    let navUsuarios = document.querySelector('[data-tela="telaUsuarios"]');
+    if(navUsuarios){
+        navUsuarios.style.display = (obterPapelLogado() === "admin") ? "inline-block" : "none";
+    }
 }
 
 function registrarExclusaoPendente(id){
@@ -797,9 +885,9 @@ function atualizarStatusSync(texto){
 }
 
 async function sincronizarAgora(){
-    let chave = obterChaveApi();
-    if(!chave){
-        atualizarStatusSync("⚠️ Toque em Configurar pra ativar a sincronização");
+    let token = obterToken();
+    if(!token){
+        atualizarStatusSync("⚠️ Toque em Entrar pra ativar a sincronização");
         return;
     }
     if(!navigator.onLine){
@@ -825,14 +913,17 @@ async function sincronizarAgora(){
     atualizarStatusSync("🔄 Sincronizando...");
 
     try {
+        let sessaoExpirada = false;
+
         let naoSincronizados = lista.filter(r => !r.sincronizado);
         if(naoSincronizados.length > 0){
             let resp = await fetch(`${API_URL}/api/pesagens/sync`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "X-API-Key": chave },
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
                 body: JSON.stringify({ pesagens: naoSincronizados })
             });
-            if(!resp.ok) throw new Error(resp.status === 401 ? "chave incorreta" : "falha ao enviar");
+            if(resp.status === 401) sessaoExpirada = true;
+            if(!resp.ok) throw new Error(sessaoExpirada ? "sessão expirada, faça login de novo" : "falha ao enviar");
             naoSincronizados.forEach(r => r.sincronizado = true);
             localStorage.setItem("pesagens", JSON.stringify(lista));
         }
@@ -841,7 +932,7 @@ async function sincronizarAgora(){
         for(let id of [...exclusoesPendentes]){
             let respDel = await fetch(`${API_URL}/api/pesagens/${id}`, {
                 method: "DELETE",
-                headers: { "X-API-Key": chave }
+                headers: { "Authorization": "Bearer " + token }
             });
             if(respDel.ok){
                 exclusoesPendentes = exclusoesPendentes.filter(x => x !== id);
@@ -850,9 +941,10 @@ async function sincronizarAgora(){
         localStorage.setItem("exclusoesPendentes", JSON.stringify(exclusoesPendentes));
 
         let respGet = await fetch(`${API_URL}/api/pesagens`, {
-            headers: { "X-API-Key": chave }
+            headers: { "Authorization": "Bearer " + token }
         });
-        if(!respGet.ok) throw new Error(respGet.status === 401 ? "chave incorreta" : "falha ao buscar dados");
+        if(respGet.status === 401) sessaoExpirada = true;
+        if(!respGet.ok) throw new Error(sessaoExpirada ? "sessão expirada, faça login de novo" : "falha ao buscar dados");
         let doServidor = await respGet.json();
 
         let mapa = {};
@@ -878,6 +970,12 @@ async function sincronizarAgora(){
 
         atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
     } catch(e) {
+        if(e.message.includes("sessão expirada")){
+            localStorage.removeItem("sessionToken");
+            localStorage.removeItem("usuarioNome");
+            localStorage.removeItem("usuarioPapel");
+            atualizarBotaoLogin();
+        }
         atualizarStatusSync("❌ Erro ao sincronizar (" + e.message + ")");
     }
 }
@@ -893,6 +991,7 @@ window.onload = function() {
         restaurarPesagem();
     }
     inicializarSliderFinalizar();
+    atualizarBotaoLogin();
     sincronizarAgora();
 };
 

@@ -105,35 +105,6 @@ body.modoDesktop .statsDashboardDesktop .statCard span {
     font-size: 26px;
 }
 
-/* pesagem: teclado e formulário lado a lado em vez de empilhados */
-body.modoDesktop #telaPesagem {
-    display: grid !important;
-    grid-template-columns: 1fr 340px;
-    gap: 24px;
-    align-items: start;
-}
-
-body.modoDesktop #telaPesagem .stats {
-    grid-column: 1 / -1;
-}
-
-body.modoDesktop #telaPesagem .listaPesosAtual {
-    grid-column: 1;
-    height: 320px;
-}
-
-body.modoDesktop #telaPesagem .pesoAtualCard,
-body.modoDesktop #telaPesagem #obs,
-body.modoDesktop #telaPesagem .teclado,
-body.modoDesktop #telaPesagem .btnLancar,
-body.modoDesktop #telaPesagem .sliderConfirm {
-    grid-column: 2;
-}
-
-body.modoDesktop #telaPesagem .teclado {
-    max-width: 320px;
-}
-
 /* relatórios: cartões em grade em vez de lista vertical única */
 body.modoDesktop #listaRelatorios {
     display: grid;
@@ -141,10 +112,40 @@ body.modoDesktop #listaRelatorios {
     gap: 10px;
 }
 
+/* tabela de usuários */
+.tabelaUsuarios {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.tabelaUsuarios th, .tabelaUsuarios td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.tabelaUsuarios th {
+    color: #777;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.acoesUsuario {
+    display: flex;
+    gap: 6px;
+}
+
+.acoesUsuario button {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: #eee;
+    cursor: pointer;
+    font-size: 14px;
+}
+
 @media (max-width: 720px) {
-    body.modoDesktop #telaPesagem {
-        display: block;
-    }
     .navDesktop {
         justify-content: center;
     }

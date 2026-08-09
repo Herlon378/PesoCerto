@@ -399,6 +399,13 @@ input, select {
     flex-shrink: 0;
 }
 
+.loginErro {
+    color: #c62828;
+    font-size: 13px;
+    margin-top: 6px;
+    text-align: left;
+}
+
 .btn-nao {
     flex: 1;
     background: red;
