@@ -834,3 +834,208 @@ async function mostrarCustoPorLote() {
         `;
     }).join("");
 }
+
+// ========================================
+// FLUXO DE CAIXA
+// ========================================
+let caixaLancamentosCacheAdmin = [];
+let estoqueEntradasCacheAdmin = [];
+
+async function carregarCaixaLancamentosAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/caixa-lancamentos`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        caixaLancamentosCacheAdmin = await resp.json();
+        return caixaLancamentosCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function carregarEstoqueEntradasAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/estoque-entradas`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        estoqueEntradasCacheAdmin = await resp.json();
+        return estoqueEntradasCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function abrirTelaFluxoCaixa() {
+    await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin()]);
+    mostrarFluxoCaixa();
+}
+
+function limparFiltrosCaixa() {
+    document.getElementById("caixaDataInicio").value = "";
+    document.getElementById("caixaDataFim").value = "";
+    mostrarFluxoCaixa();
+}
+
+function mostrarFluxoCaixa() {
+    let corpo = document.getElementById("corpoTabelaFluxoCaixa");
+    if (!corpo) return;
+
+    let dataInicio = document.getElementById("caixaDataInicio").value; // "" ou "yyyy-mm-dd"
+    let dataFim = document.getElementById("caixaDataFim").value;
+
+    // monta a lista COMPLETA (sem filtro) primeiro — o saldo acumulado é
+    // sempre sobre todo o histórico, igual um extrato bancário; o filtro de
+    // período só decide quais linhas aparecem na tela, não "zera" o saldo.
+    let movimentos = [];
+
+    relatorios.forEach(r => {
+        let dataISO = extrairDataISO(r.data);
+        if (!dataISO) return;
+        let d = calcularDadosCompletos(r);
+        let tipo = (r.tipo || "venda") === "compra" ? "saida" : "entrada";
+        movimentos.push({
+            dataISO, data: r.data, tipo,
+            origem: "Pesagem" + (r.numero ? " Nº " + r.numero : ""),
+            descricao: (r.vendedor || "Não informado") + (r.descricao && r.descricao !== "Sem descrição" ? " — " + r.descricao : ""),
+            valor: d.totalRS
+        });
+    });
+
+    // a saída de estoque em si não move dinheiro (o produto já tinha sido
+    // pago) — quem representa o gasto real é a ENTRADA de estoque, feita
+    // contra a nota fiscal no momento da compra.
+    estoqueEntradasCacheAdmin.forEach(e => {
+        let dataISO = extrairDataISO(e.data);
+        if (!dataISO) return;
+        movimentos.push({
+            dataISO, data: e.data, tipo: "saida",
+            origem: "Almoxarifado",
+            descricao: "Compra de " + e.produtoDescricao + (e.numeroNota ? " (NF " + e.numeroNota + ")" : ""),
+            valor: e.valorTotal
+        });
+    });
+
+    caixaLancamentosCacheAdmin.forEach(l => {
+        let dataISO = extrairDataISO(l.data);
+        if (!dataISO) return;
+        movimentos.push({
+            dataISO, data: l.data, tipo: l.tipo,
+            origem: "Manual" + (l.categoria ? " — " + l.categoria : ""),
+            descricao: l.descricao || l.categoria || "—",
+            valor: l.valor,
+            id: l.id, excluivel: true
+        });
+    });
+
+    movimentos.sort((a, b) => (a.dataISO < b.dataISO ? -1 : (a.dataISO > b.dataISO ? 1 : 0)));
+
+    let saldoCorrente = 0;
+    movimentos.forEach(m => {
+        saldoCorrente += (m.tipo === "entrada" ? m.valor : -m.valor);
+        m.saldoAcumulado = saldoCorrente;
+    });
+
+    let visiveis = movimentos.filter(m =>
+        (!dataInicio || m.dataISO >= dataInicio) && (!dataFim || m.dataISO <= dataFim)
+    );
+
+    if (visiveis.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="7">Nenhuma movimentação no período.</td></tr>`;
+    } else {
+        corpo.innerHTML = [...visiveis].reverse().map(m => {
+            let tagTipo = m.tipo === "entrada"
+                ? `<span class="tagTipo tagTipoVenda">ENTRADA</span>`
+                : `<span class="tagTipo tagTipoCompra">SAÍDA</span>`;
+            return `
+                <tr>
+                    <td>${m.data}</td>
+                    <td>${tagTipo}</td>
+                    <td>${m.origem}</td>
+                    <td>${m.descricao}</td>
+                    <td>R$ ${formatarMoeda(m.valor)}</td>
+                    <td>R$ ${formatarMoeda(m.saldoAcumulado)}</td>
+                    <td>${m.excluivel ? `<button onclick='excluirLancamento(${JSON.stringify(m.id)})'>🗑️</button>` : "—"}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    let totalEntradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
+    let totalSaidas = visiveis.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0);
+    document.getElementById("caixaTotalEntradas").innerText = "R$ " + formatarMoeda(totalEntradas);
+    document.getElementById("caixaTotalSaidas").innerText = "R$ " + formatarMoeda(totalSaidas);
+    let saldoEl = document.getElementById("caixaSaldoPeriodo");
+    let saldoPeriodo = totalEntradas - totalSaidas;
+    let positivo = saldoPeriodo >= 0;
+    saldoEl.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + formatarMoeda(Math.abs(saldoPeriodo));
+    saldoEl.style.color = positivo ? "#0ca30c" : "#d03b3b";
+}
+
+function abrirModalLancamento() {
+    document.getElementById("lancamentoTipoInput").value = "saida";
+    document.getElementById("lancamentoCategoriaInput").value = "";
+    document.getElementById("lancamentoDescricaoInput").value = "";
+    document.getElementById("lancamentoValorInput").value = "";
+    document.getElementById("lancamentoDataInput").value = new Date().toISOString().slice(0, 10);
+    let erroEl = document.getElementById("lancamentoErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalLancamento").style.display = "flex";
+}
+
+function fecharModalLancamento() {
+    document.getElementById("modalLancamento").style.display = "none";
+}
+
+async function salvarLancamento() {
+    let erroEl = document.getElementById("lancamentoErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let tipo = document.getElementById("lancamentoTipoInput").value;
+        let categoria = document.getElementById("lancamentoCategoriaInput").value.trim();
+        let descricao = document.getElementById("lancamentoDescricaoInput").value.trim();
+        let valorTexto = document.getElementById("lancamentoValorInput").value.trim();
+        let valor = parseFloat(valorTexto.replace(/\./g, "").replace(",", "."));
+        let dataInput = document.getElementById("lancamentoDataInput").value;
+
+        if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
+
+        let dataFormatada = dataInput ? formatarDataBR(dataInput) : new Date().toLocaleString("pt-BR");
+
+        let resp = await fetch(`${API_URL}/api/caixa-lancamentos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar lançamento (HTTP ${resp.status}).`); return; }
+
+        fecharModalLancamento();
+        await carregarCaixaLancamentosAdmin();
+        mostrarFluxoCaixa();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirLancamento(id) {
+    if (!confirm("Excluir este lançamento?")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/caixa-lancamentos/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir lançamento (HTTP ${resp.status}).`); return; }
+        await carregarCaixaLancamentosAdmin();
+        mostrarFluxoCaixa();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}

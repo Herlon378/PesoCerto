@@ -390,6 +390,28 @@ function extrairMesAnoDaData(dataStr){
     return { mes: parseInt(match[2], 10) - 1, ano: parseInt(match[3], 10) };
 }
 
+// Converte "dd/mm/yyyy, hh:mm:ss" (formato usado em todo o sistema) pra
+// "yyyy-mm-dd" — ordena como string igual uma data real e compara direto
+// com o valor de um <input type="date">.
+function extrairDataISO(dataStr){
+    let match = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if(!match) return null;
+    return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+// Caminho inverso: "yyyy-mm-dd" (valor de <input type="date">) vira
+// "dd/mm/yyyy, hh:mm:ss" com o horário atual, pra manter o mesmo formato
+// de todas as outras datas do sistema.
+function formatarDataBR(dataISOSimples){
+    let [ano, mes, dia] = String(dataISOSimples || "").split("-");
+    if(!ano || !mes || !dia) return new Date().toLocaleString("pt-BR");
+    let agora = new Date();
+    let hora = String(agora.getHours()).padStart(2, "0");
+    let min = String(agora.getMinutes()).padStart(2, "0");
+    let seg = String(agora.getSeconds()).padStart(2, "0");
+    return `${dia}/${mes}/${ano}, ${hora}:${min}:${seg}`;
+}
+
 function preencherFiltrosDashboard(){
     let filtroAnoEl = document.getElementById("filtroAno");
     if(filtroAnoEl){
@@ -1129,7 +1151,8 @@ function atualizarBotaoLogin(){
         { id: "telaResultado", soAdmin: false },
         { id: "telaUsuarios", soAdmin: true },
         { id: "telaLotes", soAdmin: true },
-        { id: "telaAlmoxarifado", soAdmin: true }
+        { id: "telaAlmoxarifado", soAdmin: true },
+        { id: "telaFluxoCaixa", soAdmin: true }
     ].forEach(({ id, soAdmin }) => {
         let navBtn = document.querySelector(`[data-tela="${id}"]`);
         if(!navBtn) return;

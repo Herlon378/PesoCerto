@@ -17,6 +17,7 @@
     <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
     <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes();">🏷️ Lotes</button>
     <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado')">📦 Almoxarifado</button>
+    <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
         <button id="btnLoginLogout" onclick="trocarTela('telaLogin')">👤 Entrar</button>
@@ -271,6 +272,42 @@
     </table>
 </div>
 
+<div id="telaFluxoCaixa" class="tela">
+    <h2>💵 Fluxo de Caixa</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalLancamento()" style="background:#2e7d32">➕ Novo Lançamento</button>
+    </div>
+
+    <div class="dashFiltros">
+        <input type="date" id="caixaDataInicio" onchange="mostrarFluxoCaixa()">
+        <span class="caixaFiltroAte">até</span>
+        <input type="date" id="caixaDataFim" onchange="mostrarFluxoCaixa()">
+        <button class="dashBtnLimparFiltros" onclick="limparFiltrosCaixa()">Limpar filtros</button>
+    </div>
+
+    <div class="dashKpiRow">
+        <div class="statTile">
+            <span class="statTileLabel">Total de Entradas</span>
+            <span class="statTileValor" id="caixaTotalEntradas">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">Total de Saídas</span>
+            <span class="statTileValor" id="caixaTotalSaidas">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">Saldo do Período</span>
+            <span class="statTileValor" id="caixaSaldoPeriodo">R$ 0,00</span>
+        </div>
+    </div>
+
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th><th>Saldo Acumulado</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaFluxoCaixa"></tbody>
+    </table>
+</div>
+
 <div id="telaImpressao" class="tela">
     <div id="folhaRelatorio"></div>
     <div class="botoes-impressao">
@@ -372,6 +409,34 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalEstoqueEntrada()">Cancelar</button>
             <button class="btn-sim" onclick="salvarEstoqueEntrada()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalLancamento" class="modal">
+    <div class="modal-box">
+        <h2>➕ Novo Lançamento</h2>
+        <select id="lancamentoTipoInput">
+            <option value="entrada">Entrada (recebimento)</option>
+            <option value="saida">Saída (despesa)</option>
+        </select>
+        <input id="lancamentoCategoriaInput" placeholder="Categoria (ex: Salário, Combustível)" list="listaCategoriasCaixa">
+        <datalist id="listaCategoriasCaixa">
+            <option value="Salário">
+            <option value="Combustível">
+            <option value="Manutenção">
+            <option value="Impostos">
+            <option value="Frete">
+            <option value="Veterinário">
+            <option value="Outros">
+        </datalist>
+        <input id="lancamentoDescricaoInput" placeholder="Descrição (opcional)">
+        <input id="lancamentoValorInput" placeholder="Valor (R$)" inputmode="decimal">
+        <input id="lancamentoDataInput" type="date">
+        <p id="lancamentoErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalLancamento()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarLancamento()">Salvar</button>
         </div>
     </div>
 </div>
