@@ -7,6 +7,10 @@
 }
 
 /* BODY */
+html, body {
+    overscroll-behavior-y: contain;
+}
+
 body {
     background: #f0f0f0;
 }
@@ -24,6 +28,7 @@ body {
     background: #f0f0f0;
     padding: 10px;
     overflow-y: auto;  /* permite rolar dentro da tela */
+    overscroll-behavior-y: contain;  /* evita que arrastar a lista dispare o "puxar pra atualizar" do navegador */
     box-shadow: 0 0 20px rgba(0,0,0,0.15);
 }
 
@@ -291,12 +296,14 @@ input, select {
 #listaRelatorios {
     flex: 1;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
 .listaPesosAtual {
     height: 170px;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     background: white;
     border-radius: 10px;
     margin-bottom: 6px;
