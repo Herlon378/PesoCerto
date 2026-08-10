@@ -760,7 +760,7 @@ async function carregarHistoricoSaidas() {
     if (!corpo) return;
     await carregarEstoqueSaidasAdmin();
     if (estoqueSaidasCacheAdmin.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6">Nenhuma saída registrada ainda.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="7">Nenhuma saída registrada ainda.</td></tr>`;
         return;
     }
     corpo.innerHTML = estoqueSaidasCacheAdmin.map(s => `
@@ -771,8 +771,26 @@ async function carregarHistoricoSaidas() {
             <td>${formatarPeso(s.quantidade)}</td>
             <td>R$ ${formatarMoeda(s.valorTotal)}</td>
             <td>${s.criadoPor || "—"}</td>
+            <td class="acoesUsuario"><button onclick='excluirEstoqueSaida(${JSON.stringify(s.id)})'>🗑️</button></td>
         </tr>
     `).join("");
+}
+
+async function excluirEstoqueSaida(id) {
+    if (!confirm("Excluir esta saída? O estoque do produto volta a ficar disponível.")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/estoque-saidas/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir saída (HTTP ${resp.status}).`); return; }
+        await carregarProdutosAdmin();
+        carregarHistoricoSaidas();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
 }
 
 // ========================================
@@ -913,7 +931,8 @@ function mostrarFluxoCaixa() {
             dataISO, data: e.data, tipo: "saida",
             origem: "Almoxarifado",
             descricao: "Compra de " + e.produtoDescricao + (e.numeroNota ? " (NF " + e.numeroNota + ")" : ""),
-            valor: e.valorTotal
+            valor: e.valorTotal,
+            id: e.id, excluivel: true, tipoOrigem: "entrada"
         });
     });
 
@@ -925,7 +944,7 @@ function mostrarFluxoCaixa() {
             origem: "Manual" + (l.categoria ? " — " + l.categoria : ""),
             descricao: l.descricao || l.categoria || "—",
             valor: l.valor,
-            id: l.id, excluivel: true
+            id: l.id, excluivel: true, tipoOrigem: "manual"
         });
     });
 
@@ -956,7 +975,7 @@ function mostrarFluxoCaixa() {
                     <td>${m.descricao}</td>
                     <td>R$ ${formatarMoeda(m.valor)}</td>
                     <td>R$ ${formatarMoeda(m.saldoAcumulado)}</td>
-                    <td>${m.excluivel ? `<button onclick='excluirLancamento(${JSON.stringify(m.id)})'>🗑️</button>` : "—"}</td>
+                    <td>${m.excluivel ? `<button onclick='excluirMovimentoCaixa(${JSON.stringify(m.id)}, ${JSON.stringify(m.tipoOrigem)})'>🗑️</button>` : "—"}</td>
                 </tr>
             `;
         }).join("");
@@ -1023,6 +1042,11 @@ async function salvarLancamento() {
     }
 }
 
+function excluirMovimentoCaixa(id, tipoOrigem) {
+    if (tipoOrigem === "entrada") return excluirEntradaDoCaixa(id);
+    return excluirLancamento(id);
+}
+
 async function excluirLancamento(id) {
     if (!confirm("Excluir este lançamento?")) return;
     try {
@@ -1034,6 +1058,23 @@ async function excluirLancamento(id) {
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { alert(dados.erro || `Erro ao excluir lançamento (HTTP ${resp.status}).`); return; }
         await carregarCaixaLancamentosAdmin();
+        mostrarFluxoCaixa();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirEntradaDoCaixa(id) {
+    if (!confirm("Excluir esta entrada de estoque? Só é possível se esse estoque ainda não tiver sido consumido em nenhuma saída.")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/estoque-entradas/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir entrada (HTTP ${resp.status}).`); return; }
+        await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin()]);
         mostrarFluxoCaixa();
     } catch (e) {
         alert("Erro de conexão: " + e.message);
