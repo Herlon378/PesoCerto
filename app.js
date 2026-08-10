@@ -1471,7 +1471,23 @@ window.addEventListener("online", () => sincronizarAgora());
 // ========================================
 // INICIALIZAÇÃO ÚNICA (ONLOAD)
 // ========================================
+function bloquearZoomPinca(){
+    // A tag de viewport (user-scalable=no) sozinha não é mais suficiente —
+    // navegadores modernos (Chrome principalmente) ignoram essa restrição
+    // por acessibilidade. Bloqueando também via JS: gesturestart/gesturechange
+    // (gesto de pinça do Safari/iOS) e touchmove com mais de um dedo (Android
+    // e demais navegadores).
+    document.addEventListener("gesturestart", e => e.preventDefault());
+    document.addEventListener("gesturechange", e => e.preventDefault());
+    document.addEventListener("touchmove", e => {
+        if(e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+}
+
 window.onload = function() {
+    if(document.getElementById("telaMenu")){
+        bloquearZoomPinca();
+    }
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
     carregarLotesSelect();
     carregarLotesSelectSaida();
