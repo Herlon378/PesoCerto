@@ -9,6 +9,7 @@
 /* BODY */
 html, body {
     overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;  /* bloqueia o gesto de pinça (zoom), mantém a rolagem normal */
 }
 
 body {
@@ -29,6 +30,7 @@ body {
     padding: 10px;
     overflow-y: auto;  /* permite rolar dentro da tela */
     overscroll-behavior-y: contain;  /* evita que arrastar a lista dispare o "puxar pra atualizar" do navegador */
+    touch-action: pan-y;  /* rolagem vertical normal, mas bloqueia o gesto de pinça (zoom) */
     box-shadow: 0 0 20px rgba(0,0,0,0.15);
 }
 
