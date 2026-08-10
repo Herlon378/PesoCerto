@@ -801,7 +801,7 @@ async function mostrarCustoPorLote() {
     let corpo = document.getElementById("corpoTabelaCustoLote");
     if (!token || !corpo) return;
 
-    await carregarEstoqueSaidasAdmin();
+    await Promise.all([carregarEstoqueSaidasAdmin(), carregarCaixaLancamentosAdmin()]);
 
     // agrega compra/venda por nome de lote a partir das pesagens já sincronizadas
     // (a variável "relatorios" é global, vem de app.js) e soma as saídas de estoque
@@ -828,6 +828,17 @@ async function mostrarCustoPorLote() {
     estoqueSaidasCacheAdmin.forEach(s => {
         let grupo = grupoDoLote(s.loteNome);
         grupo.custoInsumos += s.valorTotal;
+    });
+
+    // lançamentos avulsos do Fluxo de Caixa marcados com um lote específico
+    // (frete, cirurgia etc.) — despesa entra junto com o custo de insumos,
+    // receita entra junto com a receita de vendas. Lançamentos sem lote
+    // marcado (ex: salário do funcionário) não afetam nenhum lote.
+    caixaLancamentosCacheAdmin.forEach(l => {
+        if (!l.loteNome) return;
+        let grupo = grupoDoLote(l.loteNome);
+        if (l.tipo === "saida") grupo.custoInsumos += l.valor;
+        else grupo.receitaVenda += l.valor;
     });
 
     let nomesLotes = Object.keys(porLote).sort();
@@ -961,7 +972,7 @@ function mostrarFluxoCaixa() {
         movimentos.push({
             dataISO, data: l.data, tipo: l.tipo,
             origem: "Manual" + (l.categoria ? " — " + l.categoria : ""),
-            descricao: l.descricao || l.categoria || "—",
+            descricao: (l.descricao || l.categoria || "—") + (l.loteNome ? " (Lote: " + l.loteNome + ")" : ""),
             valor: l.valor,
             id: l.id, excluivel: true, tipoOrigem: "manual"
         });
@@ -1011,12 +1022,21 @@ function mostrarFluxoCaixa() {
     saldoEl.style.color = positivo ? "#0ca30c" : "#d03b3b";
 }
 
-function abrirModalLancamento() {
+async function abrirModalLancamento() {
     document.getElementById("lancamentoTipoInput").value = "saida";
     document.getElementById("lancamentoCategoriaInput").value = "";
     document.getElementById("lancamentoDescricaoInput").value = "";
     document.getElementById("lancamentoValorInput").value = "";
     document.getElementById("lancamentoDataInput").value = new Date().toISOString().slice(0, 10);
+
+    let token = obterToken();
+    let selectLote = document.getElementById("lancamentoLoteInput");
+    if (token && selectLote) {
+        let lotes = await fetch(`${API_URL}/api/lotes`, { headers: { "Authorization": "Bearer " + token } }).then(r => r.ok ? r.json() : []);
+        selectLote.innerHTML = `<option value="">Sem lote específico</option>` +
+            lotes.filter(l => l.ativo).map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+    }
+
     let erroEl = document.getElementById("lancamentoErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
     document.getElementById("modalLancamento").style.display = "flex";
@@ -1036,6 +1056,7 @@ async function salvarLancamento() {
 
         let tipo = document.getElementById("lancamentoTipoInput").value;
         let categoria = document.getElementById("lancamentoCategoriaInput").value.trim();
+        let loteNome = document.getElementById("lancamentoLoteInput").value;
         let descricao = document.getElementById("lancamentoDescricaoInput").value.trim();
         let valorTexto = document.getElementById("lancamentoValorInput").value.trim();
         let valor = parseFloat(valorTexto.replace(/\./g, "").replace(",", "."));
@@ -1048,7 +1069,7 @@ async function salvarLancamento() {
         let resp = await fetch(`${API_URL}/api/caixa-lancamentos`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada })
+            body: JSON.stringify({ tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada, loteNome: loteNome || null })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar lançamento (HTTP ${resp.status}).`); return; }

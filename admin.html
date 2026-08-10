@@ -265,11 +265,11 @@
         <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
     </div>
     <p class="loginSubtitulo" style="text-align:left">
-        "Custo Restante" é quanto do dinheiro investido no lote (compra + insumos) ainda não voltou em vendas — dividido pelos animais que sobraram. Fica em verde quando as vendas já recuperaram tudo (os que sobraram já são lucro).
+        "Custo Restante" é quanto do dinheiro investido no lote (compra + insumos e despesas avulsas como frete/cirurgia lançadas no Fluxo de Caixa com esse lote marcado) ainda não voltou em vendas — dividido pelos animais que sobraram. Fica em verde quando as vendas já recuperaram tudo (os que sobraram já são lucro).
     </p>
     <table class="tabelaUsuarios">
         <thead>
-            <tr><th>Lote</th><th>Animais Atuais</th><th>Custo Compra</th><th>Custo Insumos</th><th>Receita de Vendas</th><th>Custo Restante</th><th>Custo Médio/Animal Restante</th></tr>
+            <tr><th>Lote</th><th>Animais Atuais</th><th>Custo Compra</th><th>Insumos/Despesas</th><th>Receita de Vendas</th><th>Custo Restante</th><th>Custo Médio/Animal Restante</th></tr>
         </thead>
         <tbody id="corpoTabelaCustoLote"></tbody>
     </table>
@@ -431,8 +431,12 @@
             <option value="Impostos">
             <option value="Frete">
             <option value="Veterinário">
+            <option value="Cirurgia">
             <option value="Outros">
         </datalist>
+        <select id="lancamentoLoteInput">
+            <option value="">Sem lote específico</option>
+        </select>
         <input id="lancamentoDescricaoInput" placeholder="Descrição (opcional)">
         <input id="lancamentoValorInput" placeholder="Valor (R$)" inputmode="decimal">
         <input id="lancamentoDataInput" type="date">
