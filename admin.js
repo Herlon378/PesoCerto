@@ -808,7 +808,7 @@ async function mostrarCustoPorLote() {
     // de cada lote — sem mexer nos registros originais de pesagem.
     let porLote = {};
     function grupoDoLote(nome) {
-        if (!porLote[nome]) porLote[nome] = { comprados: 0, vendidos: 0, custoCompra: 0, custoInsumos: 0 };
+        if (!porLote[nome]) porLote[nome] = { comprados: 0, vendidos: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0 };
         return porLote[nome];
     }
 
@@ -821,6 +821,7 @@ async function mostrarCustoPorLote() {
             grupo.custoCompra += d.totalRS;
         } else {
             grupo.vendidos += d.totalAnimais;
+            grupo.receitaVenda += d.totalRS;
         }
     });
 
@@ -831,23 +832,41 @@ async function mostrarCustoPorLote() {
 
     let nomesLotes = Object.keys(porLote).sort();
     if (nomesLotes.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6">Nenhum dado de lote disponível ainda.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="7">Nenhum dado de lote disponível ainda.</td></tr>`;
         return;
+    }
+
+    // Custo restante = o que ainda está "preso" no lote: tudo que foi gasto
+    // (compra + insumo) menos o que já voltou em vendas — dividido pelos
+    // animais que ainda sobraram. Não é o custo de compra de cada animal
+    // (esse continua sendo o valor real pago por ele); é quanto do dinheiro
+    // investido no lote como um todo ainda não foi recuperado, repartido
+    // entre quem ainda não foi vendido. Pode ficar negativo se as vendas já
+    // recuperaram mais do que o lote custou — nesse caso os que sobraram já
+    // são "lucro puro", sem custo pendente.
+    function formatarValorPossivelmenteNegativo(valor) {
+        return valor < 0
+            ? { texto: "▲ R$ " + formatarMoeda(Math.abs(valor)) + " (lucro)", cor: "#0ca30c" }
+            : { texto: "R$ " + formatarMoeda(valor), cor: "#0b0b0b" };
     }
 
     corpo.innerHTML = nomesLotes.map(nome => {
         let g = porLote[nome];
         let headcount = g.comprados - g.vendidos;
-        let custoTotal = g.custoCompra + g.custoInsumos;
-        let custoMedio = headcount > 0 ? custoTotal / headcount : 0;
+        let gastoTotal = g.custoCompra + g.custoInsumos;
+        let custoRestante = gastoTotal - g.receitaVenda;
+        let custoMedio = headcount > 0 ? custoRestante / headcount : 0;
+        let restanteFmt = formatarValorPossivelmenteNegativo(custoRestante);
+        let medioFmt = formatarValorPossivelmenteNegativo(custoMedio);
         return `
             <tr>
                 <td>${nome}</td>
                 <td>${headcount}</td>
                 <td>R$ ${formatarMoeda(g.custoCompra)}</td>
                 <td>R$ ${formatarMoeda(g.custoInsumos)}</td>
-                <td>R$ ${formatarMoeda(custoTotal)}</td>
-                <td>${headcount > 0 ? "R$ " + formatarMoeda(custoMedio) : "—"}</td>
+                <td>R$ ${formatarMoeda(g.receitaVenda)}</td>
+                <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
+                <td style="color:${headcount > 0 ? medioFmt.cor : '#0b0b0b'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
             </tr>
         `;
     }).join("");
