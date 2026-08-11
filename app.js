@@ -44,6 +44,8 @@ function abrirDashboard(){
     trocarTela("telaDashboard");
     preencherFiltrosDashboard();
     mostrarDashboard();
+    if(typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+    if(typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
     if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
 }
 
@@ -1469,6 +1471,8 @@ async function sincronizarAgora(){
         if(telaDashboard && telaDashboard.classList.contains("ativa")){
             preencherFiltrosDashboard();
             mostrarDashboard();
+            if(typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+            if(typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
             if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
         }
 

@@ -884,6 +884,165 @@ async function mostrarCustoPorLote() {
 }
 
 // ========================================
+// PATRIMÔNIO TOTAL E RESULTADO MENSAL
+// ========================================
+// Custo médio por animal de um lote: (tudo que já foi gasto comprando +
+// aplicando insumos nele) dividido pela quantidade TOTAL de animais já
+// comprados pra esse lote (não a quantidade atual). Diferente do "Custo
+// Restante" da tabela de Custo por Lote — ali o valor já vem líquido de
+// vendas (pra saber quanto falta recuperar); aqui o valor fica fixo no
+// custo de aquisição, pra reconhecer o lucro de cada venda no mês em que
+// ela aconteceu, e pra avaliar o rebanho que ainda está vivo pelo que ele
+// custou de verdade.
+async function agregarCustoLotesFinanceiro() {
+    await Promise.all([carregarEstoqueSaidasAdmin(), carregarCaixaLancamentosAdmin()]);
+
+    let porLote = {};
+    function grupoDoLote(nome) {
+        if (!porLote[nome]) porLote[nome] = { comprados: 0, vendidos: 0, custoCompra: 0, custoInsumos: 0 };
+        return porLote[nome];
+    }
+
+    relatorios.forEach(r => {
+        let nomeLote = r.descricao || "Sem descrição";
+        let grupo = grupoDoLote(nomeLote);
+        let d = calcularDadosCompletos(r);
+        if ((r.tipo || "venda") === "compra") {
+            grupo.comprados += d.totalAnimais;
+            grupo.custoCompra += d.totalRS;
+        } else {
+            grupo.vendidos += d.totalAnimais;
+        }
+    });
+
+    estoqueSaidasCacheAdmin.forEach(s => {
+        grupoDoLote(s.loteNome).custoInsumos += s.valorTotal;
+    });
+
+    caixaLancamentosCacheAdmin.forEach(l => {
+        if (!l.loteNome) return;
+        let grupo = grupoDoLote(l.loteNome);
+        if (l.tipo === "saida") grupo.custoInsumos += l.valor;
+    });
+
+    Object.values(porLote).forEach(g => {
+        g.custoMedioAnimal = g.comprados > 0 ? (g.custoCompra + g.custoInsumos) / g.comprados : 0;
+        g.headcountAtual = g.comprados - g.vendidos;
+    });
+
+    return porLote;
+}
+
+async function mostrarPatrimonio() {
+    let elTotal = document.getElementById("patrimonioTotal");
+    if (!elTotal) return;
+
+    let [porLote] = await Promise.all([
+        agregarCustoLotesFinanceiro(),
+        carregarEstoqueEntradasAdmin(),
+        carregarProdutosAdmin()
+    ]);
+
+    // caixa acumulado desde sempre — mesmo cálculo do saldo do Fluxo de
+    // Caixa sem filtro de período: vendas + lançamentos avulsos de entrada
+    // menos compras + entradas de estoque (nota fiscal) + lançamentos
+    // avulsos de saída.
+    let entradasCaixa = 0, saidasCaixa = 0;
+    relatorios.forEach(r => {
+        let d = calcularDadosCompletos(r);
+        if ((r.tipo || "venda") === "compra") saidasCaixa += d.totalRS;
+        else entradasCaixa += d.totalRS;
+    });
+    estoqueEntradasCacheAdmin.forEach(e => { saidasCaixa += e.valorTotal; });
+    caixaLancamentosCacheAdmin.forEach(l => {
+        if (l.tipo === "saida") saidasCaixa += l.valor;
+        else entradasCaixa += l.valor;
+    });
+    let caixaAcumulado = entradasCaixa - saidasCaixa;
+
+    // rebanho vivo: soma do custo médio de aquisição dos animais que ainda
+    // não foram vendidos em cada lote (nunca negativo — um lote já
+    // totalmente vendido não "deve" patrimônio pra trás).
+    let valorRebanho = Object.values(porLote).reduce((soma, g) => {
+        return soma + Math.max(g.custoMedioAnimal * g.headcountAtual, 0);
+    }, 0);
+
+    // insumos comprados mas ainda não aplicados a nenhum lote — parados no
+    // almoxarifado, valendo pelo custo médio de compra.
+    let valorEstoqueAlmoxarifado = produtosCacheAdmin.reduce((soma, p) => {
+        return soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0);
+    }, 0);
+
+    let patrimonioTotal = caixaAcumulado + valorRebanho + valorEstoqueAlmoxarifado;
+
+    document.getElementById("patrimonioCaixa").innerText = "R$ " + formatarMoeda(caixaAcumulado);
+    document.getElementById("patrimonioRebanho").innerText = "R$ " + formatarMoeda(valorRebanho);
+    document.getElementById("patrimonioEstoque").innerText = "R$ " + formatarMoeda(valorEstoqueAlmoxarifado);
+    elTotal.innerText = "R$ " + formatarMoeda(patrimonioTotal);
+}
+
+const NOMES_MESES_RESULTADO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+async function mostrarResultadoMensal() {
+    let corpo = document.getElementById("corpoTabelaResultadoMensal");
+    if (!corpo) return;
+
+    let porLote = await agregarCustoLotesFinanceiro();
+
+    let porMes = {};
+    function grupoDoMes(ano, mes) {
+        let chave = ano + "-" + mes;
+        if (!porMes[chave]) porMes[chave] = { ano, mes, receitaVendas: 0, custoGadoVendido: 0, despesasGerais: 0 };
+        return porMes[chave];
+    }
+
+    relatorios.forEach(r => {
+        if ((r.tipo || "venda") !== "venda") return;
+        let dm = extrairMesAnoDaData(r.data);
+        if (!dm) return;
+        let d = calcularDadosCompletos(r);
+        let nomeLote = r.descricao || "Sem descrição";
+        let custoMedio = porLote[nomeLote] ? porLote[nomeLote].custoMedioAnimal : 0;
+        let grupo = grupoDoMes(dm.ano, dm.mes);
+        grupo.receitaVendas += d.totalRS;
+        grupo.custoGadoVendido += d.totalAnimais * custoMedio;
+    });
+
+    caixaLancamentosCacheAdmin.forEach(l => {
+        if (l.loteNome) return; // despesas/receitas com lote já viram custo do gado vendido daquele lote
+        let dm = extrairMesAnoDaData(l.data);
+        if (!dm) return;
+        let grupo = grupoDoMes(dm.ano, dm.mes);
+        grupo.despesasGerais += (l.tipo === "saida" ? l.valor : -l.valor);
+    });
+
+    let chaves = Object.keys(porMes).sort().reverse();
+    if (chaves.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="5">Nenhum dado disponível ainda.</td></tr>`;
+        return;
+    }
+
+    function formatarResultado(valor) {
+        let positivo = valor >= 0;
+        return `<span style="color:${positivo ? '#0ca30c' : '#d03b3b'}">${positivo ? '▲' : '▼'} R$ ${formatarMoeda(Math.abs(valor))}</span>`;
+    }
+
+    corpo.innerHTML = chaves.map(chave => {
+        let g = porMes[chave];
+        let resultado = g.receitaVendas - g.custoGadoVendido - g.despesasGerais;
+        return `
+            <tr>
+                <td>${NOMES_MESES_RESULTADO[g.mes]}/${g.ano}</td>
+                <td>R$ ${formatarMoeda(g.receitaVendas)}</td>
+                <td>R$ ${formatarMoeda(g.custoGadoVendido)}</td>
+                <td>R$ ${formatarMoeda(g.despesasGerais)}</td>
+                <td>${formatarResultado(resultado)}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+// ========================================
 // FLUXO DE CAIXA
 // ========================================
 let caixaLancamentosCacheAdmin = [];

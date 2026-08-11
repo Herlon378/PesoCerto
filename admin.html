@@ -106,6 +106,31 @@
     </div>
 
     <div class="dashComparativo">
+        <span class="dashSecaoTitulo">💼 Patrimônio Total</span>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+            Tudo que é seu hoje: o dinheiro em caixa (desde o início) + o valor investido no gado que ainda está nos lotes + os insumos parados no almoxarifado. Acompanhar esse número mês a mês mostra se seu capital está crescendo ou encolhendo — diferente de olhar só uma compra ou uma venda isolada.
+        </p>
+        <div class="dashHero" style="margin-bottom:14px">
+            <span class="dashHeroLabel">Patrimônio Total (hoje)</span>
+            <span class="dashHeroValor" id="patrimonioTotal">R$ 0,00</span>
+        </div>
+        <div class="dashKpiRow" style="margin-bottom:0">
+            <div class="statTile">
+                <span class="statTileLabel">💵 Caixa acumulado</span>
+                <span class="statTileValor" id="patrimonioCaixa">R$ 0,00</span>
+            </div>
+            <div class="statTile">
+                <span class="statTileLabel">🐄 Valor do rebanho vivo</span>
+                <span class="statTileValor" id="patrimonioRebanho">R$ 0,00</span>
+            </div>
+            <div class="statTile">
+                <span class="statTileLabel">📦 Insumos no almoxarifado</span>
+                <span class="statTileValor" id="patrimonioEstoque">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashComparativo" style="margin-top:16px">
         <div class="dashLegenda">
             <span class="dashLegendaItem"><span class="dashDot dashDotCompra"></span>Compra</span>
             <span class="dashLegendaItem"><span class="dashDot dashDotVenda"></span>Venda</span>
@@ -154,6 +179,19 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="dashComparativo" style="margin-top:16px">
+        <span class="dashSecaoTitulo">📈 Resultado Mensal</span>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+            Lucro ou prejuízo real de cada mês: receita de vendas menos o custo do gado vendido (custo médio de compra + insumos daquele lote) menos despesas gerais sem lote (salário, combustível etc). Compra de gado e compra de insumos NÃO entram aqui — comprar não é prejuízo, é seu dinheiro virando gado ou estoque, e isso já está refletido no Patrimônio Total acima.
+        </p>
+        <table class="tabelaUsuarios">
+            <thead>
+                <tr><th>Mês</th><th>Receita de Vendas</th><th>Custo do Gado Vendido</th><th>Despesas Gerais</th><th>Resultado do Mês</th></tr>
+            </thead>
+            <tbody id="corpoTabelaResultadoMensal"></tbody>
+        </table>
     </div>
 
     <div class="dashComparativo" style="margin-top:16px">
