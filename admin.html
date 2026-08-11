@@ -107,8 +107,12 @@
 
     <div class="dashComparativo">
         <span class="dashSecaoTitulo">💼 Patrimônio Total</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:6px">
             Tudo que é seu hoje: o dinheiro em caixa (desde o início) + o valor investido no gado que ainda está nos lotes + os insumos parados no almoxarifado. Acompanhar esse número mês a mês mostra se seu capital está crescendo ou encolhendo — diferente de olhar só uma compra ou uma venda isolada.
+        </p>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+            <span id="saldoInicialInfo">Nenhum saldo inicial definido ainda.</span>
+            <button class="btnPequeno" style="height:28px; padding:0 10px; font-size:12px" onclick="abrirModalSaldoInicial()">✏️ Definir Saldo Inicial</button>
         </p>
         <div class="dashHero" style="margin-bottom:14px">
             <span class="dashHeroLabel">Patrimônio Total (hoje)</span>
@@ -483,6 +487,22 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalLancamento()">Cancelar</button>
             <button class="btn-sim" onclick="salvarLancamento()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalSaldoInicial" class="modal">
+    <div class="modal-box">
+        <h2>💵 Saldo Inicial de Caixa</h2>
+        <p class="loginSubtitulo" style="text-align:left">
+            Quanto dinheiro você já tinha, em caixa ou conta, antes de começar a lançar pesagens e movimentações aqui no sistema. Esse valor entra direto no Caixa Acumulado, no Patrimônio Total e no extrato do Fluxo de Caixa.
+        </p>
+        <input id="saldoInicialValorInput" placeholder="Valor (R$)" inputmode="decimal">
+        <input id="saldoInicialDataInput" type="date">
+        <p id="saldoInicialErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalSaldoInicial()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarSaldoInicial()">Salvar</button>
         </div>
     </div>
 </div>

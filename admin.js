@@ -884,6 +884,83 @@ async function mostrarCustoPorLote() {
 }
 
 // ========================================
+// SALDO INICIAL DE CAIXA
+// ========================================
+// O dinheiro que o rancho já tinha antes de começar a usar o sistema.
+// Sem isso, todo cálculo de caixa (Fluxo de Caixa, Patrimônio Total)
+// começaria do zero, ignorando o capital que já existia.
+let saldoInicialCache = { valor: 0, data: null };
+
+async function carregarSaldoInicial() {
+    let token = obterToken();
+    if (!token) return saldoInicialCache;
+    try {
+        let resp = await fetch(`${API_URL}/api/saldo-inicial`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return saldoInicialCache;
+        saldoInicialCache = await resp.json();
+        return saldoInicialCache;
+    } catch (e) {
+        return saldoInicialCache;
+    }
+}
+
+function atualizarInfoSaldoInicial() {
+    let el = document.getElementById("saldoInicialInfo");
+    if (!el) return;
+    el.innerText = saldoInicialCache.valor
+        ? `Saldo inicial: R$ ${formatarMoeda(saldoInicialCache.valor)} (a partir de ${extrairDataISO(saldoInicialCache.data) ? saldoInicialCache.data.split(",")[0] : "—"})`
+        : "Nenhum saldo inicial definido ainda.";
+}
+
+function abrirModalSaldoInicial() {
+    document.getElementById("saldoInicialValorInput").value = saldoInicialCache.valor ? String(saldoInicialCache.valor).replace(".", ",") : "";
+    let dataISO = extrairDataISO(saldoInicialCache.data) || new Date().toISOString().slice(0, 10);
+    document.getElementById("saldoInicialDataInput").value = dataISO;
+    let erroEl = document.getElementById("saldoInicialErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalSaldoInicial").style.display = "flex";
+}
+
+function fecharModalSaldoInicial() {
+    document.getElementById("modalSaldoInicial").style.display = "none";
+}
+
+async function salvarSaldoInicial() {
+    let erroEl = document.getElementById("saldoInicialErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let valor = parseFloat(document.getElementById("saldoInicialValorInput").value.replace(",", "."));
+        let dataISOSimples = document.getElementById("saldoInicialDataInput").value;
+        if (!Number.isFinite(valor) || valor < 0) { mostrarErro("Informe um valor válido."); return; }
+
+        let dataFinal = formatarDataBR(dataISOSimples);
+        let resp = await fetch(`${API_URL}/api/saldo-inicial`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ valor, data: dataFinal })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        saldoInicialCache = dados;
+        fecharModalSaldoInicial();
+        atualizarInfoSaldoInicial();
+
+        if (typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+        if (typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
+        if (typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
+        let telaFluxo = document.getElementById("telaFluxoCaixa");
+        if (telaFluxo && telaFluxo.classList.contains("ativa") && typeof mostrarFluxoCaixa === "function") mostrarFluxoCaixa();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+// ========================================
 // PATRIMÔNIO TOTAL E RESULTADO MENSAL
 // ========================================
 // Custo médio por animal de um lote: (tudo que já foi gasto comprando +
@@ -904,8 +981,10 @@ async function carregarCachesFinanceirasDashboard() {
         carregarEstoqueSaidasAdmin(),
         carregarCaixaLancamentosAdmin(),
         carregarEstoqueEntradasAdmin(),
-        carregarProdutosAdmin()
+        carregarProdutosAdmin(),
+        carregarSaldoInicial()
     ]);
+    atualizarInfoSaldoInicial();
 }
 
 // dataISOLimite (opcional, "yyyy-mm-dd"): quando informado, só considera
@@ -968,6 +1047,9 @@ function calcularCaixaAcumulado(dataISOLimite) {
     }
 
     let entradasCaixa = 0, saidasCaixa = 0;
+    if (saldoInicialCache.valor && dentroDoPeriodo(saldoInicialCache.data)) {
+        entradasCaixa += saldoInicialCache.valor;
+    }
     relatorios.forEach(r => {
         if (!dentroDoPeriodo(r.data)) return;
         let d = calcularDadosCompletos(r);
@@ -1103,6 +1185,7 @@ async function mostrarEvolucaoPatrimonio() {
         let dm = extrairMesAnoDaData(dataStr);
         if (dm) mesesVistos.add(chaveMes(dm.ano, dm.mes) + "|" + dm.ano + "|" + dm.mes);
     }
+    if (saldoInicialCache.valor) registrarMes(saldoInicialCache.data);
     relatorios.forEach(r => registrarMes(r.data));
     estoqueEntradasCacheAdmin.forEach(e => registrarMes(e.data));
     estoqueSaidasCacheAdmin.forEach(s => registrarMes(s.data));
@@ -1201,7 +1284,7 @@ async function carregarEstoqueEntradasAdmin() {
 }
 
 async function abrirTelaFluxoCaixa() {
-    await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin()]);
+    await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin(), carregarSaldoInicial()]);
     mostrarFluxoCaixa();
 }
 
@@ -1222,6 +1305,18 @@ function mostrarFluxoCaixa() {
     // sempre sobre todo o histórico, igual um extrato bancário; o filtro de
     // período só decide quais linhas aparecem na tela, não "zera" o saldo.
     let movimentos = [];
+
+    if (saldoInicialCache.valor) {
+        let dataISO = extrairDataISO(saldoInicialCache.data);
+        if (dataISO) {
+            movimentos.push({
+                dataISO, data: saldoInicialCache.data, tipo: "entrada",
+                origem: "Saldo Inicial",
+                descricao: "Saldo inicial de caixa (editável em Definir Saldo Inicial, no Dashboard)",
+                valor: saldoInicialCache.valor
+            });
+        }
+    }
 
     relatorios.forEach(r => {
         let dataISO = extrairDataISO(r.data);
