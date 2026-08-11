@@ -341,6 +341,153 @@ async function excluirLote(id, nome) {
 }
 
 // ========================================
+// TRANSFERÊNCIA ENTRE LOTES
+// ========================================
+// Pra quem mistura o gado de várias compras no mesmo pasto (não dá pra
+// separar lote por compra quando os animais ficam fisicamente juntos) —
+// move cabeça e custo de um lote pro outro (ex: separar o refugo) sem
+// inventar uma compra/venda que nunca aconteceu de verdade. Zero efeito em
+// caixa: o custo sai de um lote e entra no outro pelo mesmo valor.
+let transferenciasLotesCacheAdmin = [];
+
+async function carregarTransferenciasLotesAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/transferencias-lotes`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        transferenciasLotesCacheAdmin = await resp.json();
+        return transferenciasLotesCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function abrirModalTransferenciaLote() {
+    let token = obterToken();
+    if (!token) return;
+
+    let lotes = await fetch(`${API_URL}/api/lotes`, { headers: { "Authorization": "Bearer " + token } }).then(r => r.ok ? r.json() : []);
+    let opcoes = `<option value="">Selecione o lote</option>` +
+        lotes.filter(l => l.ativo).map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+    document.getElementById("transfLoteOrigemInput").innerHTML = opcoes;
+    document.getElementById("transfLoteDestinoInput").innerHTML = opcoes;
+
+    document.getElementById("transfQuantidadeInput").value = "";
+    document.getElementById("transfDataInput").value = new Date().toISOString().slice(0, 10);
+    let erroEl = document.getElementById("transfErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    await atualizarPreviewTransferencia();
+    document.getElementById("modalTransferenciaLote").style.display = "flex";
+}
+
+async function atualizarPreviewTransferencia() {
+    let preview = document.getElementById("transfPreview");
+    if (!preview) return;
+    let loteOrigem = document.getElementById("transfLoteOrigemInput").value;
+    let qtd = parseFloat(document.getElementById("transfQuantidadeInput").value.replace(",", ".")) || 0;
+    if (!loteOrigem) { preview.innerText = ""; return; }
+
+    await carregarCachesFinanceirasDashboard();
+    let porLote = agregarCustoLotesFinanceiro();
+    let g = porLote[loteOrigem];
+    let custoMedio = g ? g.custoMedioAnimal : 0;
+    let headcount = g ? g.headcountAtual : 0;
+
+    let texto = `Animais disponíveis em "${loteOrigem}": ${headcount} · Custo médio: R$ ${formatarMoeda(custoMedio)}/animal`;
+    if (qtd > 0) texto += ` · Total a transferir: R$ ${formatarMoeda(qtd * custoMedio)}`;
+    preview.innerText = texto;
+}
+
+function fecharModalTransferenciaLote() {
+    document.getElementById("modalTransferenciaLote").style.display = "none";
+}
+
+async function confirmarTransferenciaLote() {
+    let erroEl = document.getElementById("transfErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let loteOrigem = document.getElementById("transfLoteOrigemInput").value;
+        let loteDestino = document.getElementById("transfLoteDestinoInput").value;
+        let quantidade = parseFloat(document.getElementById("transfQuantidadeInput").value.replace(",", "."));
+        let dataISOSimples = document.getElementById("transfDataInput").value;
+
+        if (!loteOrigem) { mostrarErro("Selecione o lote de origem."); return; }
+        if (!loteDestino) { mostrarErro("Selecione o lote de destino."); return; }
+        if (loteOrigem === loteDestino) { mostrarErro("Origem e destino não podem ser o mesmo lote."); return; }
+        if (!Number.isFinite(quantidade) || quantidade <= 0) { mostrarErro("Quantidade inválida."); return; }
+
+        let porLote = agregarCustoLotesFinanceiro();
+        let g = porLote[loteOrigem];
+        let custoMedio = g ? g.custoMedioAnimal : 0;
+
+        let resp = await fetch(`${API_URL}/api/transferencias-lotes`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ loteOrigem, loteDestino, quantidade, custoUnitario: custoMedio, data: formatarDataBR(dataISOSimples) })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao transferir (HTTP ${resp.status}).`); return; }
+
+        fecharModalTransferenciaLote();
+        await atualizarTelasAposMudancaDeLote();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function carregarHistoricoTransferencias() {
+    let corpo = document.getElementById("corpoTabelaTransferencias");
+    if (!corpo) return;
+    await carregarTransferenciasLotesAdmin();
+    if (transferenciasLotesCacheAdmin.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="6">Nenhuma transferência registrada ainda.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = transferenciasLotesCacheAdmin.map(t => `
+        <tr>
+            <td>${t.data || "—"}</td>
+            <td>${t.loteOrigem}</td>
+            <td>${t.loteDestino}</td>
+            <td>${t.quantidade}</td>
+            <td>R$ ${formatarMoeda(t.valorTotal)}</td>
+            <td class="acoesUsuario"><button onclick='excluirTransferenciaLote(${JSON.stringify(t.id)})'>🗑️</button></td>
+        </tr>
+    `).join("");
+}
+
+async function excluirTransferenciaLote(id) {
+    if (!confirm("Desfazer esta transferência? Os animais voltam pro lote de origem.")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/transferencias-lotes/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await atualizarTelasAposMudancaDeLote();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// depois de criar ou desfazer uma transferência, todo relatório que
+// depende de headcount/custo por lote precisa recarregar — a lista é a
+// mesma que já existe pra quando um lançamento de caixa muda.
+async function atualizarTelasAposMudancaDeLote() {
+    await carregarHistoricoTransferencias();
+    if (typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+    if (typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
+    if (typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
+    if (typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
+}
+
+// ========================================
 // ALMOXARIFADO — DEPARTAMENTOS
 // ========================================
 let departamentosCacheAdmin = [];
@@ -801,7 +948,7 @@ async function mostrarCustoPorLote() {
     let corpo = document.getElementById("corpoTabelaCustoLote");
     if (!token || !corpo) return;
 
-    await Promise.all([carregarEstoqueSaidasAdmin(), carregarCaixaLancamentosAdmin()]);
+    await Promise.all([carregarEstoqueSaidasAdmin(), carregarCaixaLancamentosAdmin(), carregarTransferenciasLotesAdmin()]);
 
     // agrega compra/venda por nome de lote a partir das pesagens já sincronizadas
     // (a variável "relatorios" é global, vem de app.js) e soma as saídas de estoque
@@ -839,6 +986,18 @@ async function mostrarCustoPorLote() {
         let grupo = grupoDoLote(l.loteNome);
         if (l.tipo === "saida") grupo.custoInsumos += l.valor;
         else grupo.receitaVenda += l.valor;
+    });
+
+    // transferência entre lotes: sai do lote origem como se fosse vendido
+    // (headcount desconta, custo não muda — igual uma venda faria com o
+    // custo médio dos que ficaram), e entra no destino como custo de
+    // aquisição, no valor exato que saiu — não cria nem apaga patrimônio,
+    // só reorganiza entre os dois lotes.
+    transferenciasLotesCacheAdmin.forEach(t => {
+        grupoDoLote(t.loteOrigem).vendidos += t.quantidade;
+        let destino = grupoDoLote(t.loteDestino);
+        destino.comprados += t.quantidade;
+        destino.custoCompra += t.valorTotal;
     });
 
     let nomesLotes = Object.keys(porLote).sort();
@@ -986,7 +1145,8 @@ async function carregarCachesFinanceirasDashboard() {
         carregarCaixaLancamentosAdmin(),
         carregarEstoqueEntradasAdmin(),
         carregarProdutosAdmin(),
-        carregarSaldoInicial()
+        carregarSaldoInicial(),
+        carregarTransferenciasLotesAdmin()
     ]);
     atualizarInfoSaldoInicial();
 }
@@ -1036,6 +1196,17 @@ function agregarCustoLotesFinanceiro(dataISOLimite) {
         // Mensal/Patrimônio, dando números diferentes em cada relatório.
         if (l.tipo === "saida") grupo.custoInsumos += l.valor;
         else grupo.custoInsumos -= l.valor;
+    });
+
+    // mesmo tratamento do Custo por Lote: transferência tira headcount do
+    // lote origem (sem mexer no custo médio de quem ficou) e leva o valor
+    // junto pro destino — soma total sempre igual, não é compra nem venda.
+    transferenciasLotesCacheAdmin.forEach(t => {
+        if (!dentroDoPeriodo(t.data)) return;
+        grupoDoLote(t.loteOrigem).vendidos += t.quantidade;
+        let destino = grupoDoLote(t.loteDestino);
+        destino.comprados += t.quantidade;
+        destino.custoCompra += t.valorTotal;
     });
 
     Object.values(porLote).forEach(g => {

@@ -15,7 +15,7 @@
     <button data-tela="telaDashboard" onclick="abrirDashboard()">📊 Dashboard</button>
     <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
     <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
-    <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes();">🏷️ Lotes</button>
+    <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes(); carregarHistoricoTransferencias();">🏷️ Lotes</button>
     <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado')">📦 Almoxarifado</button>
     <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
     <span class="navSync">
@@ -212,7 +212,7 @@
     <div class="dashComparativo" style="margin-top:16px">
         <span class="dashSecaoTitulo">💰 Custo por Lote</span>
         <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            "Custo Restante" é quanto do dinheiro investido no lote (compra + insumos e despesas avulsas como frete/cirurgia lançadas no Fluxo de Caixa com esse lote marcado) ainda não voltou em vendas — dividido pelos animais que sobraram. Fica em verde quando as vendas já recuperaram tudo (os que sobraram já são lucro). Fica em vermelho quando o lote já foi todo vendido (0 animais atuais) mas as vendas não cobriram o custo — esse é um prejuízo definitivo desse lote, não tem mais animal pra recuperar.
+            "Custo Restante" é quanto do dinheiro investido no lote (compra + insumos, despesas avulsas como frete/cirurgia e animais recebidos por transferência de outro lote) ainda não voltou em vendas — dividido pelos animais que sobraram. Fica em verde quando as vendas já recuperaram tudo (os que sobraram já são lucro). Fica em vermelho quando o lote já foi todo vendido (0 animais atuais) mas as vendas não cobriram o custo — esse é um prejuízo definitivo desse lote, não tem mais animal pra recuperar.
         </p>
         <table class="tabelaUsuarios">
             <thead>
@@ -240,12 +240,24 @@
     <h2>Lotes</h2>
     <div class="botoesRelatorio">
         <button onclick="abrirModalLote()" style="background:#2e7d32">➕ Novo Lote</button>
+        <button onclick="abrirModalTransferenciaLote()" style="background:#1976d2">🔀 Transferir Animais entre Lotes</button>
     </div>
     <table class="tabelaUsuarios">
         <thead>
             <tr><th>Nome</th><th>Status</th><th>Ações</th></tr>
         </thead>
         <tbody id="corpoTabelaLotes"></tbody>
+    </table>
+
+    <h3 style="margin-top:28px">Transferências entre Lotes</h3>
+    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+        Pra quando o gado de várias compras fica misturado no mesmo pasto (ex: separar o refugo num lote próprio). Move cabeça e custo de um lote pro outro pelo custo médio do lote de origem — não é compra nem venda, não mexe em caixa nem no Fluxo de Caixa.
+    </p>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Data</th><th>De</th><th>Para</th><th>Qtd.</th><th>Valor</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaTransferencias"></tbody>
     </table>
 </div>
 
@@ -407,6 +419,26 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalLote()">Cancelar</button>
             <button class="btn-sim" onclick="salvarLote()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalTransferenciaLote" class="modal">
+    <div class="modal-box">
+        <h2>🔀 Transferir Animais entre Lotes</h2>
+        <select id="transfLoteOrigemInput" onchange="atualizarPreviewTransferencia()">
+            <option value="">Lote de origem</option>
+        </select>
+        <select id="transfLoteDestinoInput">
+            <option value="">Lote de destino</option>
+        </select>
+        <input id="transfQuantidadeInput" placeholder="Quantidade de animais" inputmode="numeric" oninput="atualizarPreviewTransferencia()">
+        <input id="transfDataInput" type="date">
+        <p id="transfPreview" class="loginSubtitulo" style="text-align:left"></p>
+        <p id="transfErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalTransferenciaLote()">Cancelar</button>
+            <button class="btn-sim" onclick="confirmarTransferenciaLote()">Transferir</button>
         </div>
     </div>
 </div>
