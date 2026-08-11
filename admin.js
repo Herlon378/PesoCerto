@@ -855,10 +855,14 @@ async function mostrarCustoPorLote() {
     // entre quem ainda não foi vendido. Pode ficar negativo se as vendas já
     // recuperaram mais do que o lote custou — nesse caso os que sobraram já
     // são "lucro puro", sem custo pendente.
-    function formatarValorPossivelmenteNegativo(valor) {
-        return valor < 0
-            ? { texto: "▲ R$ " + formatarMoeda(Math.abs(valor)) + " (lucro)", cor: "#0ca30c" }
-            : { texto: "R$ " + formatarMoeda(valor), cor: "#0b0b0b" };
+    // headcount é passado à parte: um lote ENCERRADO (headcount 0) com custo
+    // restante ainda positivo não tem mais como se recuperar — é prejuízo
+    // realizado, não "ainda não vendido", e precisa aparecer em vermelho,
+    // não com a mesma cor neutra de um lote que só ainda está em andamento.
+    function formatarValorPossivelmenteNegativo(valor, headcount) {
+        if (valor < 0) return { texto: "▲ R$ " + formatarMoeda(Math.abs(valor)) + " (lucro)", cor: "#0ca30c" };
+        if (valor > 0 && headcount === 0) return { texto: "▼ R$ " + formatarMoeda(valor) + " (prejuízo)", cor: "#d03b3b" };
+        return { texto: "R$ " + formatarMoeda(valor), cor: "#0b0b0b" };
     }
 
     corpo.innerHTML = nomesLotes.map(nome => {
@@ -867,8 +871,8 @@ async function mostrarCustoPorLote() {
         let gastoTotal = g.custoCompra + g.custoInsumos;
         let custoRestante = gastoTotal - g.receitaVenda;
         let custoMedio = headcount > 0 ? custoRestante / headcount : 0;
-        let restanteFmt = formatarValorPossivelmenteNegativo(custoRestante);
-        let medioFmt = formatarValorPossivelmenteNegativo(custoMedio);
+        let restanteFmt = formatarValorPossivelmenteNegativo(custoRestante, headcount);
+        let medioFmt = formatarValorPossivelmenteNegativo(custoMedio, headcount);
         return `
             <tr>
                 <td>${nome}</td>
@@ -1026,7 +1030,12 @@ function agregarCustoLotesFinanceiro(dataISOLimite) {
     caixaLancamentosCacheAdmin.forEach(l => {
         if (!l.loteNome || !dentroDoPeriodo(l.data)) return;
         let grupo = grupoDoLote(l.loteNome);
+        // mesmo tratamento do Custo por Lote: despesa avulsa do lote soma no
+        // custo, receita avulsa do lote (ex: venda de esterco) abate — sem
+        // isso ela aparecia só no Custo por Lote e "sumia" do Resultado
+        // Mensal/Patrimônio, dando números diferentes em cada relatório.
         if (l.tipo === "saida") grupo.custoInsumos += l.valor;
+        else grupo.custoInsumos -= l.valor;
     });
 
     Object.values(porLote).forEach(g => {
@@ -1201,15 +1210,19 @@ async function mostrarEvolucaoPatrimonio() {
         return;
     }
 
-    let hojeISO = new Date().toISOString().slice(0, 10);
+    let agora = new Date();
+    let hojeISO = agora.toISOString().slice(0, 10);
+    let chaveMesDeHoje = chaveMes(agora.getFullYear(), agora.getMonth());
     let ultimaChave = meses[meses.length - 1].chave;
 
     for (let m of meses) {
         let ultimoDiaDoMes = new Date(m.ano, m.mes + 1, 0).getDate();
         let fimDoMesISO = `${m.ano}-${String(m.mes + 1).padStart(2, "0")}-${String(ultimoDiaDoMes).padStart(2, "0")}`;
-        // no mês corrente, "fim do mês" ainda não chegou — usa hoje mesmo,
-        // senão os lançamentos de hoje ficariam de fora da comparação.
-        let corteISO = fimDoMesISO > hojeISO ? hojeISO : fimDoMesISO;
+        // só o mês CORRENTE corta em "hoje" (ele ainda não acabou). Meses
+        // futuros (lançamentos com data adiantada) usam o próprio fim do
+        // mês normalmente — sem isso, todo mês depois do atual "congelava"
+        // no mesmo valor de hoje, escondendo a evolução real desses dados.
+        let corteISO = m.chave === chaveMesDeHoje ? hojeISO : fimDoMesISO;
 
         let caixa = calcularCaixaAcumulado(corteISO);
         let porLote = agregarCustoLotesFinanceiro(corteISO);
