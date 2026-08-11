@@ -225,6 +225,14 @@ body.modoDesktop .tela.ativa {
     margin-bottom: 10px;
 }
 
+.dashSecaoTitulo {
+    display: block;
+    font-size: 18px;
+    font-weight: bold;
+    color: #0b0b0b;
+    margin-bottom: 8px;
+}
+
 .dashBarLinha {
     display: grid;
     grid-template-columns: 52px 1fr auto;
@@ -352,7 +360,7 @@ body.modoDesktop #listaRelatorios {
 /* ============ ALMOXARIFADO ============ */
 .almoxHubGrade {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
     margin-top: 10px;
 }

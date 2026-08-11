@@ -44,6 +44,7 @@ function abrirDashboard(){
     trocarTela("telaDashboard");
     preencherFiltrosDashboard();
     mostrarDashboard();
+    if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
 }
 
 function iniciarPesagem(){
@@ -1468,6 +1469,7 @@ async function sincronizarAgora(){
         if(telaDashboard && telaDashboard.classList.contains("ativa")){
             preencherFiltrosDashboard();
             mostrarDashboard();
+            if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
         }
 
         if(idsRejeitadosPermissao.length > 0 || idsRejeitadosSaidas.length > 0){

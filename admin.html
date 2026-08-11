@@ -155,6 +155,19 @@
             </div>
         </div>
     </div>
+
+    <div class="dashComparativo" style="margin-top:16px">
+        <span class="dashSecaoTitulo">💰 Custo por Lote</span>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+            "Custo Restante" é quanto do dinheiro investido no lote (compra + insumos e despesas avulsas como frete/cirurgia lançadas no Fluxo de Caixa com esse lote marcado) ainda não voltou em vendas — dividido pelos animais que sobraram. Fica em verde quando as vendas já recuperaram tudo (os que sobraram já são lucro).
+        </p>
+        <table class="tabelaUsuarios">
+            <thead>
+                <tr><th>Lote</th><th>Animais Atuais</th><th>Custo Compra</th><th>Insumos/Despesas</th><th>Receita de Vendas</th><th>Custo Restante</th><th>Custo Médio/Animal Restante</th></tr>
+            </thead>
+            <tbody id="corpoTabelaCustoLote"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="telaUsuarios" class="tela">
@@ -197,10 +210,6 @@
         <button class="almoxHubBotao" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();">
             <span class="almoxHubIcone">📤</span>
             <span>Saída</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaCustoLote'); mostrarCustoPorLote();">
-            <span class="almoxHubIcone">💰</span>
-            <span>Custo por Lote</span>
         </button>
     </div>
 </div>
@@ -256,22 +265,6 @@
             <tr><th>Data</th><th>Produto</th><th>Lote</th><th>Qtd</th><th>Valor</th><th>Lançado por</th><th>Ações</th></tr>
         </thead>
         <tbody id="corpoTabelaSaidas"></tbody>
-    </table>
-</div>
-
-<div id="telaCustoLote" class="tela">
-    <h2>Custo por Lote</h2>
-    <div class="botoesRelatorio">
-        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
-    </div>
-    <p class="loginSubtitulo" style="text-align:left">
-        "Custo Restante" é quanto do dinheiro investido no lote (compra + insumos e despesas avulsas como frete/cirurgia lançadas no Fluxo de Caixa com esse lote marcado) ainda não voltou em vendas — dividido pelos animais que sobraram. Fica em verde quando as vendas já recuperaram tudo (os que sobraram já são lucro).
-    </p>
-    <table class="tabelaUsuarios">
-        <thead>
-            <tr><th>Lote</th><th>Animais Atuais</th><th>Custo Compra</th><th>Insumos/Despesas</th><th>Receita de Vendas</th><th>Custo Restante</th><th>Custo Médio/Animal Restante</th></tr>
-        </thead>
-        <tbody id="corpoTabelaCustoLote"></tbody>
     </table>
 </div>
 
