@@ -276,6 +276,64 @@ body.modoDesktop .tela.ativa {
     }
 }
 
+.patrimonioLinha {
+    display: grid;
+    grid-template-columns: 64px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.patrimonioRotulo {
+    font-size: 12px;
+    color: #52514e;
+    font-weight: bold;
+}
+
+.patrimonioTrilha {
+    background: #e1e0d9;
+    border-radius: 4px;
+    height: 18px;
+    overflow: hidden;
+}
+
+.patrimonioFill {
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    transition: width 0.4s ease;
+}
+
+.patrimonioValor {
+    font-size: 13px;
+    font-weight: bold;
+    color: #0b0b0b;
+    text-align: right;
+    min-width: 110px;
+}
+
+.patrimonioVariacao {
+    font-size: 12px;
+    font-weight: bold;
+    text-align: right;
+    min-width: 90px;
+}
+
+@media (max-width: 720px) {
+    .patrimonioLinha {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        background: #fcfcfb;
+        border: 1px solid rgba(11,11,11,0.08);
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+    }
+    .patrimonioValor, .patrimonioVariacao {
+        text-align: left;
+        min-width: 0;
+    }
+}
+
 /* relatórios: cartões em grade em vez de lista vertical única */
 body.modoDesktop #listaRelatorios {
     display: grid;

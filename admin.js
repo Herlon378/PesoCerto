@@ -894,8 +894,31 @@ async function mostrarCustoPorLote() {
 // custo de aquisição, pra reconhecer o lucro de cada venda no mês em que
 // ela aconteceu, e pra avaliar o rebanho que ainda está vivo pelo que ele
 // custou de verdade.
-async function agregarCustoLotesFinanceiro() {
-    await Promise.all([carregarEstoqueSaidasAdmin(), carregarCaixaLancamentosAdmin()]);
+// Carrega todas as caches usadas pelos cálculos financeiros do Dashboard
+// de uma vez só. As funções de agregação abaixo são só leitura sobre essas
+// caches (sem fetch próprio) justamente pra poderem ser chamadas várias
+// vezes em sequência (uma por mês, na Evolução do Patrimônio) sem
+// martelar a API com pedidos repetidos dos mesmos dados.
+async function carregarCachesFinanceirasDashboard() {
+    await Promise.all([
+        carregarEstoqueSaidasAdmin(),
+        carregarCaixaLancamentosAdmin(),
+        carregarEstoqueEntradasAdmin(),
+        carregarProdutosAdmin()
+    ]);
+}
+
+// dataISOLimite (opcional, "yyyy-mm-dd"): quando informado, só considera
+// lançamentos com data até ali — usado pra reconstruir o patrimônio "como
+// era no fim de tal mês" na Evolução do Patrimônio. Sem esse parâmetro,
+// considera o histórico inteiro (comportamento original). Assume que
+// carregarCachesFinanceirasDashboard() já rodou antes.
+function agregarCustoLotesFinanceiro(dataISOLimite) {
+    function dentroDoPeriodo(dataStr) {
+        if (!dataISOLimite) return true;
+        let iso = extrairDataISO(dataStr);
+        return iso !== null && iso <= dataISOLimite;
+    }
 
     let porLote = {};
     function grupoDoLote(nome) {
@@ -904,6 +927,7 @@ async function agregarCustoLotesFinanceiro() {
     }
 
     relatorios.forEach(r => {
+        if (!dentroDoPeriodo(r.data)) return;
         let nomeLote = r.descricao || "Sem descrição";
         let grupo = grupoDoLote(nomeLote);
         let d = calcularDadosCompletos(r);
@@ -916,11 +940,12 @@ async function agregarCustoLotesFinanceiro() {
     });
 
     estoqueSaidasCacheAdmin.forEach(s => {
+        if (!dentroDoPeriodo(s.data)) return;
         grupoDoLote(s.loteNome).custoInsumos += s.valorTotal;
     });
 
     caixaLancamentosCacheAdmin.forEach(l => {
-        if (!l.loteNome) return;
+        if (!l.loteNome || !dentroDoPeriodo(l.data)) return;
         let grupo = grupoDoLote(l.loteNome);
         if (l.tipo === "saida") grupo.custoInsumos += l.valor;
     });
@@ -933,39 +958,47 @@ async function agregarCustoLotesFinanceiro() {
     return porLote;
 }
 
-async function mostrarPatrimonio() {
-    let elTotal = document.getElementById("patrimonioTotal");
-    if (!elTotal) return;
+// Mesma ideia do parâmetro acima: sem dataISOLimite soma o histórico
+// inteiro (saldo de caixa "desde sempre"); com ele, só até aquela data.
+function calcularCaixaAcumulado(dataISOLimite) {
+    function dentroDoPeriodo(dataStr) {
+        if (!dataISOLimite) return true;
+        let iso = extrairDataISO(dataStr);
+        return iso !== null && iso <= dataISOLimite;
+    }
 
-    let [porLote] = await Promise.all([
-        agregarCustoLotesFinanceiro(),
-        carregarEstoqueEntradasAdmin(),
-        carregarProdutosAdmin()
-    ]);
-
-    // caixa acumulado desde sempre — mesmo cálculo do saldo do Fluxo de
-    // Caixa sem filtro de período: vendas + lançamentos avulsos de entrada
-    // menos compras + entradas de estoque (nota fiscal) + lançamentos
-    // avulsos de saída.
     let entradasCaixa = 0, saidasCaixa = 0;
     relatorios.forEach(r => {
+        if (!dentroDoPeriodo(r.data)) return;
         let d = calcularDadosCompletos(r);
         if ((r.tipo || "venda") === "compra") saidasCaixa += d.totalRS;
         else entradasCaixa += d.totalRS;
     });
-    estoqueEntradasCacheAdmin.forEach(e => { saidasCaixa += e.valorTotal; });
+    estoqueEntradasCacheAdmin.forEach(e => { if (dentroDoPeriodo(e.data)) saidasCaixa += e.valorTotal; });
     caixaLancamentosCacheAdmin.forEach(l => {
+        if (!dentroDoPeriodo(l.data)) return;
         if (l.tipo === "saida") saidasCaixa += l.valor;
         else entradasCaixa += l.valor;
     });
-    let caixaAcumulado = entradasCaixa - saidasCaixa;
 
-    // rebanho vivo: soma do custo médio de aquisição dos animais que ainda
-    // não foram vendidos em cada lote (nunca negativo — um lote já
-    // totalmente vendido não "deve" patrimônio pra trás).
-    let valorRebanho = Object.values(porLote).reduce((soma, g) => {
-        return soma + Math.max(g.custoMedioAnimal * g.headcountAtual, 0);
-    }, 0);
+    return entradasCaixa - saidasCaixa;
+}
+
+function valorRebanhoVivo(porLote) {
+    // nunca negativo — um lote já totalmente vendido não "deve" patrimônio
+    // pra trás, o excesso já virou lucro realizado (está embutido no caixa).
+    return Object.values(porLote).reduce((soma, g) => soma + Math.max(g.custoMedioAnimal * g.headcountAtual, 0), 0);
+}
+
+async function mostrarPatrimonio() {
+    let elTotal = document.getElementById("patrimonioTotal");
+    if (!elTotal) return;
+
+    await carregarCachesFinanceirasDashboard();
+
+    let caixaAcumulado = calcularCaixaAcumulado();
+    let porLote = agregarCustoLotesFinanceiro();
+    let valorRebanho = valorRebanhoVivo(porLote);
 
     // insumos comprados mas ainda não aplicados a nenhum lote — parados no
     // almoxarifado, valendo pelo custo médio de compra.
@@ -983,15 +1016,22 @@ async function mostrarPatrimonio() {
 
 const NOMES_MESES_RESULTADO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+function chaveMes(ano, mes) {
+    // mês com 2 dígitos ("07", "10") pra ordenar como string sem o "2026-10"
+    // (Novembro) ficar antes do "2026-2" (Março) na ordenação alfabética.
+    return ano + "-" + String(mes).padStart(2, "0");
+}
+
 async function mostrarResultadoMensal() {
     let corpo = document.getElementById("corpoTabelaResultadoMensal");
     if (!corpo) return;
 
-    let porLote = await agregarCustoLotesFinanceiro();
+    await carregarCachesFinanceirasDashboard();
+    let porLote = agregarCustoLotesFinanceiro();
 
     let porMes = {};
     function grupoDoMes(ano, mes) {
-        let chave = ano + "-" + mes;
+        let chave = chaveMes(ano, mes);
         if (!porMes[chave]) porMes[chave] = { ano, mes, receitaVendas: 0, custoGadoVendido: 0, despesasGerais: 0 };
         return porMes[chave];
     }
@@ -1038,6 +1078,92 @@ async function mostrarResultadoMensal() {
                 <td>R$ ${formatarMoeda(g.despesasGerais)}</td>
                 <td>${formatarResultado(resultado)}</td>
             </tr>
+        `;
+    }).join("");
+}
+
+// ========================================
+// EVOLUÇÃO DO PATRIMÔNIO (visual, mês a mês)
+// ========================================
+// Reconstrói o Patrimônio Total como ele estava no FIM de cada mês que
+// teve alguma movimentação, e calcula a variação % em relação ao mês
+// anterior — é a resposta visual pra "quanto cresceu ou caiu esse mês".
+// O estoque parado no almoxarifado só entra no mês mais recente (é só um
+// saldo atual, não temos histórico de saldo por data), então meses
+// passados ficam levemente subestimados nesse componente — irrelevante
+// pra maioria dos ranchos, que não costumam manter muito parado ali.
+async function mostrarEvolucaoPatrimonio() {
+    let lista = document.getElementById("listaEvolucaoPatrimonio");
+    if (!lista) return;
+
+    await carregarCachesFinanceirasDashboard();
+
+    let mesesVistos = new Set();
+    function registrarMes(dataStr) {
+        let dm = extrairMesAnoDaData(dataStr);
+        if (dm) mesesVistos.add(chaveMes(dm.ano, dm.mes) + "|" + dm.ano + "|" + dm.mes);
+    }
+    relatorios.forEach(r => registrarMes(r.data));
+    estoqueEntradasCacheAdmin.forEach(e => registrarMes(e.data));
+    estoqueSaidasCacheAdmin.forEach(s => registrarMes(s.data));
+    caixaLancamentosCacheAdmin.forEach(l => registrarMes(l.data));
+
+    let meses = Array.from(mesesVistos).map(item => {
+        let [chave, ano, mes] = item.split("|");
+        return { chave, ano: parseInt(ano, 10), mes: parseInt(mes, 10) };
+    }).sort((a, b) => a.chave < b.chave ? -1 : (a.chave > b.chave ? 1 : 0));
+
+    if (meses.length === 0) {
+        lista.innerHTML = `<p class="loginSubtitulo" style="text-align:left">Nenhum dado disponível ainda.</p>`;
+        return;
+    }
+
+    let hojeISO = new Date().toISOString().slice(0, 10);
+    let ultimaChave = meses[meses.length - 1].chave;
+
+    for (let m of meses) {
+        let ultimoDiaDoMes = new Date(m.ano, m.mes + 1, 0).getDate();
+        let fimDoMesISO = `${m.ano}-${String(m.mes + 1).padStart(2, "0")}-${String(ultimoDiaDoMes).padStart(2, "0")}`;
+        // no mês corrente, "fim do mês" ainda não chegou — usa hoje mesmo,
+        // senão os lançamentos de hoje ficariam de fora da comparação.
+        let corteISO = fimDoMesISO > hojeISO ? hojeISO : fimDoMesISO;
+
+        let caixa = calcularCaixaAcumulado(corteISO);
+        let porLote = agregarCustoLotesFinanceiro(corteISO);
+        let rebanho = valorRebanhoVivo(porLote);
+        let estoqueAlmox = (m.chave === ultimaChave)
+            ? produtosCacheAdmin.reduce((soma, p) => soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0), 0)
+            : 0;
+
+        m.patrimonio = caixa + rebanho + estoqueAlmox;
+    }
+
+    for (let i = 0; i < meses.length; i++) {
+        let anterior = i > 0 ? meses[i - 1].patrimonio : null;
+        meses[i].variacaoAbs = anterior !== null ? meses[i].patrimonio - anterior : null;
+        meses[i].variacaoPct = (anterior !== null && anterior !== 0) ? (meses[i].variacaoAbs / Math.abs(anterior)) * 100 : null;
+    }
+
+    let maxAbs = Math.max(1, ...meses.map(m => Math.abs(m.patrimonio)));
+
+    lista.innerHTML = meses.map(m => {
+        let positivo = m.patrimonio >= 0;
+        let largura = Math.min(100, (Math.abs(m.patrimonio) / maxAbs) * 100);
+        let variacaoHtml;
+        if (m.variacaoAbs === null) {
+            variacaoHtml = `<span class="patrimonioVariacao" style="color:#999">— primeiro mês</span>`;
+        } else {
+            let cresceu = m.variacaoAbs >= 0;
+            let pctTexto = m.variacaoPct !== null ? Math.abs(m.variacaoPct).toFixed(1).replace(".", ",") + "%" : "—";
+            variacaoHtml = `<span class="patrimonioVariacao" style="color:${cresceu ? '#0ca30c' : '#d03b3b'}">${cresceu ? '▲' : '▼'} ${pctTexto}</span>`;
+        }
+        return `
+            <div class="patrimonioLinha">
+                <span class="patrimonioRotulo">${NOMES_MESES_RESULTADO[m.mes].slice(0, 3)}/${m.ano}</span>
+                <div class="patrimonioTrilha"><div class="patrimonioFill" style="width:${largura}%; background:${positivo ? '#2a78d6' : '#d03b3b'}"></div></div>
+                <span class="patrimonioValor">R$ ${formatarMoeda(m.patrimonio)}</span>
+                ${variacaoHtml}
+            </div>
         `;
     }).join("");
 }

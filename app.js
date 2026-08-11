@@ -45,6 +45,7 @@ function abrirDashboard(){
     preencherFiltrosDashboard();
     mostrarDashboard();
     if(typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+    if(typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
     if(typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
     if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
 }
@@ -1472,6 +1473,7 @@ async function sincronizarAgora(){
             preencherFiltrosDashboard();
             mostrarDashboard();
             if(typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+            if(typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
             if(typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
             if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
         }
