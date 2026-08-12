@@ -267,6 +267,21 @@
 <div id="telaAlmoxarifado" class="tela">
     <h2>📦 Almoxarifado</h2>
 
+    <div class="almoxHubGrade" style="margin-bottom:20px">
+        <button class="almoxHubBotao" onclick="trocarTela('telaProdutos'); carregarProdutos();">
+            <span class="almoxHubIcone">🏷️</span>
+            <span>Produtos</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaEstoque'); carregarEstoque();">
+            <span class="almoxHubIcone">📥</span>
+            <span>Estoque</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();">
+            <span class="almoxHubIcone">📤</span>
+            <span>Saída</span>
+        </button>
+    </div>
+
     <div class="dashKpiRow" style="margin-bottom:16px">
         <div class="statTile">
             <span class="statTileLabel">🏷️ Produtos Ativos</span>
@@ -282,7 +297,7 @@
         </div>
     </div>
 
-    <div class="dashComparativo" style="margin-bottom:20px">
+    <div class="dashComparativo">
         <span class="dashSecaoTitulo">📊 Produtos por Valor em Estoque</span>
         <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
             Ordenado do produto que mais dinheiro tem parado no almoxarifado pro que menos tem — os com saldo zerado ficam por último, marcados pra você saber o que já precisa repor.
@@ -293,21 +308,6 @@
             </thead>
             <tbody id="corpoTabelaDashboardProdutos"></tbody>
         </table>
-    </div>
-
-    <div class="almoxHubGrade">
-        <button class="almoxHubBotao" onclick="trocarTela('telaProdutos'); carregarProdutos();">
-            <span class="almoxHubIcone">🏷️</span>
-            <span>Produtos</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaEstoque'); carregarEstoque();">
-            <span class="almoxHubIcone">📥</span>
-            <span>Estoque</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();">
-            <span class="almoxHubIcone">📤</span>
-            <span>Saída</span>
-        </button>
     </div>
 </div>
 
