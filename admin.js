@@ -617,6 +617,50 @@ async function carregarProdutosAdmin() {
     }
 }
 
+// visão geral do Almoxarifado (tela hub) — quantos produtos, quanto dinheiro
+// está parado em estoque e quais produtos zeraram, pra saber o que repor
+// sem precisar entrar em Produtos e ler linha por linha.
+async function mostrarDashboardProdutos() {
+    let elAtivos = document.getElementById("almoxProdutosAtivos");
+    let corpo = document.getElementById("corpoTabelaDashboardProdutos");
+    if (!elAtivos || !corpo) return;
+
+    await carregarProdutosAdmin();
+    let ativos = produtosCacheAdmin.filter(p => p.ativo);
+
+    let valorTotalEstoque = ativos.reduce((soma, p) => soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0), 0);
+    let semEstoque = ativos.filter(p => (p.saldoAtual || 0) <= 0).length;
+
+    elAtivos.innerText = ativos.length;
+    document.getElementById("almoxValorEstoque").innerText = "R$ " + formatarMoeda(valorTotalEstoque);
+    document.getElementById("almoxSemEstoque").innerText = semEstoque;
+
+    if (ativos.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="5">Nenhum produto ativo cadastrado ainda.</td></tr>`;
+        return;
+    }
+
+    let ordenados = [...ativos].sort((a, b) => {
+        let valorA = (a.saldoAtual || 0) * (a.custoMedioUnitario || 0);
+        let valorB = (b.saldoAtual || 0) * (b.custoMedioUnitario || 0);
+        return valorB - valorA;
+    });
+
+    corpo.innerHTML = ordenados.map(p => {
+        let valor = (p.saldoAtual || 0) * (p.custoMedioUnitario || 0);
+        let semEstoqueLinha = (p.saldoAtual || 0) <= 0;
+        return `
+            <tr>
+                <td>${p.descricao}</td>
+                <td>${p.departamentoNome || "—"}</td>
+                <td style="color:${semEstoqueLinha ? '#d03b3b' : 'inherit'}">${formatarPeso(p.saldoAtual)} ${p.unidade}${semEstoqueLinha ? " ⚠️" : ""}</td>
+                <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
+                <td>R$ ${formatarMoeda(valor)}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
 async function carregarProdutos() {
     let token = obterToken();
     let corpo = document.getElementById("corpoTabelaProdutos");

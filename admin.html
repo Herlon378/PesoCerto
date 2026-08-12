@@ -19,7 +19,7 @@
     <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
     <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
     <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes(); carregarHistoricoTransferencias();">🏷️ Lotes</button>
-    <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado')">📦 Almoxarifado</button>
+    <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();">📦 Almoxarifado</button>
     <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
@@ -266,6 +266,35 @@
 
 <div id="telaAlmoxarifado" class="tela">
     <h2>📦 Almoxarifado</h2>
+
+    <div class="dashKpiRow" style="margin-bottom:16px">
+        <div class="statTile">
+            <span class="statTileLabel">🏷️ Produtos Ativos</span>
+            <span class="statTileValor" id="almoxProdutosAtivos">0</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">📦 Valor em Estoque</span>
+            <span class="statTileValor" id="almoxValorEstoque">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">⚠️ Sem Estoque</span>
+            <span class="statTileValor" id="almoxSemEstoque">0</span>
+        </div>
+    </div>
+
+    <div class="dashComparativo" style="margin-bottom:20px">
+        <span class="dashSecaoTitulo">📊 Produtos por Valor em Estoque</span>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+            Ordenado do produto que mais dinheiro tem parado no almoxarifado pro que menos tem — os com saldo zerado ficam por último, marcados pra você saber o que já precisa repor.
+        </p>
+        <table class="tabelaUsuarios">
+            <thead>
+                <tr><th>Produto</th><th>Departamento</th><th>Saldo</th><th>Custo Médio</th><th>Valor em Estoque</th></tr>
+            </thead>
+            <tbody id="corpoTabelaDashboardProdutos"></tbody>
+        </table>
+    </div>
+
     <div class="almoxHubGrade">
         <button class="almoxHubBotao" onclick="trocarTela('telaProdutos'); carregarProdutos();">
             <span class="almoxHubIcone">🏷️</span>
@@ -286,7 +315,7 @@
     <h2>Produtos</h2>
     <div class="botoesRelatorio">
         <button onclick="abrirModalProduto()" style="background:#2e7d32">➕ Novo Produto</button>
-        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+        <button onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();" style="background:#666">← Almoxarifado</button>
     </div>
     <table class="tabelaUsuarios">
         <thead>
@@ -300,7 +329,7 @@
     <h2>Estoque</h2>
     <div class="botoesRelatorio">
         <button onclick="abrirModalEstoqueEntrada()" style="background:#2e7d32">➕ Nova Entrada</button>
-        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+        <button onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();" style="background:#666">← Almoxarifado</button>
     </div>
     <table class="tabelaUsuarios">
         <thead>
@@ -313,7 +342,7 @@
 <div id="telaSaidaEstoque" class="tela">
     <h2>Saída de Produtos</h2>
     <div class="botoesRelatorio">
-        <button onclick="trocarTela('telaAlmoxarifado')" style="background:#666">← Almoxarifado</button>
+        <button onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();" style="background:#666">← Almoxarifado</button>
     </div>
 
     <select id="saidaLoteInput">
