@@ -1550,6 +1550,12 @@ function mostrarFluxoCaixa() {
         m.saldoAcumulado = saldoCorrente;
     });
 
+    // saldo de verdade, com TODO o histórico — não se mexe com o filtro de
+    // período abaixo, senão passa a impressão errada de que o dinheiro
+    // "sumiu" só porque a tela está filtrada numa janela de datas.
+    let elSaldoAtual = document.getElementById("caixaSaldoAtual");
+    if (elSaldoAtual) elSaldoAtual.innerText = "R$ " + formatarMoeda(saldoCorrente);
+
     let visiveis = movimentos.filter(m =>
         (!dataInicio || m.dataISO >= dataInicio) && (!dataFim || m.dataISO <= dataFim)
     );

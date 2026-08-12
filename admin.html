@@ -339,6 +339,14 @@
         <button onclick="abrirModalLancamento()" style="background:#2e7d32">➕ Novo Lançamento</button>
     </div>
 
+    <div class="dashHero" style="margin-bottom:16px">
+        <span class="dashHeroLabel">💰 Saldo em Caixa (hoje)</span>
+        <span class="dashHeroValor" id="caixaSaldoAtual">R$ 0,00</span>
+    </div>
+    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+        Esse é o saldo real, com todo o histórico — não muda com o filtro de período abaixo. Os três números a seguir (Entradas, Saídas, Saldo do Período) é que respondem só pela janela de datas selecionada.
+    </p>
+
     <div class="dashFiltros">
         <input type="date" id="caixaDataInicio" onchange="mostrarFluxoCaixa()">
         <span class="caixaFiltroAte">até</span>
