@@ -1480,6 +1480,134 @@ async function mostrarEvolucaoPatrimonio() {
 }
 
 // ========================================
+// SUB-CAIXAS (centros de custo — nunca mudam os totais gerais)
+// ========================================
+// Ex: "Caixa do Caminhão" — é só uma etiqueta em cima dos MESMOS lançamentos
+// que já contam pro Caixa Acumulado/Patrimônio/Resultado Mensal. Essa tela
+// nunca filtra nem subtrai nada desses totais — só reagrupa pra dar uma
+// visão de "esse centro de custo dá lucro ou prejuízo".
+let subCaixasCacheAdmin = [];
+
+async function carregarSubCaixasAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/sub-caixas`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        subCaixasCacheAdmin = await resp.json();
+        return subCaixasCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function criarSubCaixaRapido() {
+    let input = document.getElementById("novoSubCaixaInput");
+    let erroEl = document.getElementById("subCaixaErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+        let nome = input.value.trim();
+        if (!nome) { mostrarErro("Informe o nome do sub-caixa."); return; }
+        let resp = await fetch(`${API_URL}/api/sub-caixas`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ nome })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao criar sub-caixa (HTTP ${resp.status}).`); return; }
+        input.value = "";
+        if (erroEl) erroEl.style.display = "none";
+        await mostrarSubCaixas();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function alternarAtivoSubCaixa(id, novoAtivo) {
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/sub-caixas/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ ativo: novoAtivo })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao atualizar sub-caixa (HTTP ${resp.status}).`); return; }
+        await mostrarSubCaixas();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirSubCaixa(id, nome) {
+    if (!confirm(`Excluir o sub-caixa "${nome}"? Os lançamentos já marcados com ele continuam existindo normalmente, só perdem essa etiqueta.`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/sub-caixas/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir sub-caixa (HTTP ${resp.status}).`); return; }
+        await mostrarSubCaixas();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// resumo por sub-caixa: soma os MESMOS lançamentos que já entram no Caixa
+// Acumulado (histórico inteiro, sem filtro de data) — é só uma visão
+// reagrupada, nunca influencia nenhum total do sistema.
+async function mostrarSubCaixas() {
+    let corpo = document.getElementById("corpoTabelaSubCaixas");
+    let lista = document.getElementById("listaSubCaixasCadastro");
+    if (!corpo && !lista) return;
+
+    await Promise.all([carregarSubCaixasAdmin(), carregarCaixaLancamentosAdmin()]);
+
+    if (lista) {
+        lista.innerHTML = subCaixasCacheAdmin.length === 0
+            ? `<p style="font-size:13px;color:#999;padding:8px 0">Nenhum sub-caixa cadastrado ainda.</p>`
+            : subCaixasCacheAdmin.map(s => `
+                <div class="itemDepartamentoModal">
+                    <span>${s.nome}${s.ativo ? "" : " (inativo)"}</span>
+                    <span>
+                        <button onclick='alternarAtivoSubCaixa(${JSON.stringify(s.id)}, ${!s.ativo})'>${s.ativo ? "🚫" : "✅"}</button>
+                        <button onclick='excluirSubCaixa(${JSON.stringify(s.id)}, ${JSON.stringify(s.nome)})'>🗑️</button>
+                    </span>
+                </div>
+            `).join("");
+    }
+
+    if (!corpo) return;
+    let porSubCaixa = {};
+    caixaLancamentosCacheAdmin.forEach(l => {
+        if (!l.subCaixaNome) return;
+        if (!porSubCaixa[l.subCaixaNome]) porSubCaixa[l.subCaixaNome] = { entradas: 0, saidas: 0 };
+        if (l.tipo === "saida") porSubCaixa[l.subCaixaNome].saidas += l.valor;
+        else porSubCaixa[l.subCaixaNome].entradas += l.valor;
+    });
+
+    let nomes = Object.keys(porSubCaixa).sort();
+    if (nomes.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="4">Nenhum lançamento marcado com sub-caixa ainda.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = nomes.map(nome => {
+        let s = porSubCaixa[nome];
+        let saldo = s.entradas - s.saidas;
+        let positivo = saldo >= 0;
+        return `
+            <tr>
+                <td>${nome}</td>
+                <td>R$ ${formatarMoeda(s.entradas)}</td>
+                <td>R$ ${formatarMoeda(s.saidas)}</td>
+                <td style="color:${positivo ? '#0ca30c' : '#d03b3b'}">${positivo ? '▲' : '▼'} R$ ${formatarMoeda(Math.abs(saldo))}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+// ========================================
 // FLUXO DE CAIXA
 // ========================================
 let caixaLancamentosCacheAdmin = [];
@@ -1514,6 +1642,7 @@ async function carregarEstoqueEntradasAdmin() {
 async function abrirTelaFluxoCaixa() {
     await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin(), carregarSaldoInicial()]);
     mostrarFluxoCaixa();
+    mostrarSubCaixas();
 }
 
 function limparFiltrosCaixa() {
@@ -1650,6 +1779,12 @@ async function abrirModalLancamento() {
         selectLote.innerHTML = `<option value="">Sem lote específico</option>` +
             lotes.filter(l => l.ativo).map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
     }
+    let selectSubCaixa = document.getElementById("lancamentoSubCaixaInput");
+    if (token && selectSubCaixa) {
+        await carregarSubCaixasAdmin();
+        selectSubCaixa.innerHTML = `<option value="">Caixa Geral (sem sub-caixa)</option>` +
+            subCaixasCacheAdmin.filter(s => s.ativo).map(s => `<option value="${s.nome.replace(/"/g, "&quot;")}">${s.nome}</option>`).join("");
+    }
 
     let erroEl = document.getElementById("lancamentoErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
@@ -1671,6 +1806,7 @@ async function salvarLancamento() {
         let tipo = document.getElementById("lancamentoTipoInput").value;
         let categoria = document.getElementById("lancamentoCategoriaInput").value.trim();
         let loteNome = document.getElementById("lancamentoLoteInput").value;
+        let subCaixaNome = document.getElementById("lancamentoSubCaixaInput").value;
         let descricao = document.getElementById("lancamentoDescricaoInput").value.trim();
         let valorTexto = document.getElementById("lancamentoValorInput").value.trim();
         let valor = parseFloat(valorTexto.replace(/\./g, "").replace(",", "."));
@@ -1683,7 +1819,7 @@ async function salvarLancamento() {
         let resp = await fetch(`${API_URL}/api/caixa-lancamentos`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada, loteNome: loteNome || null })
+            body: JSON.stringify({ tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar lançamento (HTTP ${resp.status}).`); return; }
@@ -1691,6 +1827,7 @@ async function salvarLancamento() {
         fecharModalLancamento();
         await carregarCaixaLancamentosAdmin();
         mostrarFluxoCaixa();
+        if (typeof mostrarSubCaixas === "function") mostrarSubCaixas();
     } catch (e) {
         mostrarErro("Erro de conexão: " + e.message);
     }
@@ -1730,6 +1867,310 @@ async function excluirEntradaDoCaixa(id) {
         if (!resp.ok) { alert(dados.erro || `Erro ao excluir entrada (HTTP ${resp.status}).`); return; }
         await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin()]);
         mostrarFluxoCaixa();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ========================================
+// CONTAS A PAGAR
+// ========================================
+// É uma agenda POR CIMA do caixa_lancamentos, não uma fonte de dinheiro
+// paralela: uma parcela só vira movimentação real quando marcada como paga
+// (o servidor cria o caixa_lancamentos na hora) — por isso Fluxo de Caixa,
+// Resultado Mensal, Patrimônio e Custo por Lote já enxergam automaticamente,
+// sem precisar de nenhum código novo nesses relatórios.
+let contasPagarCacheAdmin = [];
+let parcelaEmPagamentoId = null;
+const CP_DIAS_VENCENDO_EM_BREVE = 7;
+
+async function carregarContasPagarAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/contas-pagar`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        contasPagarCacheAdmin = await resp.json();
+        return contasPagarCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+// status é sempre calculado no cliente comparando com hoje — só "paga" é um
+// fato gravado no banco; "vencendo"/"vencida" mudam sozinhas com o tempo,
+// não fazem sentido como algo fixo salvo na parcela.
+function statusParcela(parcela) {
+    if (parcela.paga) return { chave: "paga", texto: "✅ Paga", cor: "#0ca30c" };
+    let hojeISO = new Date().toISOString().slice(0, 10);
+    let vencISO = extrairDataISO(parcela.dataVencimento);
+    if (!vencISO) return { chave: "pendente", texto: "Pendente", cor: "#52514e" };
+    if (vencISO < hojeISO) return { chave: "vencida", texto: "🔴 Vencida", cor: "#d03b3b" };
+    let limite = new Date();
+    limite.setDate(limite.getDate() + CP_DIAS_VENCENDO_EM_BREVE);
+    let limiteISO = limite.toISOString().slice(0, 10);
+    if (vencISO <= limiteISO) return { chave: "vencendo", texto: "⏰ Vence em breve", cor: "#b8860b" };
+    return { chave: "pendente", texto: "Pendente", cor: "#52514e" };
+}
+
+async function abrirTelaContasPagar() {
+    await carregarContasPagarAdmin();
+    mostrarContasPagar();
+}
+
+function mostrarContasPagar() {
+    let corpo = document.getElementById("corpoTabelaContasPagar");
+    if (!corpo) return;
+
+    // achata as parcelas de todas as contas numa lista só, ordenada pela
+    // mais urgente primeiro — é uma agenda do que precisa ser feito, não um
+    // extrato histórico (diferente do Fluxo de Caixa, que mostra o mais
+    // recente primeiro).
+    let linhas = [];
+    contasPagarCacheAdmin.forEach(conta => {
+        conta.parcelas.forEach(parcela => {
+            linhas.push({ conta, parcela, status: statusParcela(parcela) });
+        });
+    });
+
+    let totalPendente = 0, totalVencendo = 0, totalVencida = 0;
+    linhas.forEach(l => {
+        if (l.status.chave === "paga") return;
+        totalPendente += l.parcela.valor;
+        if (l.status.chave === "vencendo") totalVencendo += l.parcela.valor;
+        if (l.status.chave === "vencida") totalVencida += l.parcela.valor;
+    });
+    let elPendente = document.getElementById("cpTotalPendente");
+    if (elPendente) elPendente.innerText = "R$ " + formatarMoeda(totalPendente);
+    let elVencendo = document.getElementById("cpVencendoBreve");
+    if (elVencendo) elVencendo.innerText = "R$ " + formatarMoeda(totalVencendo);
+    let elVencida = document.getElementById("cpVencidas");
+    if (elVencida) elVencida.innerText = "R$ " + formatarMoeda(totalVencida);
+
+    let filtroStatus = document.getElementById("cpFiltroStatus");
+    let statusFiltro = filtroStatus ? filtroStatus.value : "";
+    if (statusFiltro) linhas = linhas.filter(l => l.status.chave === statusFiltro);
+
+    linhas.sort((a, b) => {
+        let da = extrairDataISO(a.parcela.dataVencimento) || "";
+        let db = extrairDataISO(b.parcela.dataVencimento) || "";
+        return da < db ? -1 : (da > db ? 1 : 0);
+    });
+
+    if (linhas.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="8">Nenhuma conta encontrada.</td></tr>`;
+        return;
+    }
+
+    corpo.innerHTML = linhas.map(l => {
+        let acoes = l.status.chave === "paga"
+            ? `<button onclick='estornarPagamentoParcela(${JSON.stringify(l.parcela.id)})'>↩️ Estornar</button>`
+            : `<button onclick='abrirModalPagarParcela(${JSON.stringify(l.parcela.id)})'>💰 Pagar</button>`;
+        if (l.parcela.numero === 1) {
+            acoes += `<button onclick='excluirContaPagar(${JSON.stringify(l.conta.id)}, ${JSON.stringify(l.conta.descricao)})'>🗑️</button>`;
+        }
+        return `
+            <tr>
+                <td>${l.parcela.dataVencimento ? l.parcela.dataVencimento.split(",")[0] : "—"}</td>
+                <td>${l.conta.descricao}</td>
+                <td>${l.parcela.numero}/${l.conta.numeroParcelas}</td>
+                <td>R$ ${formatarMoeda(l.parcela.valor)}</td>
+                <td style="color:${l.status.cor}">${l.status.texto}</td>
+                <td>${l.conta.loteNome || "—"}</td>
+                <td>${l.conta.subCaixaNome || "—"}</td>
+                <td class="acoesUsuario">${acoes}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function abrirModalContaPagar() {
+    let token = obterToken();
+    if (!token) return;
+
+    let lotes = await fetch(`${API_URL}/api/lotes`, { headers: { "Authorization": "Bearer " + token } }).then(r => r.ok ? r.json() : []);
+    document.getElementById("cpLoteInput").innerHTML = `<option value="">Sem lote específico</option>` +
+        lotes.filter(l => l.ativo).map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+
+    await carregarSubCaixasAdmin();
+    document.getElementById("cpSubCaixaInput").innerHTML = `<option value="">Caixa Geral (sem sub-caixa)</option>` +
+        subCaixasCacheAdmin.filter(s => s.ativo).map(s => `<option value="${s.nome.replace(/"/g, "&quot;")}">${s.nome}</option>`).join("");
+
+    document.getElementById("cpDescricaoInput").value = "";
+    document.getElementById("cpCategoriaInput").value = "";
+    document.getElementById("cpValorTotalInput").value = "";
+    document.getElementById("cpNumeroParcelasInput").value = "1";
+    document.getElementById("cpPrimeiroVencimentoInput").value = new Date().toISOString().slice(0, 10);
+    let erroEl = document.getElementById("cpErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    atualizarPreviewContaPagar();
+    document.getElementById("modalContaPagar").style.display = "flex";
+}
+
+function fecharModalContaPagar() {
+    document.getElementById("modalContaPagar").style.display = "none";
+}
+
+// divide o valor total igualmente entre as parcelas, ajustando só a ÚLTIMA
+// pra absorver a sobra de centavo do arredondamento (garante que a soma bata
+// exatamente com o total, nunca fica R$0,01 faltando ou sobrando). Vencimento
+// mensal a partir da primeira data informada — o construtor Date do JS já
+// rola o mês/ano sozinho quando passa de dezembro.
+function calcularParcelasContaPagar(valorTotal, numeroParcelas, primeiraDataISO) {
+    let parcelas = [];
+    let valorBase = Math.floor((valorTotal / numeroParcelas) * 100) / 100;
+    let somaAteAgora = 0;
+    let [ano, mes, dia] = primeiraDataISO.split("-").map(Number);
+    for (let i = 1; i <= numeroParcelas; i++) {
+        let valor = i === numeroParcelas ? Math.round((valorTotal - somaAteAgora) * 100) / 100 : valorBase;
+        somaAteAgora += valor;
+        let dataParcela = new Date(ano, mes - 1 + (i - 1), dia);
+        let isoParcela = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-${String(dataParcela.getDate()).padStart(2, "0")}`;
+        parcelas.push({ numero: i, valor, dataVencimento: formatarDataBR(isoParcela) });
+    }
+    return parcelas;
+}
+
+function atualizarPreviewContaPagar() {
+    let preview = document.getElementById("cpPreview");
+    if (!preview) return;
+    let valorTotal = parseFloat(document.getElementById("cpValorTotalInput").value.replace(",", ".")) || 0;
+    let numeroParcelas = parseInt(document.getElementById("cpNumeroParcelasInput").value, 10) || 1;
+    let primeiraData = document.getElementById("cpPrimeiroVencimentoInput").value;
+    if (valorTotal <= 0 || numeroParcelas <= 0 || !primeiraData) { preview.innerText = ""; return; }
+    let parcelas = calcularParcelasContaPagar(valorTotal, numeroParcelas, primeiraData);
+    preview.innerText = parcelas.map(p => `${p.numero}ª: R$ ${formatarMoeda(p.valor)} (${p.dataVencimento.split(",")[0]})`).join(" · ");
+}
+
+async function salvarContaPagar() {
+    let erroEl = document.getElementById("cpErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let descricao = document.getElementById("cpDescricaoInput").value.trim();
+        let categoria = document.getElementById("cpCategoriaInput").value.trim();
+        let valorTotal = parseFloat(document.getElementById("cpValorTotalInput").value.replace(",", "."));
+        let numeroParcelas = parseInt(document.getElementById("cpNumeroParcelasInput").value, 10);
+        let primeiraData = document.getElementById("cpPrimeiroVencimentoInput").value;
+        let loteNome = document.getElementById("cpLoteInput").value;
+        let subCaixaNome = document.getElementById("cpSubCaixaInput").value;
+
+        if (!descricao) { mostrarErro("Informe a descrição."); return; }
+        if (!Number.isFinite(valorTotal) || valorTotal <= 0) { mostrarErro("Informe um valor total válido."); return; }
+        if (!Number.isInteger(numeroParcelas) || numeroParcelas <= 0) { mostrarErro("Número de parcelas inválido."); return; }
+        if (!primeiraData) { mostrarErro("Informe a data do primeiro vencimento."); return; }
+
+        let parcelas = calcularParcelasContaPagar(valorTotal, numeroParcelas, primeiraData);
+
+        let resp = await fetch(`${API_URL}/api/contas-pagar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ descricao, categoria: categoria || null, valorTotal, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null, parcelas })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        fecharModalContaPagar();
+        await abrirTelaContasPagar();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirContaPagar(id, descricao) {
+    if (!confirm(`Excluir a conta "${descricao}" e todas as suas parcelas?`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/contas-pagar/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await abrirTelaContasPagar();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+function abrirModalPagarParcela(parcelaId) {
+    parcelaEmPagamentoId = parcelaId;
+    let achado = null;
+    contasPagarCacheAdmin.forEach(conta => {
+        conta.parcelas.forEach(parcela => {
+            if (parcela.id === parcelaId) achado = { conta, parcela };
+        });
+    });
+    if (!achado) return;
+
+    document.getElementById("pagarParcelaInfo").innerText =
+        `${achado.conta.descricao} — parcela ${achado.parcela.numero}/${achado.conta.numeroParcelas}, vencimento ${achado.parcela.dataVencimento.split(",")[0]}`;
+    document.getElementById("pagarParcelaValorInput").value = String(achado.parcela.valor).replace(".", ",");
+    document.getElementById("pagarParcelaDataInput").value = new Date().toISOString().slice(0, 10);
+    let erroEl = document.getElementById("pagarParcelaErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalPagarParcela").style.display = "flex";
+}
+
+function fecharModalPagarParcela() {
+    document.getElementById("modalPagarParcela").style.display = "none";
+    parcelaEmPagamentoId = null;
+}
+
+// pagar uma parcela cria um caixa_lancamentos de verdade no servidor — os
+// relatórios financeiros do Dashboard (se estiverem carregados/visíveis)
+// precisam ser atualizados também, senão ficam mostrando número desatualizado
+// até a próxima navegação.
+function atualizarRelatoriosFinanceirosAposMudanca() {
+    if (typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+    if (typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
+    if (typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
+    if (typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
+}
+
+async function confirmarPagarParcela() {
+    let erroEl = document.getElementById("pagarParcelaErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+        if (!parcelaEmPagamentoId) return;
+
+        let valor = parseFloat(document.getElementById("pagarParcelaValorInput").value.replace(",", "."));
+        let dataISO = document.getElementById("pagarParcelaDataInput").value;
+        if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
+
+        let dataFormatada = dataISO ? formatarDataBR(dataISO) : new Date().toLocaleString("pt-BR");
+        let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaEmPagamentoId}/pagar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ valor, data: dataFormatada })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao pagar (HTTP ${resp.status}).`); return; }
+
+        fecharModalPagarParcela();
+        await abrirTelaContasPagar();
+        atualizarRelatoriosFinanceirosAposMudanca();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function estornarPagamentoParcela(parcelaId) {
+    if (!confirm("Estornar esse pagamento? O lançamento correspondente no Fluxo de Caixa será removido.")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaId}/estornar`, {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao estornar (HTTP ${resp.status}).`); return; }
+
+        await abrirTelaContasPagar();
+        atualizarRelatoriosFinanceirosAposMudanca();
     } catch (e) {
         alert("Erro de conexão: " + e.message);
     }

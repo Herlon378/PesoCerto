@@ -21,6 +21,7 @@
     <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes(); carregarHistoricoTransferencias();">🏷️ Lotes</button>
     <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();">📦 Almoxarifado</button>
     <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
+    <button data-tela="telaContasPagar" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();">🧾 Contas a Pagar</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
         <button id="btnLoginLogout" onclick="trocarTela('telaLogin')">👤 Entrar</button>
@@ -407,6 +408,65 @@
         </thead>
         <tbody id="corpoTabelaFluxoCaixa"></tbody>
     </table>
+
+    <div class="dashComparativo" style="margin-top:20px">
+        <span class="dashSecaoTitulo">🗂️ Sub-caixas</span>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+            Centros de custo pra controle separado (ex: "Caixa do Caminhão") — marque um lançamento com um sub-caixa na hora de criá-lo pra ele entrar nessa visão. Isso é só uma reorganização visual dos mesmos lançamentos: nunca muda o Caixa Acumulado, o Patrimônio Total ou qualquer outro número geral do sistema.
+        </p>
+        <div class="linhaComBotao" style="margin-bottom:10px">
+            <input id="novoSubCaixaInput" placeholder="Nome do novo sub-caixa (ex: Caixa do Caminhão)">
+            <button class="btnPequeno" onclick="criarSubCaixaRapido()">➕ Criar</button>
+        </div>
+        <p id="subCaixaErro" class="loginErro" style="display:none"></p>
+        <div class="listaDepartamentosModal" id="listaSubCaixasCadastro" style="margin-bottom:16px"></div>
+
+        <table class="tabelaUsuarios">
+            <thead>
+                <tr><th>Sub-caixa</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr>
+            </thead>
+            <tbody id="corpoTabelaSubCaixas"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="telaContasPagar" class="tela">
+    <h2>🧾 Contas a Pagar</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalContaPagar()" style="background:#2e7d32">➕ Nova Conta a Pagar</button>
+    </div>
+
+    <div class="dashKpiRow" style="margin-bottom:16px">
+        <div class="statTile">
+            <span class="statTileLabel">📋 Total Pendente</span>
+            <span class="statTileValor" id="cpTotalPendente">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">⏰ Vencendo em Breve</span>
+            <span class="statTileValor" id="cpVencendoBreve">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">🔴 Vencidas</span>
+            <span class="statTileValor" id="cpVencidas">R$ 0,00</span>
+        </div>
+    </div>
+
+    <div class="dashFiltros">
+        <select id="cpFiltroStatus" onchange="mostrarContasPagar()">
+            <option value="">Status: Todas</option>
+            <option value="pendente">Pendentes</option>
+            <option value="vencendo">Vencendo em breve</option>
+            <option value="vencida">Vencidas</option>
+            <option value="paga">Pagas</option>
+        </select>
+    </div>
+
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Vencimento</th><th>Descrição</th><th>Parcela</th><th>Valor</th><th>Status</th><th>Lote</th><th>Sub-caixa</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaContasPagar"></tbody>
+    </table>
 </div>
 
 <div id="telaImpressao" class="tela">
@@ -555,6 +615,9 @@
         <select id="lancamentoLoteInput">
             <option value="">Sem lote específico</option>
         </select>
+        <select id="lancamentoSubCaixaInput">
+            <option value="">Caixa Geral (sem sub-caixa)</option>
+        </select>
         <input id="lancamentoDescricaoInput" placeholder="Descrição (opcional)">
         <input id="lancamentoValorInput" placeholder="Valor (R$)" inputmode="decimal">
         <input id="lancamentoDataInput" type="date">
@@ -562,6 +625,43 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalLancamento()">Cancelar</button>
             <button class="btn-sim" onclick="salvarLancamento()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalContaPagar" class="modal">
+    <div class="modal-box">
+        <h2>➕ Nova Conta a Pagar</h2>
+        <input id="cpDescricaoInput" placeholder="Descrição (ex: Fornecedor de ração)">
+        <input id="cpCategoriaInput" placeholder="Categoria (opcional)" list="listaCategoriasCaixa">
+        <input id="cpValorTotalInput" placeholder="Valor total (R$)" inputmode="decimal" oninput="atualizarPreviewContaPagar()">
+        <input id="cpNumeroParcelasInput" placeholder="Número de parcelas" inputmode="numeric" value="1" oninput="atualizarPreviewContaPagar()">
+        <input id="cpPrimeiroVencimentoInput" type="date" oninput="atualizarPreviewContaPagar()">
+        <select id="cpLoteInput">
+            <option value="">Sem lote específico</option>
+        </select>
+        <select id="cpSubCaixaInput">
+            <option value="">Caixa Geral (sem sub-caixa)</option>
+        </select>
+        <p id="cpPreview" class="loginSubtitulo" style="text-align:left"></p>
+        <p id="cpErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalContaPagar()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarContaPagar()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalPagarParcela" class="modal">
+    <div class="modal-box">
+        <h2>💰 Pagar Parcela</h2>
+        <p id="pagarParcelaInfo" class="loginSubtitulo" style="text-align:left"></p>
+        <input id="pagarParcelaValorInput" placeholder="Valor pago (R$)" inputmode="decimal">
+        <input id="pagarParcelaDataInput" type="date">
+        <p id="pagarParcelaErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalPagarParcela()">Cancelar</button>
+            <button class="btn-sim" onclick="confirmarPagarParcela()">Confirmar Pagamento</button>
         </div>
     </div>
 </div>
