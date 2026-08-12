@@ -392,8 +392,9 @@ input, select {
 .modal-box {
     background: white;
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 14px;
     text-align: center;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.22);
 }
 
 .leitorCodigoBarraBox {
@@ -453,18 +454,34 @@ input, select {
 
 .btn-nao {
     flex: 1;
-    background: red;
+    background: #e14b3d;
     color: white;
     border: none;
-    padding: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: filter 0.12s ease;
+}
+
+.btn-nao:hover {
+    filter: brightness(1.06);
 }
 
 .btn-sim {
     flex: 1;
-    background: green;
+    background: #2e7d32;
     color: white;
     border: none;
-    padding: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: filter 0.12s ease;
+}
+
+.btn-sim:hover {
+    filter: brightness(1.06);
 }
 
 /* ================= IMPRESSÃO ================= */
