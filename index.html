@@ -76,6 +76,7 @@
     <button class="btnGrande" onclick="trocarTela('telaNovoNascimentoMobile'); abrirTelaNovoNascimentoMobile();">🐣 Registrar Nascimento</button>
     <button class="btnGrande" style="background:#1976d2" onclick="trocarTela('telaApartacaoMobile'); abrirTelaApartacaoMobile();">✅ Registrar Apartação</button>
     <button class="btnGrande" style="background:#c62828" onclick="trocarTela('telaMorteMobile'); abrirTelaMorteMobile();">⚰️ Registrar Morte</button>
+    <button class="btnGrande" style="background:#8e24aa" onclick="trocarTela('telaVacinaMobile'); abrirTelaVacinaMobile();">💉 Vacinar (Brucelose)</button>
     <button class="btnGrande" style="background:#5e35b1" onclick="trocarTela('telaVacasListaMobile'); abrirTelaVacasListaMobile();">🐮 Ver Vacas</button>
     <button class="btnGrande" style="background:#0288d1" onclick="trocarTela('telaNascimentosListaMobile'); abrirTelaNascimentosListaMobile();">📋 Ver Nascimentos</button>
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
@@ -93,6 +94,7 @@
         <option value="femea">Fêmea</option>
     </select>
     <input id="nascMobPesoInput" placeholder="Peso ao nascer (kg, opcional)" inputmode="decimal">
+    <input id="nascMobDataInput" type="date">
     <select id="nascMobPastoInput">
         <option value="">Sem pasto definido</option>
     </select>
@@ -124,6 +126,16 @@
     <input id="morteMobCausaInput" placeholder="Causa (opcional)">
     <p id="morteMobErro" class="loginErro" style="display:none"></p>
     <button class="btnGrande" style="background:#c62828" onclick="confirmarMorteMobile()">Confirmar Morte</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+</div>
+
+<div id="telaVacinaMobile" class="tela">
+    <h2>💉 Vacinar Bezerra (Brucelose)</h2>
+    <select id="vacinaMobBezerraInput">
+        <option value="">Selecione a bezerra</option>
+    </select>
+    <p id="vacinaMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" style="background:#8e24aa" onclick="confirmarVacinaMobile()">Confirmar Vacinação</button>
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
 </div>
 

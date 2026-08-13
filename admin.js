@@ -2346,7 +2346,7 @@ function mostrarVacas() {
     let lista = statusFiltro ? vacasMatrizCacheAdmin.filter(v => v.status === statusFiltro) : vacasMatrizCacheAdmin;
 
     if (lista.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7">Nenhuma vaca encontrada.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="8">Nenhuma vaca encontrada.</td></tr>`;
         return;
     }
 
@@ -2364,6 +2364,7 @@ function mostrarVacas() {
                 <td>${v.numero}</td>
                 <td>${v.apelido || "—"}</td>
                 <td>${v.raca || "—"}</td>
+                <td>${formatarIdadeAnimal(v.dataNascimento)}</td>
                 <td>${v.pastoNome || "—"}</td>
                 <td style="color:${st.cor}">${st.texto}</td>
                 <td>${qtdFilhos}</td>
@@ -2388,6 +2389,7 @@ async function abrirModalVaca(vacaExistente) {
     document.getElementById("vacaNumeroInput").value = vacaExistente ? vacaExistente.numero : "";
     document.getElementById("vacaApelidoInput").value = vacaExistente ? (vacaExistente.apelido || "") : "";
     document.getElementById("vacaRacaInput").value = vacaExistente ? (vacaExistente.raca || "") : "";
+    document.getElementById("vacaDataNascimentoInput").value = vacaExistente && vacaExistente.dataNascimento ? (extrairDataISO(vacaExistente.dataNascimento) || "") : "";
     selectPasto.value = vacaExistente ? (vacaExistente.pastoNome || "") : "";
     document.getElementById("vacaStatusInput").value = vacaExistente ? vacaExistente.status : "ativa";
     document.getElementById("vacaDataMorteInput").value = vacaExistente && vacaExistente.dataMorte ? (extrairDataISO(vacaExistente.dataMorte) || "") : "";
@@ -2423,12 +2425,14 @@ async function salvarVaca() {
         if (jaExiste) { mostrarErro(`Já existe uma vaca cadastrada com o número "${numero}".`); return; }
         let status = document.getElementById("vacaStatusInput").value;
         let dataMorteISO = document.getElementById("vacaDataMorteInput").value;
+        let dataNascimentoISO = document.getElementById("vacaDataNascimentoInput").value;
 
         let vaca = {
             id: vacaEditandoId || crypto.randomUUID(),
             numero,
             apelido: document.getElementById("vacaApelidoInput").value.trim() || null,
             raca: document.getElementById("vacaRacaInput").value.trim() || null,
+            dataNascimento: dataNascimentoISO ? formatarDataBR(dataNascimentoISO) : null,
             pastoNome: document.getElementById("vacaPastoInput").value || null,
             status,
             dataMorte: status === "morta" && dataMorteISO ? formatarDataBR(dataMorteISO) : null,
@@ -2496,7 +2500,7 @@ function mostrarNascimentos() {
     let lista = statusFiltro ? nascimentosCacheAdmin.filter(n => n.status === statusFiltro) : nascimentosCacheAdmin;
 
     if (lista.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7">Nenhum nascimento encontrado.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="9">Nenhum nascimento encontrado.</td></tr>`;
         return;
     }
 
@@ -2513,15 +2517,24 @@ function mostrarNascimentos() {
             acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "apartar")'>✅</button>`;
             acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "morte")'>⚰️</button>`;
         }
+        if (avisoVacinaBrucelose(n)) {
+            acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "vacinar")'>💉</button>`;
+        }
         acoes += `<button onclick='excluirNascimento(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>🗑️</button>`;
+        let avisos = [avisoApartacaoNascimento(n), avisoVacinaBrucelose(n)].filter(Boolean);
+        let avisosHtml = avisos.length
+            ? avisos.map(a => `<div style="color:${a.cor};font-size:.85em">${a.texto}</div>`).join("")
+            : "—";
         return `
             <tr>
                 <td>${n.dataNascimento ? n.dataNascimento.split(",")[0] : "—"}</td>
                 <td>${n.numeroBezerro}</td>
                 <td>${n.vacaMaeNumero}</td>
                 <td>${n.sexo === "macho" ? "Macho" : n.sexo === "femea" ? "Fêmea" : "—"}</td>
+                <td>${formatarIdadeAnimal(n.dataNascimento)}</td>
                 <td>${n.pastoNome || "—"}</td>
                 <td style="color:${st.cor}">${st.texto}</td>
+                <td>${avisosHtml}</td>
                 <td class="acoesUsuario">${acoes}</td>
             </tr>
         `;
@@ -2628,10 +2641,16 @@ function abrirModalEventoNascimento(nascimentoId, tipo) {
         titulo.innerText = "✅ Registrar Apartação";
         info.innerText = `Bezerro ${nascimento.numeroBezerro} (mãe ${nascimento.vacaMaeNumero})`;
         valorExtra.placeholder = "Peso na apartação (kg, opcional)";
+        valorExtra.style.display = "block";
+    } else if (tipo === "vacinar") {
+        titulo.innerText = "💉 Registrar Vacinação (Brucelose)";
+        info.innerText = `Bezerra ${nascimento.numeroBezerro} (mãe ${nascimento.vacaMaeNumero})`;
+        valorExtra.style.display = "none";
     } else {
         titulo.innerText = "⚰️ Registrar Morte";
         info.innerText = `Bezerro ${nascimento.numeroBezerro} (mãe ${nascimento.vacaMaeNumero})`;
         valorExtra.placeholder = "Causa da morte (opcional)";
+        valorExtra.style.display = "block";
     }
     valorExtra.value = "";
     document.getElementById("eventoDataInput").value = new Date().toISOString().slice(0, 10);
@@ -2668,6 +2687,9 @@ async function confirmarEventoNascimento() {
             atualizado.dataApartacao = dataFormatada;
             let pesoNum = valorExtra ? parseFloat(valorExtra.replace(",", ".")) : null;
             atualizado.pesoApartacao = Number.isFinite(pesoNum) ? pesoNum : null;
+        } else if (eventoNascimentoTipo === "vacinar") {
+            atualizado.vacinadaBrucelose = true;
+            atualizado.dataVacinacaoBrucelose = dataFormatada;
         } else {
             atualizado.status = "morto";
             atualizado.dataMorte = dataFormatada;

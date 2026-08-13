@@ -536,7 +536,7 @@
     </div>
     <table class="tabelaUsuarios">
         <thead>
-            <tr><th>Número</th><th>Apelido</th><th>Raça</th><th>Pasto</th><th>Status</th><th>Nascimentos</th><th>Ações</th></tr>
+            <tr><th>Número</th><th>Apelido</th><th>Raça</th><th>Idade</th><th>Pasto</th><th>Status</th><th>Nascimentos</th><th>Ações</th></tr>
         </thead>
         <tbody id="corpoTabelaVacas"></tbody>
     </table>
@@ -558,7 +558,7 @@
     </div>
     <table class="tabelaUsuarios">
         <thead>
-            <tr><th>Data Nasc.</th><th>Bezerro</th><th>Mãe</th><th>Sexo</th><th>Pasto</th><th>Status</th><th>Ações</th></tr>
+            <tr><th>Data Nasc.</th><th>Bezerro</th><th>Mãe</th><th>Sexo</th><th>Idade</th><th>Pasto</th><th>Status</th><th>Avisos</th><th>Ações</th></tr>
         </thead>
         <tbody id="corpoTabelaNascimentos"></tbody>
     </table>
@@ -779,6 +779,8 @@
         <input id="vacaNumeroInput" placeholder="Número (brinco)">
         <input id="vacaApelidoInput" placeholder="Apelido (opcional)">
         <input id="vacaRacaInput" placeholder="Raça (opcional)">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Data de nascimento (opcional, mostra a idade da vaca)</p>
+        <input id="vacaDataNascimentoInput" type="date">
         <select id="vacaPastoInput">
             <option value="">Sem pasto definido</option>
         </select>

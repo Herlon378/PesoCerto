@@ -1690,6 +1690,52 @@ function normalizarNumeroAnimal(numero){
     return /^\d+$/.test(n) ? String(parseInt(n, 10)) : n.toLowerCase();
 }
 
+// Idade em meses completos a partir de uma data no formato do sistema
+// ("dd/mm/yyyy" ou "dd/mm/yyyy, hh:mm:ss"). null se a data não existir.
+function calcularIdadeEmMeses(dataStr){
+    let iso = extrairDataISO(dataStr);
+    if(!iso) return null;
+    let [ano, mes, dia] = iso.split("-").map(Number);
+    let nascimento = new Date(ano, mes - 1, dia);
+    let agora = new Date();
+    let meses = (agora.getFullYear() - nascimento.getFullYear()) * 12 + (agora.getMonth() - nascimento.getMonth());
+    if(agora.getDate() < nascimento.getDate()) meses--;
+    return meses < 0 ? 0 : meses;
+}
+
+// Texto legível de idade pra vaca matriz (anos/meses), pro operador ver
+// de cara se o animal já está muito velho.
+function formatarIdadeAnimal(dataStr){
+    let totalMeses = calcularIdadeEmMeses(dataStr);
+    if(totalMeses === null) return "—";
+    let anos = Math.floor(totalMeses / 12);
+    let meses = totalMeses % 12;
+    if(anos === 0) return meses + (meses === 1 ? " mês" : " meses");
+    if(meses === 0) return anos + (anos === 1 ? " ano" : " anos");
+    return anos + "a " + meses + "m";
+}
+
+// Bezerro(a) de 8 a 12 meses ainda vivo = pronto pra apartar; passou de 12
+// meses sem apartar = atrasado. Some sozinho assim que o status deixa de
+// ser "vivo" (o próprio fluxo de Apartação/Morte já faz isso).
+function avisoApartacaoNascimento(n){
+    if(!n || n.status !== "vivo") return null;
+    let meses = calcularIdadeEmMeses(n.dataNascimento);
+    if(meses === null || meses < 8) return null;
+    if(meses < 12) return { texto: "🟡 Pronto p/ apartar", cor: "#b8860b" };
+    return { texto: "🔴 Atrasado p/ apartar", cor: "#d03b3b" };
+}
+
+// Bezerra (fêmea) a partir de 3 meses precisa da vacina contra brucelose.
+// Só some quando o operador confirma a vacinação (vacinadaBrucelose) --
+// diferente do aviso de apartação, não é calculado, é uma ação explícita.
+function avisoVacinaBrucelose(n){
+    if(!n || n.status === "morto" || n.sexo !== "femea" || n.vacinadaBrucelose) return null;
+    let meses = calcularIdadeEmMeses(n.dataNascimento);
+    if(meses === null || meses < 3) return null;
+    return { texto: "💉 Vacina brucelose pendente", cor: "#8e24aa" };
+}
+
 function obterPastosCacheMobile(){
     return JSON.parse(localStorage.getItem("pastosCache") || "[]");
 }
@@ -1716,6 +1762,7 @@ function abrirTelaNovoNascimentoMobile(){
     document.getElementById("nascMobNumeroBezerroInput").value = "";
     document.getElementById("nascMobSexoInput").value = "";
     document.getElementById("nascMobPesoInput").value = "";
+    document.getElementById("nascMobDataInput").value = new Date().toISOString().slice(0, 10);
     let erroEl = document.getElementById("nascMobErro");
     if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
 }
@@ -1726,8 +1773,10 @@ function confirmarNovoNascimentoMobile(){
 
     let vacaMaeNumero = document.getElementById("nascMobVacaMaeInput").value;
     let numeroBezerro = document.getElementById("nascMobNumeroBezerroInput").value.trim();
+    let dataISO = document.getElementById("nascMobDataInput").value;
     if(!vacaMaeNumero){ mostrarErro("Selecione a vaca mãe."); return; }
     if(!numeroBezerro){ mostrarErro("Informe o número do bezerro."); return; }
+    if(!dataISO){ mostrarErro("Informe a data de nascimento."); return; }
 
     let pesoTexto = document.getElementById("nascMobPesoInput").value.trim();
     let pesoNum = pesoTexto ? parseFloat(pesoTexto.replace(",", ".")) : null;
@@ -1740,7 +1789,7 @@ function confirmarNovoNascimentoMobile(){
         vacaMaeNumero,
         sexo: document.getElementById("nascMobSexoInput").value || null,
         pesoNascimento: Number.isFinite(pesoNum) ? pesoNum : null,
-        dataNascimento: new Date().toLocaleString("pt-BR"),
+        dataNascimento: formatarDataBR(dataISO),
         pastoNome: document.getElementById("nascMobPastoInput").value || null,
         status: "vivo",
         sincronizado: false
@@ -1756,7 +1805,11 @@ function abrirTelaApartacaoMobile(){
     let select = document.getElementById("apartacaoMobBezerroInput");
     let vivos = obterNascimentosCacheMobile().filter(n => n.status === "vivo");
     select.innerHTML = `<option value="">Selecione o bezerro</option>` +
-        vivos.map(n => `<option value="${n.id}">${n.numeroBezerro} (mãe ${n.vacaMaeNumero})</option>`).join("");
+        vivos.map(n => {
+            let aviso = avisoApartacaoNascimento(n);
+            let prefixo = aviso ? aviso.texto.slice(0, 2) + " " : "";
+            return `<option value="${n.id}">${prefixo}${n.numeroBezerro} (mãe ${n.vacaMaeNumero})</option>`;
+        }).join("");
     document.getElementById("apartacaoMobPesoInput").value = "";
     let erroEl = document.getElementById("apartacaoMobErro");
     if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
@@ -1783,6 +1836,36 @@ function confirmarApartacaoMobile(){
     localStorage.setItem("nascimentos", JSON.stringify(lista));
 
     alert("Apartação registrada!");
+    trocarTela("telaVacasMatrizMobile");
+    sincronizarAgora();
+}
+
+function abrirTelaVacinaMobile(){
+    let select = document.getElementById("vacinaMobBezerraInput");
+    let pendentes = obterNascimentosCacheMobile().filter(n => avisoVacinaBrucelose(n));
+    select.innerHTML = `<option value="">Selecione a bezerra</option>` +
+        pendentes.map(n => `<option value="${n.id}">${n.numeroBezerro} (mãe ${n.vacaMaeNumero})</option>`).join("");
+    let erroEl = document.getElementById("vacinaMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+}
+
+function confirmarVacinaMobile(){
+    let erroEl = document.getElementById("vacinaMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    let nascimentoId = document.getElementById("vacinaMobBezerraInput").value;
+    if(!nascimentoId){ mostrarErro("Selecione a bezerra."); return; }
+
+    let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+    let nascimento = lista.find(n => n.id === nascimentoId);
+    if(!nascimento){ mostrarErro("Bezerra não encontrada — sincronize e tente de novo."); return; }
+
+    nascimento.vacinadaBrucelose = true;
+    nascimento.dataVacinacaoBrucelose = new Date().toLocaleString("pt-BR");
+    nascimento.sincronizado = false;
+    localStorage.setItem("nascimentos", JSON.stringify(lista));
+
+    alert("Vacinação registrada!");
     trocarTela("telaVacasMatrizMobile");
     sincronizarAgora();
 }
@@ -1864,9 +1947,10 @@ function mostrarVacasListaMobile(){
     container.innerHTML = vacas.map(v => {
         let filhos = nascimentos.filter(n => n.vacaMaeNumero === v.numero).length;
         let statusTxt = v.status === "ativa" ? "✅ Ativa" : v.status === "morta" ? "⚰️ Morta" : "➖ Descartada";
+        let idade = formatarIdadeAnimal(v.dataNascimento);
         return `
             <div class="itemPesagem">
-                <span><strong>${v.numero}</strong>${v.apelido ? " — " + v.apelido : ""}<br>${v.pastoNome || "Sem pasto"} · ${filhos} filho(s)</span>
+                <span><strong>${v.numero}</strong>${v.apelido ? " — " + v.apelido : ""}<br>${idade !== "—" ? idade + " · " : ""}${v.pastoNome || "Sem pasto"} · ${filhos} filho(s)</span>
                 <span class="itemPesagemDireita">${statusTxt}</span>
             </div>
         `;
@@ -1891,9 +1975,11 @@ function mostrarNascimentosListaMobile(){
     }
     container.innerHTML = nascimentos.map(n => {
         let statusTxt = n.status === "vivo" ? "🐮 Vivo" : n.status === "apartado" ? "✅ Apartado" : "⚰️ Morto";
+        let avisos = [avisoApartacaoNascimento(n), avisoVacinaBrucelose(n)].filter(Boolean);
+        let avisosHtml = avisos.map(a => `<br><span style="color:${a.cor}">${a.texto}</span>`).join("");
         return `
             <div class="itemPesagem">
-                <span><strong>${n.numeroBezerro}</strong> (mãe ${n.vacaMaeNumero})<br>${n.dataNascimento ? n.dataNascimento.split(",")[0] : "—"}</span>
+                <span><strong>${n.numeroBezerro}</strong> (mãe ${n.vacaMaeNumero})<br>${n.dataNascimento ? n.dataNascimento.split(",")[0] : "—"} · ${formatarIdadeAnimal(n.dataNascimento)}${avisosHtml}</span>
                 <span class="itemPesagemDireita">${statusTxt}</span>
             </div>
         `;
