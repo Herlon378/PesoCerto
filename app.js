@@ -1950,17 +1950,103 @@ function mostrarVacasListaMobile(){
         return;
     }
     let nascimentos = obterNascimentosCacheMobile();
+    let podeEditarExcluir = obterPapelLogado() === "admin" || (obterPermVacasMatriz() && obterPermEditarNascimentos());
     container.innerHTML = vacas.map(v => {
         let filhos = nascimentos.filter(n => n.vacaMaeNumero === v.numero).length;
         let statusTxt = v.status === "ativa" ? "✅ Ativa" : v.status === "morta" ? "⚰️ Morta" : "➖ Descartada";
         let idade = formatarIdadeAnimal(v.dataNascimento);
+        let botoes = podeEditarExcluir ? `
+                <button class="btnExcluirItem" onclick='abrirTelaEditarVacaMobile(${JSON.stringify(v.id)})'>✏️</button>
+                <button class="btnExcluirItem" onclick='excluirVacaMobile(${JSON.stringify(v.id)}, ${JSON.stringify(v.numero)})'>🗑</button>
+        ` : "";
         return `
             <div class="itemPesagem">
                 <span><strong>${v.numero}</strong>${v.apelido ? " — " + v.apelido : ""}<br>${idade !== "—" ? idade + " · " : ""}${v.pastoNome || "Sem pasto"} · ${filhos} filho(s)</span>
-                <span class="itemPesagemDireita">${statusTxt}</span>
+                <span class="itemPesagemDireita">${statusTxt}${botoes}</span>
             </div>
         `;
     }).join("");
+}
+
+let editandoVacaMobileId = null;
+
+function abrirTelaEditarVacaMobile(vacaId){
+    let vaca = obterVacasMatrizCacheMobile().find(v => v.id === vacaId);
+    if(!vaca) return;
+    editandoVacaMobileId = vacaId;
+    trocarTela("telaEditarVacaMobile");
+
+    document.getElementById("editVacaMobNumeroInput").value = vaca.numero || "";
+    document.getElementById("editVacaMobApelidoInput").value = vaca.apelido || "";
+    document.getElementById("editVacaMobRacaInput").value = vaca.raca || "";
+    document.getElementById("editVacaMobDataNascimentoInput").value = extrairDataISO(vaca.dataNascimento) || "";
+    preencherSelectPastoMobile(document.getElementById("editVacaMobPastoInput"));
+    document.getElementById("editVacaMobPastoInput").value = vaca.pastoNome || "";
+
+    let erroEl = document.getElementById("editVacaMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+}
+
+async function salvarEdicaoVacaMobile(){
+    let erroEl = document.getElementById("editVacaMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    if(!editandoVacaMobileId){ mostrarErro("Nenhuma vaca selecionada."); return; }
+
+    let token = obterToken();
+    if(!token){ mostrarErro("Sua sessão expirou."); return; }
+
+    let numero = document.getElementById("editVacaMobNumeroInput").value.trim();
+    if(!numero){ mostrarErro("Informe o número (brinco) da vaca."); return; }
+
+    let dataISO = document.getElementById("editVacaMobDataNascimentoInput").value;
+    let corpo = {
+        numero,
+        apelido: document.getElementById("editVacaMobApelidoInput").value.trim() || null,
+        raca: document.getElementById("editVacaMobRacaInput").value.trim() || null,
+        dataNascimento: dataISO ? formatarDataBR(dataISO) : null,
+        pastoNome: document.getElementById("editVacaMobPastoInput").value || null
+    };
+
+    try {
+        let resp = await fetch(`${API_URL}/api/vacas-matriz/${editandoVacaMobileId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify(corpo)
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if(!resp.ok){ mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        let lista = JSON.parse(localStorage.getItem("vacasMatriz") || "[]");
+        let idx = lista.findIndex(v => v.id === editandoVacaMobileId);
+        if(idx >= 0) lista[idx] = { ...lista[idx], ...dados, sincronizado: true };
+        localStorage.setItem("vacasMatriz", JSON.stringify(lista));
+
+        alert("Vaca atualizada!");
+        editandoVacaMobileId = null;
+        trocarTela("telaVacasListaMobile");
+        mostrarVacasListaMobile();
+    } catch(e) {
+        mostrarErro("Erro de conexão — verifique sua internet e tente de novo.");
+    }
+}
+
+function excluirVacaMobile(vacaId, numero){
+    if(!confirm(`Excluir a vaca "${numero}" permanentemente? Os nascimentos já registrados dela continuam existindo. Essa ação não pode ser desfeita.`)) return;
+    let token = obterToken();
+    if(!token){ alert("Sua sessão expirou."); return; }
+    fetch(`${API_URL}/api/vacas-matriz/${vacaId}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    }).then(async resp => {
+        let dados = await resp.json().catch(() => ({}));
+        if(!resp.ok){ alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        let lista = JSON.parse(localStorage.getItem("vacasMatriz") || "[]");
+        lista = lista.filter(v => v.id !== vacaId);
+        localStorage.setItem("vacasMatriz", JSON.stringify(lista));
+        mostrarVacasListaMobile();
+    }).catch(() => {
+        alert("Erro de conexão — verifique sua internet e tente de novo.");
+    });
 }
 
 function abrirTelaNascimentosListaMobile(){

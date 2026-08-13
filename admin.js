@@ -52,7 +52,7 @@ async function carregarUsuarios() {
                     ${u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined ? `<span class="tagPermissao">Máx compra: ${formatarValorReais(u.valorMaximoCompra)}</span>` : ""}
                     ${u.permissaoAlmoxarifado ? `<span class="tagPermissao">📦 Almoxarifado</span>` : ""}
                     ${u.permissaoVacasMatriz ? `<span class="tagPermissao">🐄 Vacas Matriz</span>` : ""}
-                    ${u.permissaoEditarNascimentos ? `<span class="tagPermissao">✏️ Editar Nascimentos</span>` : ""}
+                    ${u.permissaoEditarNascimentos ? `<span class="tagPermissao">✏️ Editar Vacas/Nascimentos</span>` : ""}
                 `}</td>
                 <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">

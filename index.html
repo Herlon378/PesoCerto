@@ -160,6 +160,20 @@
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
 </div>
 
+<div id="telaEditarVacaMobile" class="tela">
+    <h2>✏️ Editar Vaca</h2>
+    <input id="editVacaMobNumeroInput" placeholder="Número (brinco)">
+    <input id="editVacaMobApelidoInput" placeholder="Apelido (opcional)">
+    <input id="editVacaMobRacaInput" placeholder="Raça (opcional)">
+    <input id="editVacaMobDataNascimentoInput" type="date">
+    <select id="editVacaMobPastoInput">
+        <option value="">Sem pasto definido</option>
+    </select>
+    <p id="editVacaMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" onclick="salvarEdicaoVacaMobile()">Salvar Alterações</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasListaMobile')">← Voltar</button>
+</div>
+
 <div id="telaVacasListaMobile" class="tela">
     <h2>🐮 Vacas Matriz</h2>
     <input id="buscaVacaMobile" placeholder="Buscar por número ou apelido" oninput="mostrarVacasListaMobile()">
