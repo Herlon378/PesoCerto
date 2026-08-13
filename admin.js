@@ -2419,7 +2419,7 @@ async function salvarVaca() {
 
         let numero = document.getElementById("vacaNumeroInput").value.trim();
         if (!numero) { mostrarErro("Informe o número (brinco) da vaca."); return; }
-        let jaExiste = vacasMatrizCacheAdmin.some(v => v.numero === numero && v.id !== vacaEditandoId);
+        let jaExiste = vacasMatrizCacheAdmin.some(v => normalizarNumeroAnimal(v.numero) === normalizarNumeroAnimal(numero) && v.id !== vacaEditandoId);
         if (jaExiste) { mostrarErro(`Já existe uma vaca cadastrada com o número "${numero}".`); return; }
         let status = document.getElementById("vacaStatusInput").value;
         let dataMorteISO = document.getElementById("vacaDataMorteInput").value;
@@ -2566,7 +2566,7 @@ async function salvarNascimento() {
         if (!vacaMaeNumero) { mostrarErro("Selecione a vaca mãe."); return; }
         if (!numeroBezerro) { mostrarErro("Informe o número do bezerro."); return; }
         if (!dataISO) { mostrarErro("Informe a data de nascimento."); return; }
-        if (nascimentosCacheAdmin.some(n => n.numeroBezerro === numeroBezerro)) { mostrarErro(`Já existe um nascimento cadastrado com o número de bezerro "${numeroBezerro}".`); return; }
+        if (nascimentosCacheAdmin.some(n => normalizarNumeroAnimal(n.numeroBezerro) === normalizarNumeroAnimal(numeroBezerro))) { mostrarErro(`Já existe um nascimento cadastrado com o número de bezerro "${numeroBezerro}".`); return; }
 
         let peso = document.getElementById("nascPesoInput").value.trim();
         let pesoNum = peso ? parseFloat(peso.replace(",", ".")) : null;

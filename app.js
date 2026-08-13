@@ -1682,6 +1682,14 @@ function confirmarExclusaoPeso(){
 // todo o resto do app.
 function abrirTelaVacasMatrizMobile(){}
 
+// "01", "1" e " 1 " são o mesmo brinco pro vaqueiro -- usado pra checagem
+// de duplicidade tanto aqui (aviso imediato) quanto no servidor (bloqueio
+// de verdade), mesma regra dos dois lados.
+function normalizarNumeroAnimal(numero){
+    let n = String(numero).trim();
+    return /^\d+$/.test(n) ? String(parseInt(n, 10)) : n.toLowerCase();
+}
+
 function obterPastosCacheMobile(){
     return JSON.parse(localStorage.getItem("pastosCache") || "[]");
 }
@@ -1725,7 +1733,7 @@ function confirmarNovoNascimentoMobile(){
     let pesoNum = pesoTexto ? parseFloat(pesoTexto.replace(",", ".")) : null;
 
     let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
-    if(lista.some(n => n.numeroBezerro === numeroBezerro)){ mostrarErro(`Já existe um nascimento com o número de bezerro "${numeroBezerro}".`); return; }
+    if(lista.some(n => normalizarNumeroAnimal(n.numeroBezerro) === normalizarNumeroAnimal(numeroBezerro))){ mostrarErro(`Já existe um nascimento com o número de bezerro "${numeroBezerro}".`); return; }
     lista.push({
         id: crypto.randomUUID(),
         numeroBezerro,
