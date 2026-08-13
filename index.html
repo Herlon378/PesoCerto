@@ -129,6 +129,27 @@
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
 </div>
 
+<div id="telaEditarNascimentoMobile" class="tela">
+    <h2>✏️ Editar Nascimento</h2>
+    <select id="editNascMobVacaMaeInput">
+        <option value="">Selecione a vaca mãe</option>
+    </select>
+    <input id="editNascMobNumeroBezerroInput" placeholder="Número (brinco) do bezerro">
+    <select id="editNascMobSexoInput">
+        <option value="">Sexo (opcional)</option>
+        <option value="macho">Macho</option>
+        <option value="femea">Fêmea</option>
+    </select>
+    <input id="editNascMobPesoInput" placeholder="Peso ao nascer (kg, opcional)" inputmode="decimal">
+    <input id="editNascMobDataInput" type="date">
+    <select id="editNascMobPastoInput">
+        <option value="">Sem pasto definido</option>
+    </select>
+    <p id="editNascMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" onclick="salvarEdicaoNascimentoMobile()">Salvar Alterações</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaNascimentosListaMobile')">← Voltar</button>
+</div>
+
 <div id="telaVacinaMobile" class="tela">
     <h2>💉 Vacinar Bezerra (Brucelose)</h2>
     <select id="vacinaMobBezerraInput">

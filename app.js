@@ -1023,6 +1023,10 @@ function obterPermVacasMatriz(){
     return localStorage.getItem("permVacasMatriz") === "1";
 }
 
+function obterPermEditarNascimentos(){
+    return localStorage.getItem("permEditarNascimentos") === "1";
+}
+
 function aplicarRestricoesUsuario(){
     let selectTipo = document.getElementById("tipoOperacao");
     if(!selectTipo) return;
@@ -1105,6 +1109,7 @@ async function enviarLogin(){
         localStorage.setItem("valorMaximoCompra", dados.valorMaximoCompra != null ? String(dados.valorMaximoCompra) : "");
         localStorage.setItem("permAlmoxarifado", dados.permissaoAlmoxarifado ? "1" : "");
         localStorage.setItem("permVacasMatriz", dados.permissaoVacasMatriz ? "1" : "");
+        localStorage.setItem("permEditarNascimentos", dados.permissaoEditarNascimentos ? "1" : "");
         irParaTelaPrincipal();
         atualizarBotaoLogin();
         aplicarRestricoesUsuario();
@@ -1131,6 +1136,7 @@ function sair(){
     localStorage.removeItem("valorMaximoCompra");
     localStorage.removeItem("permAlmoxarifado");
     localStorage.removeItem("permVacasMatriz");
+    localStorage.removeItem("permEditarNascimentos");
     localStorage.removeItem("produtosCache");
     localStorage.removeItem("pastosCache");
     limparDadosVisiveis();
@@ -1973,17 +1979,119 @@ function mostrarNascimentosListaMobile(){
         container.innerHTML = `<div class="listaPesosAtualVazia">Nenhum nascimento encontrado.</div>`;
         return;
     }
+    let podeEditarExcluir = obterPapelLogado() === "admin" || (obterPermVacasMatriz() && obterPermEditarNascimentos());
     container.innerHTML = nascimentos.map(n => {
         let statusTxt = n.status === "vivo" ? "🐮 Vivo" : n.status === "apartado" ? "✅ Apartado" : "⚰️ Morto";
         let avisos = [avisoApartacaoNascimento(n), avisoVacinaBrucelose(n)].filter(Boolean);
         let avisosHtml = avisos.map(a => `<br><span style="color:${a.cor}">${a.texto}</span>`).join("");
+        let botoes = podeEditarExcluir ? `
+                <button class="btnExcluirItem" onclick='abrirTelaEditarNascimentoMobile(${JSON.stringify(n.id)})'>✏️</button>
+                <button class="btnExcluirItem" onclick='excluirNascimentoMobile(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>🗑</button>
+        ` : "";
         return `
             <div class="itemPesagem">
                 <span><strong>${n.numeroBezerro}</strong> (mãe ${n.vacaMaeNumero})<br>${n.dataNascimento ? n.dataNascimento.split(",")[0] : "—"} · ${formatarIdadeAnimal(n.dataNascimento)}${avisosHtml}</span>
-                <span class="itemPesagemDireita">${statusTxt}</span>
+                <span class="itemPesagemDireita">${statusTxt}${botoes}</span>
             </div>
         `;
     }).join("");
+}
+
+let editandoNascimentoMobileId = null;
+
+function abrirTelaEditarNascimentoMobile(nascimentoId){
+    let nascimento = obterNascimentosCacheMobile().find(n => n.id === nascimentoId);
+    if(!nascimento) return;
+    editandoNascimentoMobileId = nascimentoId;
+    trocarTela("telaEditarNascimentoMobile");
+
+    let selectVaca = document.getElementById("editNascMobVacaMaeInput");
+    let vacasAtivas = obterVacasMatrizCacheMobile().filter(v => v.status === "ativa");
+    let optionsHtml = vacasAtivas.map(v => `<option value="${v.numero.replace(/"/g, "&quot;")}">${v.numero}${v.apelido ? " — " + v.apelido : ""}</option>`).join("");
+    if(nascimento.vacaMaeNumero && !vacasAtivas.some(v => v.numero === nascimento.vacaMaeNumero)){
+        optionsHtml += `<option value="${nascimento.vacaMaeNumero.replace(/"/g, "&quot;")}">${nascimento.vacaMaeNumero} (não encontrada/inativa)</option>`;
+    }
+    selectVaca.innerHTML = `<option value="">Selecione a vaca mãe</option>` + optionsHtml;
+    selectVaca.value = nascimento.vacaMaeNumero || "";
+
+    document.getElementById("editNascMobNumeroBezerroInput").value = nascimento.numeroBezerro || "";
+    document.getElementById("editNascMobSexoInput").value = nascimento.sexo || "";
+    document.getElementById("editNascMobPesoInput").value = nascimento.pesoNascimento != null ? String(nascimento.pesoNascimento).replace(".", ",") : "";
+    document.getElementById("editNascMobDataInput").value = extrairDataISO(nascimento.dataNascimento) || "";
+    preencherSelectPastoMobile(document.getElementById("editNascMobPastoInput"));
+    document.getElementById("editNascMobPastoInput").value = nascimento.pastoNome || "";
+
+    let erroEl = document.getElementById("editNascMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+}
+
+async function salvarEdicaoNascimentoMobile(){
+    let erroEl = document.getElementById("editNascMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    if(!editandoNascimentoMobileId){ mostrarErro("Nenhum nascimento selecionado."); return; }
+
+    let token = obterToken();
+    if(!token){ mostrarErro("Sua sessão expirou."); return; }
+
+    let vacaMaeNumero = document.getElementById("editNascMobVacaMaeInput").value;
+    let numeroBezerro = document.getElementById("editNascMobNumeroBezerroInput").value.trim();
+    let dataISO = document.getElementById("editNascMobDataInput").value;
+    if(!vacaMaeNumero){ mostrarErro("Selecione a vaca mãe."); return; }
+    if(!numeroBezerro){ mostrarErro("Informe o número do bezerro."); return; }
+    if(!dataISO){ mostrarErro("Informe a data de nascimento."); return; }
+
+    let pesoTexto = document.getElementById("editNascMobPesoInput").value.trim();
+    let pesoNum = pesoTexto ? parseFloat(pesoTexto.replace(",", ".")) : null;
+
+    let corpo = {
+        numeroBezerro,
+        vacaMaeNumero,
+        sexo: document.getElementById("editNascMobSexoInput").value || null,
+        pesoNascimento: Number.isFinite(pesoNum) ? pesoNum : null,
+        dataNascimento: formatarDataBR(dataISO),
+        pastoNome: document.getElementById("editNascMobPastoInput").value || null
+    };
+
+    try {
+        let resp = await fetch(`${API_URL}/api/nascimentos/${editandoNascimentoMobileId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify(corpo)
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if(!resp.ok){ mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+        let idx = lista.findIndex(n => n.id === editandoNascimentoMobileId);
+        if(idx >= 0) lista[idx] = { ...lista[idx], ...dados, sincronizado: true };
+        localStorage.setItem("nascimentos", JSON.stringify(lista));
+
+        alert("Nascimento atualizado!");
+        editandoNascimentoMobileId = null;
+        trocarTela("telaNascimentosListaMobile");
+        mostrarNascimentosListaMobile();
+    } catch(e) {
+        mostrarErro("Erro de conexão — verifique sua internet e tente de novo.");
+    }
+}
+
+function excluirNascimentoMobile(nascimentoId, numeroBezerro){
+    if(!confirm(`Excluir o registro de nascimento do bezerro "${numeroBezerro}"? Essa ação não pode ser desfeita.`)) return;
+    let token = obterToken();
+    if(!token){ alert("Sua sessão expirou."); return; }
+    fetch(`${API_URL}/api/nascimentos/${nascimentoId}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    }).then(async resp => {
+        let dados = await resp.json().catch(() => ({}));
+        if(!resp.ok){ alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+        lista = lista.filter(n => n.id !== nascimentoId);
+        localStorage.setItem("nascimentos", JSON.stringify(lista));
+        mostrarNascimentosListaMobile();
+    }).catch(() => {
+        alert("Erro de conexão — verifique sua internet e tente de novo.");
+    });
 }
 
 // chamada depois de cada sincronização — atualiza a lista se a tela de

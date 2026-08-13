@@ -52,6 +52,7 @@ async function carregarUsuarios() {
                     ${u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined ? `<span class="tagPermissao">Máx compra: ${formatarValorReais(u.valorMaximoCompra)}</span>` : ""}
                     ${u.permissaoAlmoxarifado ? `<span class="tagPermissao">📦 Almoxarifado</span>` : ""}
                     ${u.permissaoVacasMatriz ? `<span class="tagPermissao">🐄 Vacas Matriz</span>` : ""}
+                    ${u.permissaoEditarNascimentos ? `<span class="tagPermissao">✏️ Editar Nascimentos</span>` : ""}
                 `}</td>
                 <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
@@ -103,6 +104,7 @@ function abrirModalUsuario(usuarioExistente) {
         : "";
     document.getElementById("usuarioPermAlmoxarifadoInput").checked = !!(usuarioExistente && usuarioExistente.permissaoAlmoxarifado);
     document.getElementById("usuarioPermVacasMatrizInput").checked = !!(usuarioExistente && usuarioExistente.permissaoVacasMatriz);
+    document.getElementById("usuarioPermEditarNascimentosInput").checked = !!(usuarioExistente && usuarioExistente.permissaoEditarNascimentos);
     alternarCamposPermissao();
     let erroEl = document.getElementById("usuarioErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
@@ -139,6 +141,7 @@ async function salvarUsuario() {
         }
         let permissaoAlmoxarifado = document.getElementById("usuarioPermAlmoxarifadoInput").checked;
         let permissaoVacasMatriz = document.getElementById("usuarioPermVacasMatrizInput").checked;
+        let permissaoEditarNascimentos = document.getElementById("usuarioPermEditarNascimentosInput").checked;
 
         if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
             mostrarErro("Preencha todos os campos.");
@@ -147,7 +150,7 @@ async function salvarUsuario() {
 
         let resp;
         if (usuarioEditandoId) {
-            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz };
+            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz, permissaoEditarNascimentos };
             if (senha) corpo.senha = senha;
             resp = await fetch(`${API_URL}/api/usuarios/${usuarioEditandoId}`, {
                 method: "PUT",
@@ -158,7 +161,7 @@ async function salvarUsuario() {
             resp = await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz })
+                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz, permissaoEditarNascimentos })
             });
         }
         let dados = await resp.json().catch(() => ({}));
