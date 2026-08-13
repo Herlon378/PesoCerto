@@ -380,6 +380,26 @@
         Esse é o saldo real, com todo o histórico — não muda com o filtro de período abaixo. Os três números a seguir (Entradas, Saídas, Saldo do Período) é que respondem só pela janela de datas selecionada.
     </p>
 
+    <div class="dashComparativo" style="margin-bottom:20px">
+        <span class="dashSecaoTitulo">🗂️ Sub-caixas</span>
+        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+            Centros de custo pra controle separado (ex: "Caixa do Caminhão") — marque um lançamento com um sub-caixa na hora de criá-lo pra ele entrar nessa visão. Isso é só uma reorganização visual dos mesmos lançamentos: nunca muda o Caixa Acumulado, o Patrimônio Total ou qualquer outro número geral do sistema.
+        </p>
+        <div class="linhaComBotao" style="margin-bottom:10px">
+            <input id="novoSubCaixaInput" placeholder="Nome do novo sub-caixa (ex: Caixa do Caminhão)">
+            <button class="btnPequeno" onclick="criarSubCaixaRapido()">➕ Criar</button>
+        </div>
+        <p id="subCaixaErro" class="loginErro" style="display:none"></p>
+        <div class="listaDepartamentosModal" id="listaSubCaixasCadastro" style="margin-bottom:16px"></div>
+
+        <table class="tabelaUsuarios">
+            <thead>
+                <tr><th>Sub-caixa</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr>
+            </thead>
+            <tbody id="corpoTabelaSubCaixas"></tbody>
+        </table>
+    </div>
+
     <div class="dashFiltros">
         <input type="date" id="caixaDataInicio" onchange="mostrarFluxoCaixa()">
         <span class="caixaFiltroAte">até</span>
@@ -408,26 +428,6 @@
         </thead>
         <tbody id="corpoTabelaFluxoCaixa"></tbody>
     </table>
-
-    <div class="dashComparativo" style="margin-top:20px">
-        <span class="dashSecaoTitulo">🗂️ Sub-caixas</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            Centros de custo pra controle separado (ex: "Caixa do Caminhão") — marque um lançamento com um sub-caixa na hora de criá-lo pra ele entrar nessa visão. Isso é só uma reorganização visual dos mesmos lançamentos: nunca muda o Caixa Acumulado, o Patrimônio Total ou qualquer outro número geral do sistema.
-        </p>
-        <div class="linhaComBotao" style="margin-bottom:10px">
-            <input id="novoSubCaixaInput" placeholder="Nome do novo sub-caixa (ex: Caixa do Caminhão)">
-            <button class="btnPequeno" onclick="criarSubCaixaRapido()">➕ Criar</button>
-        </div>
-        <p id="subCaixaErro" class="loginErro" style="display:none"></p>
-        <div class="listaDepartamentosModal" id="listaSubCaixasCadastro" style="margin-bottom:16px"></div>
-
-        <table class="tabelaUsuarios">
-            <thead>
-                <tr><th>Sub-caixa</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr>
-            </thead>
-            <tbody id="corpoTabelaSubCaixas"></tbody>
-        </table>
-    </div>
 </div>
 
 <div id="telaContasPagar" class="tela">
