@@ -32,6 +32,7 @@
     <button class="btnGrande" onclick="abrirRelatorios()">📋 Relatórios</button>
     <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
     <button class="btnGrande" id="btnMenuAlmoxarifado" style="background:#00695c; display:none" onclick="trocarTela('telaSaidaAlmoxarifado'); abrirTelaSaidaAlmoxarifadoMobile();">📦 Saída de Produtos</button>
+    <button class="btnGrande" id="btnMenuVacasMatriz" style="background:#6d4c41; display:none" onclick="trocarTela('telaVacasMatrizMobile'); abrirTelaVacasMatrizMobile();">🐄 Vacas Matriz</button>
 </div>
 
 <div id="telaInicial" class="tela">
@@ -68,6 +69,76 @@
     <p id="saidaMobErro" class="loginErro" style="display:none"></p>
     <button class="btnGrande" onclick="confirmarSaidaEstoqueMobile()">Confirmar Saída</button>
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+</div>
+
+<div id="telaVacasMatrizMobile" class="tela">
+    <h2>🐄 Vacas Matriz</h2>
+    <button class="btnGrande" onclick="trocarTela('telaNovoNascimentoMobile'); abrirTelaNovoNascimentoMobile();">🐣 Registrar Nascimento</button>
+    <button class="btnGrande" style="background:#1976d2" onclick="trocarTela('telaApartacaoMobile'); abrirTelaApartacaoMobile();">✅ Registrar Apartação</button>
+    <button class="btnGrande" style="background:#c62828" onclick="trocarTela('telaMorteMobile'); abrirTelaMorteMobile();">⚰️ Registrar Morte</button>
+    <button class="btnGrande" style="background:#5e35b1" onclick="trocarTela('telaVacasListaMobile'); abrirTelaVacasListaMobile();">🐮 Ver Vacas</button>
+    <button class="btnGrande" style="background:#0288d1" onclick="trocarTela('telaNascimentosListaMobile'); abrirTelaNascimentosListaMobile();">📋 Ver Nascimentos</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+</div>
+
+<div id="telaNovoNascimentoMobile" class="tela">
+    <h2>🐣 Registrar Nascimento</h2>
+    <select id="nascMobVacaMaeInput">
+        <option value="">Selecione a vaca mãe</option>
+    </select>
+    <input id="nascMobNumeroBezerroInput" placeholder="Número (brinco) do bezerro">
+    <select id="nascMobSexoInput">
+        <option value="">Sexo (opcional)</option>
+        <option value="macho">Macho</option>
+        <option value="femea">Fêmea</option>
+    </select>
+    <input id="nascMobPesoInput" placeholder="Peso ao nascer (kg, opcional)" inputmode="decimal">
+    <select id="nascMobPastoInput">
+        <option value="">Sem pasto definido</option>
+    </select>
+    <p id="nascMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" onclick="confirmarNovoNascimentoMobile()">Confirmar Nascimento</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+</div>
+
+<div id="telaApartacaoMobile" class="tela">
+    <h2>✅ Registrar Apartação</h2>
+    <select id="apartacaoMobBezerroInput">
+        <option value="">Selecione o bezerro</option>
+    </select>
+    <input id="apartacaoMobPesoInput" placeholder="Peso na apartação (kg, opcional)" inputmode="decimal">
+    <p id="apartacaoMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" onclick="confirmarApartacaoMobile()">Confirmar Apartação</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+</div>
+
+<div id="telaMorteMobile" class="tela">
+    <h2>⚰️ Registrar Morte</h2>
+    <select id="morteMobTipoInput" onchange="atualizarSelectAnimalMorteMobile()">
+        <option value="vaca">Vaca Matriz</option>
+        <option value="bezerro">Bezerro</option>
+    </select>
+    <select id="morteMobAnimalInput">
+        <option value="">Selecione</option>
+    </select>
+    <input id="morteMobCausaInput" placeholder="Causa (opcional)">
+    <p id="morteMobErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" style="background:#c62828" onclick="confirmarMorteMobile()">Confirmar Morte</button>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+</div>
+
+<div id="telaVacasListaMobile" class="tela">
+    <h2>🐮 Vacas Matriz</h2>
+    <input id="buscaVacaMobile" placeholder="Buscar por número ou apelido" oninput="mostrarVacasListaMobile()">
+    <div id="listaVacasMobile" class="listaPesosAtual" style="height:auto; max-height:65vh"></div>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+</div>
+
+<div id="telaNascimentosListaMobile" class="tela">
+    <h2>📋 Nascimentos</h2>
+    <input id="buscaNascimentoMobile" placeholder="Buscar por número do bezerro ou mãe" oninput="mostrarNascimentosListaMobile()">
+    <div id="listaNascimentosMobile" class="listaPesosAtual" style="height:auto; max-height:65vh"></div>
+    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
 </div>
 
 <div id="telaPesagem" class="tela">

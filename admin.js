@@ -51,6 +51,7 @@ async function carregarUsuarios() {
                     <span class="tagPermissao">Rel: ${rotuloPermEscopo(u.permissaoRelatorios)}</span>
                     ${u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined ? `<span class="tagPermissao">Máx compra: ${formatarValorReais(u.valorMaximoCompra)}</span>` : ""}
                     ${u.permissaoAlmoxarifado ? `<span class="tagPermissao">📦 Almoxarifado</span>` : ""}
+                    ${u.permissaoVacasMatriz ? `<span class="tagPermissao">🐄 Vacas Matriz</span>` : ""}
                 `}</td>
                 <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
@@ -101,6 +102,7 @@ function abrirModalUsuario(usuarioExistente) {
         ? String(usuarioExistente.valorMaximoCompra).replace(".", ",")
         : "";
     document.getElementById("usuarioPermAlmoxarifadoInput").checked = !!(usuarioExistente && usuarioExistente.permissaoAlmoxarifado);
+    document.getElementById("usuarioPermVacasMatrizInput").checked = !!(usuarioExistente && usuarioExistente.permissaoVacasMatriz);
     alternarCamposPermissao();
     let erroEl = document.getElementById("usuarioErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
@@ -136,6 +138,7 @@ async function salvarUsuario() {
             return;
         }
         let permissaoAlmoxarifado = document.getElementById("usuarioPermAlmoxarifadoInput").checked;
+        let permissaoVacasMatriz = document.getElementById("usuarioPermVacasMatrizInput").checked;
 
         if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
             mostrarErro("Preencha todos os campos.");
@@ -144,7 +147,7 @@ async function salvarUsuario() {
 
         let resp;
         if (usuarioEditandoId) {
-            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado };
+            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz };
             if (senha) corpo.senha = senha;
             resp = await fetch(`${API_URL}/api/usuarios/${usuarioEditandoId}`, {
                 method: "PUT",
@@ -155,7 +158,7 @@ async function salvarUsuario() {
             resp = await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado })
+                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz })
             });
         }
         let dados = await resp.json().catch(() => ({}));
@@ -2173,5 +2176,514 @@ async function estornarPagamentoParcela(parcelaId) {
         atualizarRelatoriosFinanceirosAposMudanca();
     } catch (e) {
         alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ========================================
+// VACAS MATRIZ
+// ========================================
+// Controle do plantel reprodutivo, isolado de propósito: nenhuma linha
+// aqui embaixo é lida por nenhum cálculo do resto do sistema (Dashboard,
+// Patrimônio, Custo por Lote, Fluxo de Caixa continuam iguais).
+let pastosCacheAdmin = [];
+let vacasMatrizCacheAdmin = [];
+let nascimentosCacheAdmin = [];
+let vacaEditandoId = null;
+let eventoNascimentoId = null;
+let eventoNascimentoTipo = null; // "apartar" | "morte"
+
+async function abrirTelaVacasMatriz() {
+    await Promise.all([carregarPastosAdmin(), carregarVacasMatrizAdmin(), carregarNascimentosAdmin()]);
+    mostrarResumoVacasMatriz();
+}
+
+function mostrarResumoVacasMatriz() {
+    let elAtivas = document.getElementById("vmVacasAtivas");
+    if (!elAtivas) return;
+
+    elAtivas.innerText = vacasMatrizCacheAdmin.filter(v => v.status === "ativa").length;
+
+    let anoAtual = new Date().getFullYear();
+    let nascimentosAno = nascimentosCacheAdmin.filter(n => {
+        let dm = extrairMesAnoDaData(n.dataNascimento);
+        return dm && dm.ano === anoAtual;
+    }).length;
+    document.getElementById("vmNascimentosAno").innerText = nascimentosAno;
+
+    let mortesVacasAno = vacasMatrizCacheAdmin.filter(v => {
+        if (v.status !== "morta" || !v.dataMorte) return false;
+        let dm = extrairMesAnoDaData(v.dataMorte);
+        return dm && dm.ano === anoAtual;
+    }).length;
+    let mortesBezerrosAno = nascimentosCacheAdmin.filter(n => {
+        if (n.status !== "morto" || !n.dataMorte) return false;
+        let dm = extrairMesAnoDaData(n.dataMorte);
+        return dm && dm.ano === anoAtual;
+    }).length;
+    document.getElementById("vmPerdasAno").innerText = mortesVacasAno + mortesBezerrosAno;
+}
+
+// ---------- PASTOS (mirrors Lotes) ----------
+async function carregarPastosAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/pastos`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        pastosCacheAdmin = await resp.json();
+        return pastosCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function carregarPastos() {
+    let corpo = document.getElementById("corpoTabelaPastos");
+    if (!corpo) return;
+    await carregarPastosAdmin();
+    if (pastosCacheAdmin.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="3">Nenhum pasto cadastrado ainda.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = pastosCacheAdmin.map(p => `
+        <tr>
+            <td>${p.nome}</td>
+            <td>${p.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
+            <td class="acoesUsuario">
+                <button onclick='alternarAtivoPasto(${JSON.stringify(p.id)}, ${!p.ativo})'>${p.ativo ? "🚫" : "✅"}</button>
+                <button onclick='excluirPasto(${JSON.stringify(p.id)}, ${JSON.stringify(p.nome)})'>🗑️</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function abrirModalPasto() {
+    document.getElementById("pastoNomeInput").value = "";
+    let erroEl = document.getElementById("pastoErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalPasto").style.display = "flex";
+}
+
+function fecharModalPasto() {
+    document.getElementById("modalPasto").style.display = "none";
+}
+
+async function salvarPasto() {
+    let erroEl = document.getElementById("pastoErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+        let nome = document.getElementById("pastoNomeInput").value.trim();
+        if (!nome) { mostrarErro("Informe o nome do pasto."); return; }
+        let resp = await fetch(`${API_URL}/api/pastos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ nome })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao criar pasto (HTTP ${resp.status}).`); return; }
+        fecharModalPasto();
+        carregarPastos();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function alternarAtivoPasto(id, novoAtivo) {
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/pastos/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ ativo: novoAtivo })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao atualizar pasto (HTTP ${resp.status}).`); return; }
+        carregarPastos();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirPasto(id, nome) {
+    if (!confirm(`Excluir o pasto "${nome}" permanentemente?`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/pastos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir pasto (HTTP ${resp.status}).`); return; }
+        carregarPastos();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ---------- VACAS MATRIZ ----------
+async function carregarVacasMatrizAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/vacas-matriz`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        vacasMatrizCacheAdmin = await resp.json();
+        return vacasMatrizCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function abrirTelaVacas() {
+    await Promise.all([carregarVacasMatrizAdmin(), carregarNascimentosAdmin()]);
+    mostrarVacas();
+}
+
+function mostrarVacas() {
+    let corpo = document.getElementById("corpoTabelaVacas");
+    if (!corpo) return;
+    let filtro = document.getElementById("vmFiltroStatus");
+    let statusFiltro = filtro ? filtro.value : "";
+    let lista = statusFiltro ? vacasMatrizCacheAdmin.filter(v => v.status === statusFiltro) : vacasMatrizCacheAdmin;
+
+    if (lista.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="7">Nenhuma vaca encontrada.</td></tr>`;
+        return;
+    }
+
+    function textoStatusVaca(v) {
+        if (v.status === "ativa") return { texto: "✅ Ativa", cor: "#0ca30c" };
+        if (v.status === "morta") return { texto: "⚰️ Morta", cor: "#d03b3b" };
+        return { texto: "➖ Descartada", cor: "#52514e" };
+    }
+
+    corpo.innerHTML = lista.map(v => {
+        let st = textoStatusVaca(v);
+        let qtdFilhos = nascimentosCacheAdmin.filter(n => n.vacaMaeNumero === v.numero).length;
+        return `
+            <tr>
+                <td>${v.numero}</td>
+                <td>${v.apelido || "—"}</td>
+                <td>${v.raca || "—"}</td>
+                <td>${v.pastoNome || "—"}</td>
+                <td style="color:${st.cor}">${st.texto}</td>
+                <td>${qtdFilhos}</td>
+                <td class="acoesUsuario">
+                    <button onclick='abrirModalVaca(${JSON.stringify(v)})'>✏️</button>
+                    <button onclick='excluirVaca(${JSON.stringify(v.id)}, ${JSON.stringify(v.numero)})'>🗑️</button>
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function abrirModalVaca(vacaExistente) {
+    vacaEditandoId = vacaExistente ? vacaExistente.id : null;
+    document.getElementById("modalVacaTitulo").innerText = vacaEditandoId ? "✏️ Editar Vaca Matriz" : "➕ Nova Vaca Matriz";
+
+    await carregarPastosAdmin();
+    let selectPasto = document.getElementById("vacaPastoInput");
+    selectPasto.innerHTML = `<option value="">Sem pasto definido</option>` +
+        pastosCacheAdmin.filter(p => p.ativo).map(p => `<option value="${p.nome.replace(/"/g, "&quot;")}">${p.nome}</option>`).join("");
+
+    document.getElementById("vacaNumeroInput").value = vacaExistente ? vacaExistente.numero : "";
+    document.getElementById("vacaApelidoInput").value = vacaExistente ? (vacaExistente.apelido || "") : "";
+    document.getElementById("vacaRacaInput").value = vacaExistente ? (vacaExistente.raca || "") : "";
+    selectPasto.value = vacaExistente ? (vacaExistente.pastoNome || "") : "";
+    document.getElementById("vacaStatusInput").value = vacaExistente ? vacaExistente.status : "ativa";
+    document.getElementById("vacaDataMorteInput").value = vacaExistente && vacaExistente.dataMorte ? (extrairDataISO(vacaExistente.dataMorte) || "") : "";
+    document.getElementById("vacaCausaMorteInput").value = vacaExistente ? (vacaExistente.causaMorte || "") : "";
+    document.getElementById("vacaObservacoesInput").value = vacaExistente ? (vacaExistente.observacoes || "") : "";
+    alternarCamposMorteVaca();
+
+    let erroEl = document.getElementById("vacaErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalVaca").style.display = "flex";
+}
+
+function alternarCamposMorteVaca() {
+    let status = document.getElementById("vacaStatusInput").value;
+    document.getElementById("vacaCamposMorte").style.display = status === "morta" ? "block" : "none";
+}
+
+function fecharModalVaca() {
+    document.getElementById("modalVaca").style.display = "none";
+    vacaEditandoId = null;
+}
+
+async function salvarVaca() {
+    let erroEl = document.getElementById("vacaErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let numero = document.getElementById("vacaNumeroInput").value.trim();
+        if (!numero) { mostrarErro("Informe o número (brinco) da vaca."); return; }
+        let status = document.getElementById("vacaStatusInput").value;
+        let dataMorteISO = document.getElementById("vacaDataMorteInput").value;
+
+        let vaca = {
+            id: vacaEditandoId || crypto.randomUUID(),
+            numero,
+            apelido: document.getElementById("vacaApelidoInput").value.trim() || null,
+            raca: document.getElementById("vacaRacaInput").value.trim() || null,
+            pastoNome: document.getElementById("vacaPastoInput").value || null,
+            status,
+            dataMorte: status === "morta" && dataMorteISO ? formatarDataBR(dataMorteISO) : null,
+            causaMorte: status === "morta" ? (document.getElementById("vacaCausaMorteInput").value.trim() || null) : null,
+            observacoes: document.getElementById("vacaObservacoesInput").value.trim() || null
+        };
+
+        let resp = await fetch(`${API_URL}/api/vacas-matriz/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ vacas: [vaca] })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+        if (dados.idsRejeitados && dados.idsRejeitados.includes(vaca.id)) { mostrarErro("Dados inválidos — confira o número da vaca."); return; }
+
+        fecharModalVaca();
+        await carregarVacasMatrizAdmin();
+        mostrarVacas();
+        mostrarResumoVacasMatriz();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirVaca(id, numero) {
+    if (!confirm(`Excluir a vaca "${numero}" permanentemente? Os nascimentos já registrados dela continuam existindo.`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/vacas-matriz/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await carregarVacasMatrizAdmin();
+        mostrarVacas();
+        mostrarResumoVacasMatriz();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ---------- NASCIMENTOS ----------
+async function carregarNascimentosAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/nascimentos`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        nascimentosCacheAdmin = await resp.json();
+        return nascimentosCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function abrirTelaNascimentos() {
+    await carregarNascimentosAdmin();
+    mostrarNascimentos();
+}
+
+function mostrarNascimentos() {
+    let corpo = document.getElementById("corpoTabelaNascimentos");
+    if (!corpo) return;
+    let filtro = document.getElementById("nascFiltroStatus");
+    let statusFiltro = filtro ? filtro.value : "";
+    let lista = statusFiltro ? nascimentosCacheAdmin.filter(n => n.status === statusFiltro) : nascimentosCacheAdmin;
+
+    if (lista.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="7">Nenhum nascimento encontrado.</td></tr>`;
+        return;
+    }
+
+    function textoStatusNascimento(n) {
+        if (n.status === "vivo") return { texto: "🐮 Vivo", cor: "#0ca30c" };
+        if (n.status === "apartado") return { texto: "✅ Apartado", cor: "#1976d2" };
+        return { texto: "⚰️ Morto", cor: "#d03b3b" };
+    }
+
+    corpo.innerHTML = lista.map(n => {
+        let st = textoStatusNascimento(n);
+        let acoes = "";
+        if (n.status === "vivo") {
+            acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "apartar")'>✅</button>`;
+            acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "morte")'>⚰️</button>`;
+        }
+        acoes += `<button onclick='excluirNascimento(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>🗑️</button>`;
+        return `
+            <tr>
+                <td>${n.dataNascimento ? n.dataNascimento.split(",")[0] : "—"}</td>
+                <td>${n.numeroBezerro}</td>
+                <td>${n.vacaMaeNumero}</td>
+                <td>${n.sexo === "macho" ? "Macho" : n.sexo === "femea" ? "Fêmea" : "—"}</td>
+                <td>${n.pastoNome || "—"}</td>
+                <td style="color:${st.cor}">${st.texto}</td>
+                <td class="acoesUsuario">${acoes}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function abrirModalNascimento() {
+    let token = obterToken();
+    if (!token) return;
+
+    await Promise.all([carregarVacasMatrizAdmin(), carregarPastosAdmin()]);
+    let selectVaca = document.getElementById("nascVacaMaeInput");
+    selectVaca.innerHTML = `<option value="">Selecione a vaca mãe</option>` +
+        vacasMatrizCacheAdmin.filter(v => v.status === "ativa").map(v => `<option value="${v.numero.replace(/"/g, "&quot;")}">${v.numero}${v.apelido ? " — " + v.apelido : ""}</option>`).join("");
+    let selectPasto = document.getElementById("nascPastoInput");
+    selectPasto.innerHTML = `<option value="">Sem pasto definido</option>` +
+        pastosCacheAdmin.filter(p => p.ativo).map(p => `<option value="${p.nome.replace(/"/g, "&quot;")}">${p.nome}</option>`).join("");
+
+    document.getElementById("nascNumeroBezerroInput").value = "";
+    document.getElementById("nascSexoInput").value = "";
+    document.getElementById("nascPesoInput").value = "";
+    document.getElementById("nascDataInput").value = new Date().toISOString().slice(0, 10);
+    let erroEl = document.getElementById("nascErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalNascimento").style.display = "flex";
+}
+
+function fecharModalNascimento() {
+    document.getElementById("modalNascimento").style.display = "none";
+}
+
+async function salvarNascimento() {
+    let erroEl = document.getElementById("nascErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let vacaMaeNumero = document.getElementById("nascVacaMaeInput").value;
+        let numeroBezerro = document.getElementById("nascNumeroBezerroInput").value.trim();
+        let dataISO = document.getElementById("nascDataInput").value;
+        if (!vacaMaeNumero) { mostrarErro("Selecione a vaca mãe."); return; }
+        if (!numeroBezerro) { mostrarErro("Informe o número do bezerro."); return; }
+        if (!dataISO) { mostrarErro("Informe a data de nascimento."); return; }
+
+        let peso = document.getElementById("nascPesoInput").value.trim();
+        let pesoNum = peso ? parseFloat(peso.replace(",", ".")) : null;
+
+        let nascimento = {
+            id: crypto.randomUUID(),
+            numeroBezerro,
+            vacaMaeNumero,
+            sexo: document.getElementById("nascSexoInput").value || null,
+            pesoNascimento: Number.isFinite(pesoNum) ? pesoNum : null,
+            dataNascimento: formatarDataBR(dataISO),
+            pastoNome: document.getElementById("nascPastoInput").value || null,
+            status: "vivo"
+        };
+
+        let resp = await fetch(`${API_URL}/api/nascimentos/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ nascimentos: [nascimento] })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+        if (dados.idsRejeitados && dados.idsRejeitados.includes(nascimento.id)) { mostrarErro("Dados inválidos — confira os campos."); return; }
+
+        fecharModalNascimento();
+        await carregarNascimentosAdmin();
+        mostrarNascimentos();
+        mostrarResumoVacasMatriz();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirNascimento(id, numeroBezerro) {
+    if (!confirm(`Excluir o registro de nascimento do bezerro "${numeroBezerro}"?`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/nascimentos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await carregarNascimentosAdmin();
+        mostrarNascimentos();
+        mostrarResumoVacasMatriz();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+function abrirModalEventoNascimento(nascimentoId, tipo) {
+    eventoNascimentoId = nascimentoId;
+    eventoNascimentoTipo = tipo;
+    let nascimento = nascimentosCacheAdmin.find(n => n.id === nascimentoId);
+    if (!nascimento) return;
+
+    let titulo = document.getElementById("modalEventoNascimentoTitulo");
+    let info = document.getElementById("eventoNascimentoInfo");
+    let valorExtra = document.getElementById("eventoValorExtraInput");
+    if (tipo === "apartar") {
+        titulo.innerText = "✅ Registrar Apartação";
+        info.innerText = `Bezerro ${nascimento.numeroBezerro} (mãe ${nascimento.vacaMaeNumero})`;
+        valorExtra.placeholder = "Peso na apartação (kg, opcional)";
+    } else {
+        titulo.innerText = "⚰️ Registrar Morte";
+        info.innerText = `Bezerro ${nascimento.numeroBezerro} (mãe ${nascimento.vacaMaeNumero})`;
+        valorExtra.placeholder = "Causa da morte (opcional)";
+    }
+    valorExtra.value = "";
+    document.getElementById("eventoDataInput").value = new Date().toISOString().slice(0, 10);
+    let erroEl = document.getElementById("eventoNascimentoErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalEventoNascimento").style.display = "flex";
+}
+
+function fecharModalEventoNascimento() {
+    document.getElementById("modalEventoNascimento").style.display = "none";
+    eventoNascimentoId = null;
+    eventoNascimentoTipo = null;
+}
+
+async function confirmarEventoNascimento() {
+    let erroEl = document.getElementById("eventoNascimentoErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+        if (!eventoNascimentoId) return;
+
+        let nascimento = nascimentosCacheAdmin.find(n => n.id === eventoNascimentoId);
+        if (!nascimento) { mostrarErro("Nascimento não encontrado."); return; }
+
+        let dataISO = document.getElementById("eventoDataInput").value;
+        if (!dataISO) { mostrarErro("Informe a data."); return; }
+        let dataFormatada = formatarDataBR(dataISO);
+        let valorExtra = document.getElementById("eventoValorExtraInput").value.trim();
+
+        let atualizado = { ...nascimento };
+        if (eventoNascimentoTipo === "apartar") {
+            atualizado.status = "apartado";
+            atualizado.dataApartacao = dataFormatada;
+            let pesoNum = valorExtra ? parseFloat(valorExtra.replace(",", ".")) : null;
+            atualizado.pesoApartacao = Number.isFinite(pesoNum) ? pesoNum : null;
+        } else {
+            atualizado.status = "morto";
+            atualizado.dataMorte = dataFormatada;
+            atualizado.causaMorte = valorExtra || null;
+        }
+
+        let resp = await fetch(`${API_URL}/api/nascimentos/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ nascimentos: [atualizado] })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao registrar (HTTP ${resp.status}).`); return; }
+
+        fecharModalEventoNascimento();
+        await carregarNascimentosAdmin();
+        mostrarNascimentos();
+        mostrarResumoVacasMatriz();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
     }
 }

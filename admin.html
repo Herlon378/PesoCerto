@@ -22,6 +22,7 @@
     <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();">📦 Almoxarifado</button>
     <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
     <button data-tela="telaContasPagar" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();">🧾 Contas a Pagar</button>
+    <button data-tela="telaVacasMatriz" onclick="trocarTela('telaVacasMatriz'); abrirTelaVacasMatriz();">🐄 Vacas Matriz</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
         <button id="btnLoginLogout" onclick="trocarTela('telaLogin')">👤 Entrar</button>
@@ -469,6 +470,100 @@
     </table>
 </div>
 
+<div id="telaVacasMatriz" class="tela">
+    <h2>🐄 Vacas Matriz</h2>
+    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+        Controle do plantel reprodutivo — separado do resto do sistema de propósito: nada aqui entra em Patrimônio, Custo por Lote ou Fluxo de Caixa.
+    </p>
+    <div class="almoxHubGrade" style="margin-bottom:20px">
+        <button class="almoxHubBotao" onclick="trocarTela('telaPastos'); carregarPastos();">
+            <span class="almoxHubIcone">🌾</span>
+            <span>Pastos</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaVacas'); abrirTelaVacas();">
+            <span class="almoxHubIcone">🐮</span>
+            <span>Vacas</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaNascimentos'); abrirTelaNascimentos();">
+            <span class="almoxHubIcone">🐣</span>
+            <span>Nascimentos</span>
+        </button>
+    </div>
+
+    <div class="dashKpiRow">
+        <div class="statTile">
+            <span class="statTileLabel">🐄 Vacas Ativas</span>
+            <span class="statTileValor" id="vmVacasAtivas">0</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">🐣 Nascimentos no Ano</span>
+            <span class="statTileValor" id="vmNascimentosAno">0</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">⚰️ Perdas no Ano</span>
+            <span class="statTileValor" id="vmPerdasAno">0</span>
+        </div>
+    </div>
+</div>
+
+<div id="telaPastos" class="tela">
+    <h2>Pastos</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalPasto()" style="background:#2e7d32">➕ Novo Pasto</button>
+        <button onclick="trocarTela('telaVacasMatriz')" style="background:#666">← Vacas Matriz</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Nome</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaPastos"></tbody>
+    </table>
+</div>
+
+<div id="telaVacas" class="tela">
+    <h2>Vacas Matriz</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalVaca()" style="background:#2e7d32">➕ Nova Vaca</button>
+        <button onclick="trocarTela('telaVacasMatriz')" style="background:#666">← Vacas Matriz</button>
+    </div>
+    <div class="dashFiltros">
+        <select id="vmFiltroStatus" onchange="mostrarVacas()">
+            <option value="">Status: Todas</option>
+            <option value="ativa">Ativas</option>
+            <option value="morta">Mortas</option>
+            <option value="descartada">Descartadas</option>
+        </select>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Número</th><th>Apelido</th><th>Raça</th><th>Pasto</th><th>Status</th><th>Nascimentos</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaVacas"></tbody>
+    </table>
+</div>
+
+<div id="telaNascimentos" class="tela">
+    <h2>Nascimentos</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalNascimento()" style="background:#2e7d32">➕ Novo Nascimento</button>
+        <button onclick="trocarTela('telaVacasMatriz')" style="background:#666">← Vacas Matriz</button>
+    </div>
+    <div class="dashFiltros">
+        <select id="nascFiltroStatus" onchange="mostrarNascimentos()">
+            <option value="">Status: Todos</option>
+            <option value="vivo">Vivos</option>
+            <option value="apartado">Apartados</option>
+            <option value="morto">Mortos</option>
+        </select>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Data Nasc.</th><th>Bezerro</th><th>Mãe</th><th>Sexo</th><th>Pasto</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaNascimentos"></tbody>
+    </table>
+</div>
+
 <div id="telaImpressao" class="tela">
     <div id="folhaRelatorio"></div>
     <div class="botoes-impressao">
@@ -666,6 +761,84 @@
     </div>
 </div>
 
+<div id="modalPasto" class="modal">
+    <div class="modal-box">
+        <h2 id="modalPastoTitulo">➕ Novo Pasto</h2>
+        <input id="pastoNomeInput" placeholder="Nome do pasto">
+        <p id="pastoErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalPasto()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarPasto()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalVaca" class="modal">
+    <div class="modal-box">
+        <h2 id="modalVacaTitulo">➕ Nova Vaca Matriz</h2>
+        <input id="vacaNumeroInput" placeholder="Número (brinco)">
+        <input id="vacaApelidoInput" placeholder="Apelido (opcional)">
+        <input id="vacaRacaInput" placeholder="Raça (opcional)">
+        <select id="vacaPastoInput">
+            <option value="">Sem pasto definido</option>
+        </select>
+        <select id="vacaStatusInput" onchange="alternarCamposMorteVaca()">
+            <option value="ativa">Ativa</option>
+            <option value="morta">Morta</option>
+            <option value="descartada">Descartada</option>
+        </select>
+        <div id="vacaCamposMorte" style="display:none">
+            <input id="vacaDataMorteInput" type="date">
+            <input id="vacaCausaMorteInput" placeholder="Causa da morte (opcional)">
+        </div>
+        <input id="vacaObservacoesInput" placeholder="Observações (opcional)">
+        <p id="vacaErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalVaca()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarVaca()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalNascimento" class="modal">
+    <div class="modal-box">
+        <h2>➕ Novo Nascimento</h2>
+        <select id="nascVacaMaeInput">
+            <option value="">Selecione a vaca mãe</option>
+        </select>
+        <input id="nascNumeroBezerroInput" placeholder="Número (brinco) do bezerro">
+        <select id="nascSexoInput">
+            <option value="">Sexo (opcional)</option>
+            <option value="macho">Macho</option>
+            <option value="femea">Fêmea</option>
+        </select>
+        <input id="nascPesoInput" placeholder="Peso ao nascer (kg, opcional)" inputmode="decimal">
+        <input id="nascDataInput" type="date">
+        <select id="nascPastoInput">
+            <option value="">Sem pasto definido</option>
+        </select>
+        <p id="nascErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalNascimento()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarNascimento()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalEventoNascimento" class="modal">
+    <div class="modal-box">
+        <h2 id="modalEventoNascimentoTitulo">Registrar Evento</h2>
+        <p id="eventoNascimentoInfo" class="loginSubtitulo" style="text-align:left"></p>
+        <input id="eventoDataInput" type="date">
+        <input id="eventoValorExtraInput" placeholder="">
+        <p id="eventoNascimentoErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalEventoNascimento()">Cancelar</button>
+            <button class="btn-sim" onclick="confirmarEventoNascimento()">Confirmar</button>
+        </div>
+    </div>
+</div>
+
 <div id="modalSaldoInicial" class="modal">
     <div class="modal-box">
         <h2>💵 Saldo Inicial de Caixa</h2>
@@ -719,6 +892,11 @@
             <label class="linhaCheckboxCiente">
                 <input type="checkbox" id="usuarioPermAlmoxarifadoInput">
                 <span>Pode lançar saída de almoxarifado pelo celular</span>
+            </label>
+
+            <label class="linhaCheckboxCiente">
+                <input type="checkbox" id="usuarioPermVacasMatrizInput">
+                <span>Pode acessar o controle de Vacas Matriz pelo celular</span>
             </label>
         </div>
 

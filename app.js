@@ -1019,6 +1019,10 @@ function obterPermAlmoxarifado(){
     return localStorage.getItem("permAlmoxarifado") === "1";
 }
 
+function obterPermVacasMatriz(){
+    return localStorage.getItem("permVacasMatriz") === "1";
+}
+
 function aplicarRestricoesUsuario(){
     let selectTipo = document.getElementById("tipoOperacao");
     if(!selectTipo) return;
@@ -1100,6 +1104,7 @@ async function enviarLogin(){
         localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");
         localStorage.setItem("valorMaximoCompra", dados.valorMaximoCompra != null ? String(dados.valorMaximoCompra) : "");
         localStorage.setItem("permAlmoxarifado", dados.permissaoAlmoxarifado ? "1" : "");
+        localStorage.setItem("permVacasMatriz", dados.permissaoVacasMatriz ? "1" : "");
         irParaTelaPrincipal();
         atualizarBotaoLogin();
         aplicarRestricoesUsuario();
@@ -1125,7 +1130,9 @@ function sair(){
     localStorage.removeItem("permRelatorios");
     localStorage.removeItem("valorMaximoCompra");
     localStorage.removeItem("permAlmoxarifado");
+    localStorage.removeItem("permVacasMatriz");
     localStorage.removeItem("produtosCache");
+    localStorage.removeItem("pastosCache");
     limparDadosVisiveis();
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
@@ -1157,7 +1164,8 @@ function atualizarBotaoLogin(){
         { id: "telaLotes", soAdmin: true },
         { id: "telaAlmoxarifado", soAdmin: true },
         { id: "telaFluxoCaixa", soAdmin: true },
-        { id: "telaContasPagar", soAdmin: true }
+        { id: "telaContasPagar", soAdmin: true },
+        { id: "telaVacasMatriz", soAdmin: true }
     ].forEach(({ id, soAdmin }) => {
         let navBtn = document.querySelector(`[data-tela="${id}"]`);
         if(!navBtn) return;
@@ -1171,6 +1179,14 @@ function atualizarBotaoLogin(){
     if(btnAlmoxMenu){
         let podeAlmoxarifado = logado && (obterPapelLogado() === "admin" || obterPermAlmoxarifado());
         btnAlmoxMenu.style.display = podeAlmoxarifado ? "inline-block" : "none";
+    }
+
+    // Botão de Vacas Matriz no menu do celular: mesma lógica — admin ou
+    // quem o admin autorizou especificamente (permissaoVacasMatriz).
+    let btnVacasMenu = document.getElementById("btnMenuVacasMatriz");
+    if(btnVacasMenu){
+        let podeVacasMatriz = logado && (obterPapelLogado() === "admin" || obterPermVacasMatriz());
+        btnVacasMenu.style.display = podeVacasMatriz ? "inline-block" : "none";
     }
 }
 
@@ -1453,6 +1469,73 @@ async function sincronizarAgora(){
             }
         }
 
+        // Vacas Matriz: mesmo raciocínio do Almoxarifado — só sincroniza pra
+        // quem tem acesso, e os dois tipos de registro (vacas e nascimentos)
+        // usam o MESMO endpoint /sync tanto pra criar quanto pra atualizar
+        // status (morte, apartação), então basta reenviar o que mudou.
+        let idsRejeitadosVacas = [];
+        let idsRejeitadosNascimentos = [];
+        if(obterPapelLogado() === "admin" || obterPermVacasMatriz()){
+            let listaVacas = JSON.parse(localStorage.getItem("vacasMatriz") || "[]");
+            let naoSincronizadasVacas = listaVacas.filter(v => !v.sincronizado);
+            if(naoSincronizadasVacas.length > 0){
+                let respVacas = await fetch(`${API_URL}/api/vacas-matriz/sync`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    body: JSON.stringify({ vacas: naoSincronizadasVacas })
+                });
+                if(respVacas.ok){
+                    let respostaVacas = await respVacas.json().catch(() => ({}));
+                    idsRejeitadosVacas = respostaVacas.idsRejeitados || [];
+                    naoSincronizadasVacas.forEach(v => {
+                        if(!idsRejeitadosVacas.includes(v.id)) v.sincronizado = true;
+                    });
+                    localStorage.setItem("vacasMatriz", JSON.stringify(listaVacas));
+                }
+            }
+
+            let listaNascimentos = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+            let naoSincronizadosNascimentos = listaNascimentos.filter(n => !n.sincronizado);
+            if(naoSincronizadosNascimentos.length > 0){
+                let respNasc = await fetch(`${API_URL}/api/nascimentos/sync`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    body: JSON.stringify({ nascimentos: naoSincronizadosNascimentos })
+                });
+                if(respNasc.ok){
+                    let respostaNasc = await respNasc.json().catch(() => ({}));
+                    idsRejeitadosNascimentos = respostaNasc.idsRejeitados || [];
+                    naoSincronizadosNascimentos.forEach(n => {
+                        if(!idsRejeitadosNascimentos.includes(n.id)) n.sincronizado = true;
+                    });
+                    localStorage.setItem("nascimentos", JSON.stringify(listaNascimentos));
+                }
+            }
+
+            let respPastos = await fetch(`${API_URL}/api/pastos`, { headers: { "Authorization": "Bearer " + token } });
+            if(respPastos.ok){
+                let pastosDoServidor = await respPastos.json();
+                localStorage.setItem("pastosCache", JSON.stringify(pastosDoServidor.filter(p => p.ativo)));
+            }
+            let respVacasGet = await fetch(`${API_URL}/api/vacas-matriz`, { headers: { "Authorization": "Bearer " + token } });
+            if(respVacasGet.ok){
+                let vacasDoServidor = await respVacasGet.json();
+                let mapaVacas = {};
+                vacasDoServidor.forEach(v => { mapaVacas[v.id] = Object.assign({}, v, { sincronizado: true }); });
+                listaVacas.forEach(v => { if(!v.sincronizado && v.id) mapaVacas[v.id] = v; });
+                localStorage.setItem("vacasMatriz", JSON.stringify(Object.values(mapaVacas)));
+            }
+            let respNascGet = await fetch(`${API_URL}/api/nascimentos`, { headers: { "Authorization": "Bearer " + token } });
+            if(respNascGet.ok){
+                let nascimentosDoServidor = await respNascGet.json();
+                let mapaNasc = {};
+                nascimentosDoServidor.forEach(n => { mapaNasc[n.id] = Object.assign({}, n, { sincronizado: true }); });
+                listaNascimentos.forEach(n => { if(!n.sincronizado && n.id) mapaNasc[n.id] = n; });
+                localStorage.setItem("nascimentos", JSON.stringify(Object.values(mapaNasc)));
+            }
+            if(typeof mostrarVacasMatrizMobile === "function") mostrarVacasMatrizMobile();
+        }
+
         let mapa = {};
         doServidor.forEach(r => { mapa[r.id] = Object.assign({}, r, { sincronizado: true }); });
         lista.forEach(r => {
@@ -1479,11 +1562,13 @@ async function sincronizarAgora(){
             if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
         }
 
-        if(idsRejeitadosPermissao.length > 0 || idsRejeitadosSaidas.length > 0){
+        if(idsRejeitadosPermissao.length > 0 || idsRejeitadosSaidas.length > 0 || idsRejeitadosVacas.length > 0 || idsRejeitadosNascimentos.length > 0){
             let partes = [];
             if(idsRejeitadosPermissao.length > 0) partes.push(idsRejeitadosPermissao.length + " pesagem(ns)");
             if(idsRejeitadosSaidas.length > 0) partes.push(idsRejeitadosSaidas.length + " saída(s) de estoque");
-            atualizarStatusSync("⚠️ " + partes.join(" e ") + " não sincronizada(s): não autorizada(s) ou estoque insuficiente");
+            if(idsRejeitadosVacas.length > 0) partes.push(idsRejeitadosVacas.length + " vaca(s)");
+            if(idsRejeitadosNascimentos.length > 0) partes.push(idsRejeitadosNascimentos.length + " nascimento(s)");
+            atualizarStatusSync("⚠️ " + partes.join(", ") + " não sincronizada(s): confira os dados obrigatórios");
         } else {
             atualizarStatusSync("✅ Sincronizado às " + new Date().toLocaleTimeString("pt-BR"));
         }
@@ -1582,4 +1667,235 @@ function lancarPeso(){
 
 function confirmarExclusaoPeso(){
     fecharConfirmacao(true);
+}
+
+// ========================================
+// VACAS MATRIZ (celular do vaqueiro)
+// ========================================
+// Mesmo padrão offline-first já usado em pesagens/estoqueSaidas: guarda
+// local com sincronizado:false, sincronizarAgora() manda em lote quando
+// pega rede. Criar E atualizar (morte, apartação) usam o mesmo array —
+// "editar" aqui é só mudar o campo local e marcar sincronizado:false de
+// novo, o servidor faz upsert por id.
+// tela hub — nada pra carregar na hora (os dados já vêm do sync), só existe
+// pra manter o mesmo padrão "trocarTela(...); abrirTela...();" usado em
+// todo o resto do app.
+function abrirTelaVacasMatrizMobile(){}
+
+function obterPastosCacheMobile(){
+    return JSON.parse(localStorage.getItem("pastosCache") || "[]");
+}
+function obterVacasMatrizCacheMobile(){
+    return JSON.parse(localStorage.getItem("vacasMatriz") || "[]");
+}
+function obterNascimentosCacheMobile(){
+    return JSON.parse(localStorage.getItem("nascimentos") || "[]");
+}
+
+function preencherSelectPastoMobile(select){
+    if(!select) return;
+    let pastos = obterPastosCacheMobile();
+    select.innerHTML = `<option value="">Sem pasto definido</option>` +
+        pastos.map(p => `<option value="${p.nome.replace(/"/g, "&quot;")}">${p.nome}</option>`).join("");
+}
+
+function abrirTelaNovoNascimentoMobile(){
+    let selectVaca = document.getElementById("nascMobVacaMaeInput");
+    let vacasAtivas = obterVacasMatrizCacheMobile().filter(v => v.status === "ativa");
+    selectVaca.innerHTML = `<option value="">Selecione a vaca mãe</option>` +
+        vacasAtivas.map(v => `<option value="${v.numero.replace(/"/g, "&quot;")}">${v.numero}${v.apelido ? " — " + v.apelido : ""}</option>`).join("");
+    preencherSelectPastoMobile(document.getElementById("nascMobPastoInput"));
+    document.getElementById("nascMobNumeroBezerroInput").value = "";
+    document.getElementById("nascMobSexoInput").value = "";
+    document.getElementById("nascMobPesoInput").value = "";
+    let erroEl = document.getElementById("nascMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+}
+
+function confirmarNovoNascimentoMobile(){
+    let erroEl = document.getElementById("nascMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    let vacaMaeNumero = document.getElementById("nascMobVacaMaeInput").value;
+    let numeroBezerro = document.getElementById("nascMobNumeroBezerroInput").value.trim();
+    if(!vacaMaeNumero){ mostrarErro("Selecione a vaca mãe."); return; }
+    if(!numeroBezerro){ mostrarErro("Informe o número do bezerro."); return; }
+
+    let pesoTexto = document.getElementById("nascMobPesoInput").value.trim();
+    let pesoNum = pesoTexto ? parseFloat(pesoTexto.replace(",", ".")) : null;
+
+    let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+    lista.push({
+        id: crypto.randomUUID(),
+        numeroBezerro,
+        vacaMaeNumero,
+        sexo: document.getElementById("nascMobSexoInput").value || null,
+        pesoNascimento: Number.isFinite(pesoNum) ? pesoNum : null,
+        dataNascimento: new Date().toLocaleString("pt-BR"),
+        pastoNome: document.getElementById("nascMobPastoInput").value || null,
+        status: "vivo",
+        sincronizado: false
+    });
+    localStorage.setItem("nascimentos", JSON.stringify(lista));
+
+    alert("Nascimento registrado! Assim que sincronizar, vai pro sistema.");
+    trocarTela("telaVacasMatrizMobile");
+    sincronizarAgora();
+}
+
+function abrirTelaApartacaoMobile(){
+    let select = document.getElementById("apartacaoMobBezerroInput");
+    let vivos = obterNascimentosCacheMobile().filter(n => n.status === "vivo");
+    select.innerHTML = `<option value="">Selecione o bezerro</option>` +
+        vivos.map(n => `<option value="${n.id}">${n.numeroBezerro} (mãe ${n.vacaMaeNumero})</option>`).join("");
+    document.getElementById("apartacaoMobPesoInput").value = "";
+    let erroEl = document.getElementById("apartacaoMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+}
+
+function confirmarApartacaoMobile(){
+    let erroEl = document.getElementById("apartacaoMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    let nascimentoId = document.getElementById("apartacaoMobBezerroInput").value;
+    if(!nascimentoId){ mostrarErro("Selecione o bezerro."); return; }
+
+    let pesoTexto = document.getElementById("apartacaoMobPesoInput").value.trim();
+    let pesoNum = pesoTexto ? parseFloat(pesoTexto.replace(",", ".")) : null;
+
+    let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+    let nascimento = lista.find(n => n.id === nascimentoId);
+    if(!nascimento){ mostrarErro("Bezerro não encontrado — sincronize e tente de novo."); return; }
+
+    nascimento.status = "apartado";
+    nascimento.dataApartacao = new Date().toLocaleString("pt-BR");
+    nascimento.pesoApartacao = Number.isFinite(pesoNum) ? pesoNum : null;
+    nascimento.sincronizado = false;
+    localStorage.setItem("nascimentos", JSON.stringify(lista));
+
+    alert("Apartação registrada!");
+    trocarTela("telaVacasMatrizMobile");
+    sincronizarAgora();
+}
+
+function atualizarSelectAnimalMorteMobile(){
+    let tipo = document.getElementById("morteMobTipoInput").value;
+    let select = document.getElementById("morteMobAnimalInput");
+    if(tipo === "vaca"){
+        let vacasAtivas = obterVacasMatrizCacheMobile().filter(v => v.status === "ativa");
+        select.innerHTML = `<option value="">Selecione a vaca</option>` +
+            vacasAtivas.map(v => `<option value="${v.id}">${v.numero}${v.apelido ? " — " + v.apelido : ""}</option>`).join("");
+    } else {
+        let vivos = obterNascimentosCacheMobile().filter(n => n.status === "vivo");
+        select.innerHTML = `<option value="">Selecione o bezerro</option>` +
+            vivos.map(n => `<option value="${n.id}">${n.numeroBezerro} (mãe ${n.vacaMaeNumero})</option>`).join("");
+    }
+}
+
+function abrirTelaMorteMobile(){
+    document.getElementById("morteMobTipoInput").value = "vaca";
+    atualizarSelectAnimalMorteMobile();
+    document.getElementById("morteMobCausaInput").value = "";
+    let erroEl = document.getElementById("morteMobErro");
+    if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+}
+
+function confirmarMorteMobile(){
+    let erroEl = document.getElementById("morteMobErro");
+    function mostrarErro(msg){ if(erroEl){ erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    let tipo = document.getElementById("morteMobTipoInput").value;
+    let animalId = document.getElementById("morteMobAnimalInput").value;
+    if(!animalId){ mostrarErro("Selecione o animal."); return; }
+    let causa = document.getElementById("morteMobCausaInput").value.trim() || null;
+    let agora = new Date().toLocaleString("pt-BR");
+
+    if(tipo === "vaca"){
+        let lista = JSON.parse(localStorage.getItem("vacasMatriz") || "[]");
+        let vaca = lista.find(v => v.id === animalId);
+        if(!vaca){ mostrarErro("Vaca não encontrada — sincronize e tente de novo."); return; }
+        vaca.status = "morta";
+        vaca.dataMorte = agora;
+        vaca.causaMorte = causa;
+        vaca.sincronizado = false;
+        localStorage.setItem("vacasMatriz", JSON.stringify(lista));
+    } else {
+        let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+        let nascimento = lista.find(n => n.id === animalId);
+        if(!nascimento){ mostrarErro("Bezerro não encontrado — sincronize e tente de novo."); return; }
+        nascimento.status = "morto";
+        nascimento.dataMorte = agora;
+        nascimento.causaMorte = causa;
+        nascimento.sincronizado = false;
+        localStorage.setItem("nascimentos", JSON.stringify(lista));
+    }
+
+    alert("Morte registrada.");
+    trocarTela("telaVacasMatrizMobile");
+    sincronizarAgora();
+}
+
+function abrirTelaVacasListaMobile(){
+    mostrarVacasListaMobile();
+}
+
+function mostrarVacasListaMobile(){
+    let container = document.getElementById("listaVacasMobile");
+    if(!container) return;
+    let buscaEl = document.getElementById("buscaVacaMobile");
+    let busca = (buscaEl ? buscaEl.value : "").toLowerCase();
+    let vacas = obterVacasMatrizCacheMobile().filter(v =>
+        !busca || v.numero.toLowerCase().includes(busca) || (v.apelido || "").toLowerCase().includes(busca)
+    );
+    if(vacas.length === 0){
+        container.innerHTML = `<div class="listaPesosAtualVazia">Nenhuma vaca encontrada.</div>`;
+        return;
+    }
+    let nascimentos = obterNascimentosCacheMobile();
+    container.innerHTML = vacas.map(v => {
+        let filhos = nascimentos.filter(n => n.vacaMaeNumero === v.numero).length;
+        let statusTxt = v.status === "ativa" ? "✅ Ativa" : v.status === "morta" ? "⚰️ Morta" : "➖ Descartada";
+        return `
+            <div class="itemPesagem">
+                <span><strong>${v.numero}</strong>${v.apelido ? " — " + v.apelido : ""}<br>${v.pastoNome || "Sem pasto"} · ${filhos} filho(s)</span>
+                <span class="itemPesagemDireita">${statusTxt}</span>
+            </div>
+        `;
+    }).join("");
+}
+
+function abrirTelaNascimentosListaMobile(){
+    mostrarNascimentosListaMobile();
+}
+
+function mostrarNascimentosListaMobile(){
+    let container = document.getElementById("listaNascimentosMobile");
+    if(!container) return;
+    let buscaEl = document.getElementById("buscaNascimentoMobile");
+    let busca = (buscaEl ? buscaEl.value : "").toLowerCase();
+    let nascimentos = obterNascimentosCacheMobile().filter(n =>
+        !busca || n.numeroBezerro.toLowerCase().includes(busca) || n.vacaMaeNumero.toLowerCase().includes(busca)
+    );
+    if(nascimentos.length === 0){
+        container.innerHTML = `<div class="listaPesosAtualVazia">Nenhum nascimento encontrado.</div>`;
+        return;
+    }
+    container.innerHTML = nascimentos.map(n => {
+        let statusTxt = n.status === "vivo" ? "🐮 Vivo" : n.status === "apartado" ? "✅ Apartado" : "⚰️ Morto";
+        return `
+            <div class="itemPesagem">
+                <span><strong>${n.numeroBezerro}</strong> (mãe ${n.vacaMaeNumero})<br>${n.dataNascimento ? n.dataNascimento.split(",")[0] : "—"}</span>
+                <span class="itemPesagemDireita">${statusTxt}</span>
+            </div>
+        `;
+    }).join("");
+}
+
+// chamada depois de cada sincronização — atualiza a lista se a tela de
+// consulta estiver aberta na hora, sem o usuário precisar sair e voltar.
+function mostrarVacasMatrizMobile(){
+    let telaVacas = document.getElementById("telaVacasListaMobile");
+    if(telaVacas && telaVacas.classList.contains("ativa")) mostrarVacasListaMobile();
+    let telaNasc = document.getElementById("telaNascimentosListaMobile");
+    if(telaNasc && telaNasc.classList.contains("ativa")) mostrarNascimentosListaMobile();
 }
