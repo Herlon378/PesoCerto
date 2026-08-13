@@ -1725,6 +1725,7 @@ function confirmarNovoNascimentoMobile(){
     let pesoNum = pesoTexto ? parseFloat(pesoTexto.replace(",", ".")) : null;
 
     let lista = JSON.parse(localStorage.getItem("nascimentos") || "[]");
+    if(lista.some(n => n.numeroBezerro === numeroBezerro)){ mostrarErro(`Já existe um nascimento com o número de bezerro "${numeroBezerro}".`); return; }
     lista.push({
         id: crypto.randomUUID(),
         numeroBezerro,
