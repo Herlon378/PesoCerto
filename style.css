@@ -295,11 +295,15 @@ input, select {
 }
 
 /* LISTA */
-#listaRelatorios {
-    flex: 1;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-}
+/* #listaRelatorios não tem overflow-y/flex de propósito: seu pai (#relatorio)
+   não é flex container, então "flex:1" nunca fazia efeito e a lista sempre
+   cresce até caber todo o conteúdo (scrollHeight == clientHeight sempre).
+   Um "overflow-y:auto" nesse estado faz o navegador escolher ESSE elemento
+   como alvo do gesto de rolagem (wheel/touch) em vez de #telaResultado (que
+   é quem de fato tem overflow-y:auto com conteúdo maior que a tela) -- e
+   como #listaRelatorios não tem nada pra rolar, o gesto simplesmente não
+   faz nada, travando a rolagem da tela de Relatórios inteira no celular.
+   Removido pra deixar #telaResultado ser o único alvo de rolagem real. */
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
 .listaPesosAtual {
