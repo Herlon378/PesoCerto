@@ -790,17 +790,41 @@ async function carregarEstoque() {
     let token = obterToken();
     let corpo = document.getElementById("corpoTabelaEstoqueSaldo");
     if (!token || !corpo) return;
-    await carregarProdutosAdmin();
+    await Promise.all([carregarProdutosAdmin(), carregarEstoqueEntradasAdmin()]);
     let ativos = produtosCacheAdmin.filter(p => p.ativo);
     if (ativos.length === 0) {
         corpo.innerHTML = `<tr><td colspan="3">Nenhum produto ativo cadastrado ainda.</td></tr>`;
+    } else {
+        corpo.innerHTML = ativos.map(p => `
+            <tr>
+                <td>${p.descricao}</td>
+                <td>${formatarPeso(p.saldoAtual)} ${p.unidade}</td>
+                <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
+            </tr>
+        `).join("");
+    }
+    mostrarHistoricoEntradas();
+}
+
+// Entrada de estoque não mexe no Fluxo de Caixa (ver calcularCaixaAcumulado)
+// -- é só um registro físico do que chegou. Corrigir/excluir uma entrada
+// errada é feito aqui, na tela de Estoque, não mais no Fluxo de Caixa.
+function mostrarHistoricoEntradas() {
+    let corpo = document.getElementById("corpoTabelaHistoricoEntradas");
+    if (!corpo) return;
+    if (estoqueEntradasCacheAdmin.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="7">Nenhuma entrada registrada ainda.</td></tr>`;
         return;
     }
-    corpo.innerHTML = ativos.map(p => `
+    corpo.innerHTML = estoqueEntradasCacheAdmin.map(e => `
         <tr>
-            <td>${p.descricao}</td>
-            <td>${formatarPeso(p.saldoAtual)} ${p.unidade}</td>
-            <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
+            <td>${e.data ? e.data.split(",")[0] : "—"}</td>
+            <td>${e.produtoDescricao}</td>
+            <td>${formatarPeso(e.quantidade)}</td>
+            <td>R$ ${formatarMoeda(e.valorUnitario)}</td>
+            <td>R$ ${formatarMoeda(e.valorTotal)}</td>
+            <td>${e.numeroNota || "—"}</td>
+            <td class="acoesUsuario"><button onclick='excluirEntradaEstoque(${JSON.stringify(e.id)}, ${JSON.stringify(e.produtoDescricao)})'>🗑️</button></td>
         </tr>
     `).join("");
 }
@@ -1286,7 +1310,14 @@ function calcularCaixaAcumulado(dataISOLimite) {
         if ((r.tipo || "venda") === "compra") saidasCaixa += d.totalRS;
         else entradasCaixa += d.totalRS;
     });
-    estoqueEntradasCacheAdmin.forEach(e => { if (dentroDoPeriodo(e.data)) saidasCaixa += e.valorTotal; });
+    // Entrada de estoque NÃO conta como saída de caixa aqui de propósito: ela
+    // só registra que o produto chegou fisicamente, não que o dinheiro saiu
+    // (a compra pode ter sido parcelada via Contas a Pagar, por exemplo). O
+    // impacto real no caixa só acontece quando existe um lançamento de
+    // verdade — manual ou de uma parcela paga — senão a mesma compra conta
+    // duas vezes: uma na entrada, outra a cada parcela. O custo do estoque
+    // já entra no Patrimônio pelo componente separado "estoque parado no
+    // almoxarifado" (valorEstoqueAlmoxarifado em mostrarPatrimonio()).
     caixaLancamentosCacheAdmin.forEach(l => {
         if (!dentroDoPeriodo(l.data)) return;
         if (l.tipo === "saida") saidasCaixa += l.valor;
@@ -1694,21 +1725,12 @@ function mostrarFluxoCaixa() {
         });
     });
 
-    // a saída de estoque em si não move dinheiro (o produto já tinha sido
-    // pago) — quem representa o gasto real é a ENTRADA de estoque, feita
-    // contra a nota fiscal no momento da compra.
-    estoqueEntradasCacheAdmin.forEach(e => {
-        let dataISO = extrairDataISO(e.data);
-        if (!dataISO) return;
-        movimentos.push({
-            dataISO, data: e.data, tipo: "saida",
-            origem: "Almoxarifado",
-            descricao: "Compra de " + e.produtoDescricao + (e.numeroNota ? " (NF " + e.numeroNota + ")" : ""),
-            valor: e.valorTotal,
-            id: e.id, excluivel: true, tipoOrigem: "entrada"
-        });
-    });
-
+    // Entrada de estoque não aparece aqui de propósito: ela é só a chegada
+    // física do produto, não uma saída de dinheiro (a compra pode ter sido
+    // parcelada). O gasto real vira caixa quando é de fato pago — um
+    // lançamento manual, ou uma parcela de Contas a Pagar paga — e só
+    // nesse momento aparece nesse extrato. Ver histórico/excluir uma
+    // entrada errada agora é feito na tela Estoque, não aqui.
     caixaLancamentosCacheAdmin.forEach(l => {
         let dataISO = extrairDataISO(l.data);
         if (!dataISO) return;
@@ -1717,7 +1739,7 @@ function mostrarFluxoCaixa() {
             origem: "Manual" + (l.categoria ? " — " + l.categoria : ""),
             descricao: (l.descricao || l.categoria || "—") + (l.loteNome ? " (Lote: " + l.loteNome + ")" : ""),
             valor: l.valor,
-            id: l.id, excluivel: true, tipoOrigem: "manual"
+            id: l.id, excluivel: true
         });
     });
 
@@ -1754,7 +1776,7 @@ function mostrarFluxoCaixa() {
                     <td>${m.descricao}</td>
                     <td>R$ ${formatarMoeda(m.valor)}</td>
                     <td>R$ ${formatarMoeda(m.saldoAcumulado)}</td>
-                    <td>${m.excluivel ? `<button onclick='excluirMovimentoCaixa(${JSON.stringify(m.id)}, ${JSON.stringify(m.tipoOrigem)})'>🗑️</button>` : "—"}</td>
+                    <td>${m.excluivel ? `<button onclick='excluirLancamento(${JSON.stringify(m.id)})'>🗑️</button>` : "—"}</td>
                 </tr>
             `;
         }).join("");
@@ -1839,11 +1861,6 @@ async function salvarLancamento() {
     }
 }
 
-function excluirMovimentoCaixa(id, tipoOrigem) {
-    if (tipoOrigem === "entrada") return excluirEntradaDoCaixa(id);
-    return excluirLancamento(id);
-}
-
 async function excluirLancamento(id) {
     if (!confirm("Excluir este lançamento?")) return;
     try {
@@ -1861,8 +1878,8 @@ async function excluirLancamento(id) {
     }
 }
 
-async function excluirEntradaDoCaixa(id) {
-    if (!confirm("Excluir esta entrada de estoque? Só é possível se esse estoque ainda não tiver sido consumido em nenhuma saída.")) return;
+async function excluirEntradaEstoque(id, produtoDescricao) {
+    if (!confirm(`Excluir esta entrada de "${produtoDescricao}"? Só é possível se esse estoque ainda não tiver sido consumido em nenhuma saída.`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/estoque-entradas/${id}`, {
@@ -1871,8 +1888,7 @@ async function excluirEntradaDoCaixa(id) {
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { alert(dados.erro || `Erro ao excluir entrada (HTTP ${resp.status}).`); return; }
-        await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin()]);
-        mostrarFluxoCaixa();
+        await carregarEstoque();
     } catch (e) {
         alert("Erro de conexão: " + e.message);
     }
