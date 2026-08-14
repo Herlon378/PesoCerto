@@ -1973,7 +1973,7 @@ function mostrarContasPagar() {
             ? `<button onclick='estornarPagamentoParcela(${JSON.stringify(l.parcela.id)})'>↩️ Estornar</button>`
             : `<button onclick='abrirModalPagarParcela(${JSON.stringify(l.parcela.id)})'>💰 Pagar</button>`;
         if (l.status.chave !== "paga") {
-            acoes += `<button onclick='abrirModalEditarVencimento(${JSON.stringify(l.parcela.id)})'>📅</button>`;
+            acoes += `<button onclick='abrirModalEditarParcela(${JSON.stringify(l.parcela.id)})'>✏️</button>`;
         }
         if (l.parcela.numero === 1) {
             acoes += `<button onclick='excluirContaPagar(${JSON.stringify(l.conta.id)}, ${JSON.stringify(l.conta.descricao)})'>🗑️</button>`;
@@ -2171,10 +2171,10 @@ async function confirmarPagarParcela() {
     }
 }
 
-let parcelaEmEdicaoVencimentoId = null;
+let parcelaEmEdicaoId = null;
 
-function abrirModalEditarVencimento(parcelaId) {
-    parcelaEmEdicaoVencimentoId = parcelaId;
+function abrirModalEditarParcela(parcelaId) {
+    parcelaEmEdicaoId = parcelaId;
     let achado = null;
     contasPagarCacheAdmin.forEach(conta => {
         conta.parcelas.forEach(parcela => {
@@ -2183,39 +2183,42 @@ function abrirModalEditarVencimento(parcelaId) {
     });
     if (!achado) return;
 
-    document.getElementById("editVencimentoInfo").innerText =
+    document.getElementById("editParcelaInfo").innerText =
         `${achado.conta.descricao} — parcela ${achado.parcela.numero}/${achado.conta.numeroParcelas}`;
-    document.getElementById("editVencimentoDataInput").value = extrairDataISO(achado.parcela.dataVencimento) || "";
-    let erroEl = document.getElementById("editVencimentoErro");
+    document.getElementById("editParcelaValorInput").value = String(achado.parcela.valor).replace(".", ",");
+    document.getElementById("editParcelaDataInput").value = extrairDataISO(achado.parcela.dataVencimento) || "";
+    let erroEl = document.getElementById("editParcelaErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
-    document.getElementById("modalEditarVencimento").style.display = "flex";
+    document.getElementById("modalEditarParcela").style.display = "flex";
 }
 
-function fecharModalEditarVencimento() {
-    document.getElementById("modalEditarVencimento").style.display = "none";
-    parcelaEmEdicaoVencimentoId = null;
+function fecharModalEditarParcela() {
+    document.getElementById("modalEditarParcela").style.display = "none";
+    parcelaEmEdicaoId = null;
 }
 
-async function confirmarEditarVencimento() {
-    let erroEl = document.getElementById("editVencimentoErro");
+async function confirmarEditarParcela() {
+    let erroEl = document.getElementById("editParcelaErro");
     function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
     try {
         let token = obterToken();
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
-        if (!parcelaEmEdicaoVencimentoId) return;
+        if (!parcelaEmEdicaoId) return;
 
-        let dataISO = document.getElementById("editVencimentoDataInput").value;
-        if (!dataISO) { mostrarErro("Informe a nova data de vencimento."); return; }
+        let valor = parseFloat(document.getElementById("editParcelaValorInput").value.replace(",", "."));
+        let dataISO = document.getElementById("editParcelaDataInput").value;
+        if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
+        if (!dataISO) { mostrarErro("Informe a data de vencimento."); return; }
 
-        let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaEmEdicaoVencimentoId}`, {
+        let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaEmEdicaoId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ dataVencimento: formatarDataBR(dataISO) })
+            body: JSON.stringify({ dataVencimento: formatarDataBR(dataISO), valor })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao alterar (HTTP ${resp.status}).`); return; }
 
-        fecharModalEditarVencimento();
+        fecharModalEditarParcela();
         await abrirTelaContasPagar();
     } catch (e) {
         mostrarErro("Erro de conexão: " + e.message);

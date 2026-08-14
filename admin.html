@@ -765,15 +765,16 @@
     </div>
 </div>
 
-<div id="modalEditarVencimento" class="modal">
+<div id="modalEditarParcela" class="modal">
     <div class="modal-box">
-        <h2>📅 Alterar Vencimento</h2>
-        <p id="editVencimentoInfo" class="loginSubtitulo" style="text-align:left"></p>
-        <input id="editVencimentoDataInput" type="date">
-        <p id="editVencimentoErro" class="loginErro" style="display:none"></p>
+        <h2>✏️ Editar Parcela</h2>
+        <p id="editParcelaInfo" class="loginSubtitulo" style="text-align:left"></p>
+        <input id="editParcelaValorInput" placeholder="Valor (R$)" inputmode="decimal">
+        <input id="editParcelaDataInput" type="date">
+        <p id="editParcelaErro" class="loginErro" style="display:none"></p>
         <div class="botoes">
-            <button class="btn-nao" onclick="fecharModalEditarVencimento()">Cancelar</button>
-            <button class="btn-sim" onclick="confirmarEditarVencimento()">Salvar</button>
+            <button class="btn-nao" onclick="fecharModalEditarParcela()">Cancelar</button>
+            <button class="btn-sim" onclick="confirmarEditarParcela()">Salvar</button>
         </div>
     </div>
 </div>
