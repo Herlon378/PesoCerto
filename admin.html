@@ -464,7 +464,7 @@
 
     <table class="tabelaUsuarios">
         <thead>
-            <tr><th>Vencimento</th><th>Descrição</th><th>Parcela</th><th>Valor</th><th>Status</th><th>Lote</th><th>Sub-caixa</th><th>Ações</th></tr>
+            <tr><th>Compra</th><th>Vencimento</th><th>Descrição</th><th>Parcela</th><th>Valor</th><th>Status</th><th>Lote</th><th>Sub-caixa</th><th>Ações</th></tr>
         </thead>
         <tbody id="corpoTabelaContasPagar"></tbody>
     </table>
@@ -730,8 +730,11 @@
         <h2>➕ Nova Conta a Pagar</h2>
         <input id="cpDescricaoInput" placeholder="Descrição (ex: Fornecedor de ração)">
         <input id="cpCategoriaInput" placeholder="Categoria (opcional)" list="listaCategoriasCaixa">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Data da compra</p>
+        <input id="cpDataCompraInput" type="date">
         <input id="cpValorTotalInput" placeholder="Valor total (R$)" inputmode="decimal" oninput="atualizarPreviewContaPagar()">
         <input id="cpNumeroParcelasInput" placeholder="Número de parcelas" inputmode="numeric" value="1" oninput="atualizarPreviewContaPagar()">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Vencimento da 1ª parcela</p>
         <input id="cpPrimeiroVencimentoInput" type="date" oninput="atualizarPreviewContaPagar()">
         <select id="cpLoteInput">
             <option value="">Sem lote específico</option>
@@ -758,6 +761,19 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalPagarParcela()">Cancelar</button>
             <button class="btn-sim" onclick="confirmarPagarParcela()">Confirmar Pagamento</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalEditarVencimento" class="modal">
+    <div class="modal-box">
+        <h2>📅 Alterar Vencimento</h2>
+        <p id="editVencimentoInfo" class="loginSubtitulo" style="text-align:left"></p>
+        <input id="editVencimentoDataInput" type="date">
+        <p id="editVencimentoErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalEditarVencimento()">Cancelar</button>
+            <button class="btn-sim" onclick="confirmarEditarVencimento()">Salvar</button>
         </div>
     </div>
 </div>

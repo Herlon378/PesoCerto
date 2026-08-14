@@ -1964,7 +1964,7 @@ function mostrarContasPagar() {
     });
 
     if (linhas.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="8">Nenhuma conta encontrada.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="9">Nenhuma conta encontrada.</td></tr>`;
         return;
     }
 
@@ -1972,11 +1972,15 @@ function mostrarContasPagar() {
         let acoes = l.status.chave === "paga"
             ? `<button onclick='estornarPagamentoParcela(${JSON.stringify(l.parcela.id)})'>↩️ Estornar</button>`
             : `<button onclick='abrirModalPagarParcela(${JSON.stringify(l.parcela.id)})'>💰 Pagar</button>`;
+        if (l.status.chave !== "paga") {
+            acoes += `<button onclick='abrirModalEditarVencimento(${JSON.stringify(l.parcela.id)})'>📅</button>`;
+        }
         if (l.parcela.numero === 1) {
             acoes += `<button onclick='excluirContaPagar(${JSON.stringify(l.conta.id)}, ${JSON.stringify(l.conta.descricao)})'>🗑️</button>`;
         }
         return `
             <tr>
+                <td>${l.conta.dataCompra ? l.conta.dataCompra.split(",")[0] : "—"}</td>
                 <td>${l.parcela.dataVencimento ? l.parcela.dataVencimento.split(",")[0] : "—"}</td>
                 <td>${l.conta.descricao}</td>
                 <td>${l.parcela.numero}/${l.conta.numeroParcelas}</td>
@@ -2004,6 +2008,7 @@ async function abrirModalContaPagar() {
 
     document.getElementById("cpDescricaoInput").value = "";
     document.getElementById("cpCategoriaInput").value = "";
+    document.getElementById("cpDataCompraInput").value = new Date().toISOString().slice(0, 10);
     document.getElementById("cpValorTotalInput").value = "";
     document.getElementById("cpNumeroParcelasInput").value = "1";
     document.getElementById("cpPrimeiroVencimentoInput").value = new Date().toISOString().slice(0, 10);
@@ -2058,6 +2063,7 @@ async function salvarContaPagar() {
 
         let descricao = document.getElementById("cpDescricaoInput").value.trim();
         let categoria = document.getElementById("cpCategoriaInput").value.trim();
+        let dataCompraISO = document.getElementById("cpDataCompraInput").value;
         let valorTotal = parseFloat(document.getElementById("cpValorTotalInput").value.replace(",", "."));
         let numeroParcelas = parseInt(document.getElementById("cpNumeroParcelasInput").value, 10);
         let primeiraData = document.getElementById("cpPrimeiroVencimentoInput").value;
@@ -2071,10 +2077,11 @@ async function salvarContaPagar() {
 
         let parcelas = calcularParcelasContaPagar(valorTotal, numeroParcelas, primeiraData);
 
+        let dataCompra = dataCompraISO ? formatarDataBR(dataCompraISO) : null;
         let resp = await fetch(`${API_URL}/api/contas-pagar`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ descricao, categoria: categoria || null, valorTotal, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null, parcelas })
+            body: JSON.stringify({ descricao, categoria: categoria || null, dataCompra, valorTotal, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null, parcelas })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
@@ -2159,6 +2166,57 @@ async function confirmarPagarParcela() {
         fecharModalPagarParcela();
         await abrirTelaContasPagar();
         atualizarRelatoriosFinanceirosAposMudanca();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+let parcelaEmEdicaoVencimentoId = null;
+
+function abrirModalEditarVencimento(parcelaId) {
+    parcelaEmEdicaoVencimentoId = parcelaId;
+    let achado = null;
+    contasPagarCacheAdmin.forEach(conta => {
+        conta.parcelas.forEach(parcela => {
+            if (parcela.id === parcelaId) achado = { conta, parcela };
+        });
+    });
+    if (!achado) return;
+
+    document.getElementById("editVencimentoInfo").innerText =
+        `${achado.conta.descricao} — parcela ${achado.parcela.numero}/${achado.conta.numeroParcelas}`;
+    document.getElementById("editVencimentoDataInput").value = extrairDataISO(achado.parcela.dataVencimento) || "";
+    let erroEl = document.getElementById("editVencimentoErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalEditarVencimento").style.display = "flex";
+}
+
+function fecharModalEditarVencimento() {
+    document.getElementById("modalEditarVencimento").style.display = "none";
+    parcelaEmEdicaoVencimentoId = null;
+}
+
+async function confirmarEditarVencimento() {
+    let erroEl = document.getElementById("editVencimentoErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+        if (!parcelaEmEdicaoVencimentoId) return;
+
+        let dataISO = document.getElementById("editVencimentoDataInput").value;
+        if (!dataISO) { mostrarErro("Informe a nova data de vencimento."); return; }
+
+        let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaEmEdicaoVencimentoId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ dataVencimento: formatarDataBR(dataISO) })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao alterar (HTTP ${resp.status}).`); return; }
+
+        fecharModalEditarVencimento();
+        await abrirTelaContasPagar();
     } catch (e) {
         mostrarErro("Erro de conexão: " + e.message);
     }
