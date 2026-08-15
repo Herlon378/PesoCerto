@@ -2301,6 +2301,16 @@ function mostrarResumoVacasMatriz() {
         return dm && dm.ano === anoAtual;
     }).length;
     document.getElementById("vmPerdasAno").innerText = mortesVacasAno + mortesBezerrosAno;
+
+    // mesma faixa (8 a <12 meses, ainda vivo) do aviso "🟡 Pronto p/ apartar"
+    // já mostrado na tabela de Nascimentos — aqui só conta, separado por sexo.
+    function prontoParaApartar(n, sexo) {
+        if (n.status !== "vivo" || n.sexo !== sexo) return false;
+        let meses = calcularIdadeEmMeses(n.dataNascimento);
+        return meses !== null && meses >= 8 && meses < 12;
+    }
+    document.getElementById("vmBezerrosApartar").innerText = nascimentosCacheAdmin.filter(n => prontoParaApartar(n, "macho")).length;
+    document.getElementById("vmBezerrasApartar").innerText = nascimentosCacheAdmin.filter(n => prontoParaApartar(n, "femea")).length;
 }
 
 // ---------- PASTOS (mirrors Lotes) ----------
