@@ -22,6 +22,7 @@
     <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();">📦 Almoxarifado</button>
     <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
     <button data-tela="telaContasPagar" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();">🧾 Contas a Pagar</button>
+    <button data-tela="telaEnergia" onclick="trocarTela('telaEnergia'); abrirTelaEnergia();">⚡ Energia</button>
     <button data-tela="telaVacasMatriz" onclick="trocarTela('telaVacasMatriz'); abrirTelaVacasMatriz();">🐄 Vacas Matriz</button>
     <span class="navSync">
         <span id="statusSync">⚠️ Sincronização não configurada</span>
@@ -479,6 +480,36 @@
     </table>
 </div>
 
+<div id="telaEnergia" class="tela">
+    <h2>⚡ Energia</h2>
+    <p class="loginSubtitulo" style="text-align:left">Rateio do consumo próprio a partir da fatura do vizinho: informe o valor e o consumo total da fatura dele, e a leitura atual do seu medidor — o sistema calcula o valor por kWh, desconta a leitura do mês passado e manda o valor certinho pra Contas a Pagar.</p>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalEnergia()" style="background:#2e7d32">➕ Novo Lançamento</button>
+    </div>
+
+    <div class="dashKpiRow" style="margin-bottom:16px">
+        <div class="statTile">
+            <span class="statTileLabel">🔢 Última Leitura</span>
+            <span class="statTileValor" id="energiaUltimaLeitura">—</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">💡 Valor/kWh (última fatura)</span>
+            <span class="statTileValor" id="energiaValorKwh">—</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">🔌 Consumo do Último Mês</span>
+            <span class="statTileValor" id="energiaConsumoMes">—</span>
+        </div>
+    </div>
+
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Data</th><th>Leitura Ant.</th><th>Leitura Atual</th><th>Consumo (kWh)</th><th>Valor/kWh</th><th>Valor a Pagar</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaEnergia"></tbody>
+    </table>
+</div>
+
 <div id="telaVacasMatriz" class="tela">
     <h2>🐄 Vacas Matriz</h2>
     <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
@@ -723,6 +754,7 @@
             <option value="Veterinário">
             <option value="Cirurgia">
             <option value="Nutrição Animal">
+            <option value="Energia">
             <option value="Outros">
         </datalist>
         <select id="lancamentoLoteInput">
@@ -764,6 +796,27 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalContaPagar()">Cancelar</button>
             <button class="btn-sim" onclick="salvarContaPagar()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalEnergia" class="modal">
+    <div class="modal-box">
+        <h2>⚡ Novo Lançamento de Energia</h2>
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Data de referência (mês da fatura)</p>
+        <input id="energiaDataInput" type="date">
+        <input id="energiaValorFaturaInput" placeholder="Valor total da fatura do vizinho (R$)" inputmode="decimal" oninput="atualizarPreviewEnergia()">
+        <input id="energiaConsumoFaturaInput" placeholder="Consumo total da fatura (kWh)" inputmode="decimal" oninput="atualizarPreviewEnergia()">
+        <p id="energiaPreviewKwh" class="loginSubtitulo" style="text-align:left"></p>
+        <p id="energiaLeituraAnteriorInfo" class="loginSubtitulo" style="text-align:left"></p>
+        <input id="energiaLeituraAtualInput" placeholder="Leitura atual do seu medidor (kWh)" inputmode="decimal" oninput="atualizarPreviewEnergia()">
+        <p id="energiaPreviewValor" class="loginSubtitulo" style="text-align:left"></p>
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Vencimento da conta a pagar</p>
+        <input id="energiaVencimentoInput" type="date">
+        <p id="energiaErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalEnergia()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarEnergia()">Salvar</button>
         </div>
     </div>
 </div>

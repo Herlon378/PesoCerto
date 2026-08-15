@@ -1171,6 +1171,7 @@ function atualizarBotaoLogin(){
         { id: "telaAlmoxarifado", soAdmin: true },
         { id: "telaFluxoCaixa", soAdmin: true },
         { id: "telaContasPagar", soAdmin: true },
+        { id: "telaEnergia", soAdmin: true },
         { id: "telaVacasMatriz", soAdmin: true }
     ].forEach(({ id, soAdmin }) => {
         let navBtn = document.querySelector(`[data-tela="${id}"]`);

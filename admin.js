@@ -2260,6 +2260,168 @@ async function estornarPagamentoParcela(parcelaId) {
 }
 
 // ========================================
+// ENERGIA
+// ========================================
+// Rateio do consumo próprio a partir da fatura do vizinho que fornece a
+// energia. Cada lançamento vira uma Contas a Pagar de verdade na hora (1
+// parcela) -- o valor só sai do caixa quando essa parcela é paga, pelo
+// fluxo que já existe, sem criar nenhum caixa_lancamentos direto (senão
+// duplica o mesmo bug de contagem dupla já corrigido no Almoxarifado).
+let energiaCacheAdmin = [];
+
+async function carregarEnergiaAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/energia`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        energiaCacheAdmin = await resp.json();
+        return energiaCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function abrirTelaEnergia() {
+    await carregarEnergiaAdmin();
+    mostrarEnergia();
+}
+
+function mostrarEnergia() {
+    let corpo = document.getElementById("corpoTabelaEnergia");
+    if (!corpo) return;
+
+    let ultima = energiaCacheAdmin[0] || null; // já vem ordenado mais recente primeiro
+    document.getElementById("energiaUltimaLeitura").innerText = ultima ? formatarPeso(ultima.leituraAtual) + " kWh" : "—";
+    document.getElementById("energiaValorKwh").innerText = ultima ? "R$ " + formatarMoeda(ultima.valorPorKwh) : "—";
+    document.getElementById("energiaConsumoMes").innerText = ultima ? formatarPeso(ultima.consumoMes) + " kWh" : "—";
+
+    if (energiaCacheAdmin.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="7">Nenhum lançamento registrado ainda.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = energiaCacheAdmin.map(e => `
+        <tr>
+            <td>${e.data ? e.data.split(",")[0] : "—"}</td>
+            <td>${formatarPeso(e.leituraAnterior)} kWh</td>
+            <td>${formatarPeso(e.leituraAtual)} kWh</td>
+            <td>${formatarPeso(e.consumoMes)} kWh</td>
+            <td>R$ ${formatarMoeda(e.valorPorKwh)}</td>
+            <td>R$ ${formatarMoeda(e.valorAPagar)}</td>
+            <td class="acoesUsuario"><button onclick='excluirEnergia(${JSON.stringify(e.id)})'>🗑️</button></td>
+        </tr>
+    `).join("");
+}
+
+function abrirModalEnergia() {
+    document.getElementById("energiaDataInput").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("energiaValorFaturaInput").value = "";
+    document.getElementById("energiaConsumoFaturaInput").value = "";
+    document.getElementById("energiaLeituraAtualInput").value = "";
+    let vencimento = new Date();
+    vencimento.setDate(vencimento.getDate() + 7);
+    document.getElementById("energiaVencimentoInput").value = vencimento.toISOString().slice(0, 10);
+
+    let ultima = energiaCacheAdmin[0] || null;
+    let leituraAnterior = ultima ? ultima.leituraAtual : 0;
+    document.getElementById("energiaLeituraAnteriorInfo").innerText = `Última leitura registrada: ${formatarPeso(leituraAnterior)} kWh`;
+
+    document.getElementById("energiaPreviewKwh").innerText = "";
+    document.getElementById("energiaPreviewValor").innerText = "";
+    let erroEl = document.getElementById("energiaErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalEnergia").style.display = "flex";
+}
+
+function fecharModalEnergia() {
+    document.getElementById("modalEnergia").style.display = "none";
+}
+
+function atualizarPreviewEnergia() {
+    let valorFatura = parseFloat(document.getElementById("energiaValorFaturaInput").value.replace(",", ".")) || 0;
+    let consumoFatura = parseFloat(document.getElementById("energiaConsumoFaturaInput").value.replace(",", ".")) || 0;
+    let leituraAtual = parseFloat(document.getElementById("energiaLeituraAtualInput").value.replace(",", ".")) || 0;
+    let ultima = energiaCacheAdmin[0] || null;
+    let leituraAnterior = ultima ? ultima.leituraAtual : 0;
+
+    let previewKwh = document.getElementById("energiaPreviewKwh");
+    let previewValor = document.getElementById("energiaPreviewValor");
+
+    if (valorFatura <= 0 || consumoFatura <= 0) {
+        previewKwh.innerText = "";
+        previewValor.innerText = "";
+        return;
+    }
+    let valorPorKwh = valorFatura / consumoFatura;
+    previewKwh.innerText = `Valor por kWh: R$ ${formatarMoeda(valorPorKwh)}`;
+
+    if (leituraAtual > 0) {
+        let consumoMes = leituraAtual - leituraAnterior;
+        if (consumoMes < 0) {
+            previewValor.innerText = "Leitura atual não pode ser menor que a última registrada.";
+        } else {
+            previewValor.innerText = `Consumo do mês: ${formatarPeso(consumoMes)} kWh — Valor a pagar: R$ ${formatarMoeda(consumoMes * valorPorKwh)}`;
+        }
+    } else {
+        previewValor.innerText = "";
+    }
+}
+
+async function salvarEnergia() {
+    let erroEl = document.getElementById("energiaErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let dataISO = document.getElementById("energiaDataInput").value;
+        let valorFatura = parseFloat(document.getElementById("energiaValorFaturaInput").value.replace(",", "."));
+        let consumoFatura = parseFloat(document.getElementById("energiaConsumoFaturaInput").value.replace(",", "."));
+        let leituraAtual = parseFloat(document.getElementById("energiaLeituraAtualInput").value.replace(",", "."));
+        let vencimentoISO = document.getElementById("energiaVencimentoInput").value;
+
+        if (!dataISO) { mostrarErro("Informe a data de referência."); return; }
+        if (!Number.isFinite(valorFatura) || valorFatura <= 0) { mostrarErro("Informe o valor total da fatura."); return; }
+        if (!Number.isFinite(consumoFatura) || consumoFatura <= 0) { mostrarErro("Informe o consumo total da fatura."); return; }
+        if (!Number.isFinite(leituraAtual) || leituraAtual < 0) { mostrarErro("Informe a leitura atual do seu medidor."); return; }
+        if (!vencimentoISO) { mostrarErro("Informe o vencimento da conta a pagar."); return; }
+
+        let resp = await fetch(`${API_URL}/api/energia`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({
+                data: formatarDataBR(dataISO),
+                valorTotalFatura: valorFatura,
+                consumoTotalFatura: consumoFatura,
+                leituraAtual,
+                dataVencimento: formatarDataBR(vencimentoISO)
+            })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        fecharModalEnergia();
+        await abrirTelaEnergia();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirEnergia(id) {
+    if (!confirm("Excluir este lançamento de energia? A Contas a Pagar vinculada também será excluída (se ainda não paga).")) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/energia/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await abrirTelaEnergia();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ========================================
 // VACAS MATRIZ
 // ========================================
 // Controle do plantel reprodutivo, isolado de propósito: nenhuma linha
