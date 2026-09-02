@@ -43,6 +43,7 @@ body {
 #telaPesagem {
     flex-direction: column;
     height: 100%;
+    background: #181818;
 }
 
 /* INPUTS */
@@ -103,10 +104,10 @@ input, select {
 .pesoAtualCard {
     background: white;
     border-radius: 14px;
-    padding: 6px 16px 8px;
+    padding: 3px 16px 4px;
     text-align: center;
     box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-    margin: 6px 0;
+    margin: 4px 0;
 }
 
 .pesoAtualLabel {
@@ -126,7 +127,7 @@ input, select {
 
 /* DISPLAY PESO */
 #displayPeso {
-    font-size: 44px;
+    font-size: 38px;
     height: auto;
     text-align: center;
     font-weight: bold;
@@ -141,12 +142,18 @@ input, select {
     color: #ccc;
 }
 
+/* aproxima a Observação do teclado, deixando mais espaço pra lista de
+   pesos crescer acima */
+#obs {
+    margin: 4px 0 2px;
+}
+
 /* TECLADO */
 .teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin-top: 10px;
+    margin-top: 4px;
     flex: 1; /* ocupa espaço restante */
     align-content: center;
 }
@@ -307,12 +314,30 @@ input, select {
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
 .listaPesosAtual {
-    height: 170px;
+    height: 220px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
     border-radius: 10px;
     margin-bottom: 6px;
+    /* barrinha de rolagem fina e discreta, só pra dar a dica visual de que
+       dá pra rolar -- Firefox/Android via scrollbar-width, Chrome/iOS via
+       ::-webkit-scrollbar abaixo */
+    scrollbar-width: thin;
+    scrollbar-color: #d0d0d0 transparent;
+}
+
+.listaPesosAtual::-webkit-scrollbar {
+    width: 4px;
+}
+
+.listaPesosAtual::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.listaPesosAtual::-webkit-scrollbar-thumb {
+    background: #d0d0d0;
+    border-radius: 4px;
 }
 
 .listaPesosAtualVazia {
@@ -334,6 +359,12 @@ input, select {
 
 .itemPesagem:last-child {
     border-bottom: none;
+}
+
+/* zebrado só na lista de pesos da pesagem em andamento -- ajuda a
+   diferenciar cada animal numa lista comprida, de relance */
+.listaPesosAtual .itemPesagem:nth-child(even) {
+    background: #f3f3f3;
 }
 
 .itemPesagemDireita {

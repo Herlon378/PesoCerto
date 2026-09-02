@@ -7,21 +7,44 @@ let audioCtx = null;
 let indicePesoParaExcluir = null;
 
 // ========================================
-// SISTEMA DE SOM (BIP)
+// SISTEMA DE SOM (BIP + CLIQUE DO TECLADO)
 // ========================================
-function bip(){
+function tocarTom(frequencia, duracaoSegundos, tipoOnda, volume){
     try {
         if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let oscillator = audioCtx.createOscillator();
-        let gain = audioCtx.createGain();
-        oscillator.connect(gain);
-        gain.connect(audioCtx.destination);
-        oscillator.frequency.value = 900;
-        oscillator.type = "square";
-        gain.gain.value = 0.2;
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.08);
+        function tocar(){
+            let oscillator = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            oscillator.connect(gain);
+            gain.connect(audioCtx.destination);
+            oscillator.frequency.value = frequencia;
+            oscillator.type = tipoOnda;
+            gain.gain.value = volume;
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duracaoSegundos);
+        }
+        // navegadores mobile suspendem o AudioContext depois de um tempo sem
+        // uso (tela bloqueou, trocou de app) -- sem retomar, o som simplesmente
+        // para de tocar, sem erro nenhum. É a causa mais comum do bip "falhar
+        // direto" nesse tipo de app usado o dia inteiro no curral.
+        if(audioCtx.state === "suspended"){
+            audioCtx.resume().then(tocar).catch(() => {});
+        } else {
+            tocar();
+        }
     } catch(e){}
+}
+
+function bip(){
+    tocarTom(900, 0.08, "square", 0.2);
+}
+
+// clique curto e mais agudo que o bip de "peso lançado" -- feedback sonoro
+// de cada tecla do teclado numérico, pro operador no curral (sol forte,
+// tela difícil de ver, ambiente barulhento) confirmar por áudio que
+// apertou o número certo, sem depender só de olhar pra tela.
+function somClique(){
+    tocarTom(1400, 0.03, "sine", 0.12);
 }
 
 // ========================================
@@ -210,6 +233,26 @@ function adicionarPeso(){
 
 function excluirPesoItem(idx){
     indicePesoParaExcluir = idx;
+
+    let textoEl = document.getElementById("confirmacaoExclusaoTexto");
+    let p = pesos[idx];
+    if(textoEl && p){
+        let vKgEl = document.getElementById("valorKg");
+        let valorKgNum = parseFloat((vKgEl ? vKgEl.value : "0").replace("R$ ", "").replace(/\./g, "").replace(",", ".")) || 0;
+        let tipoPesagemEl = document.getElementById("tipoPesagem");
+        let tipo = tipoPesagemEl ? tipoPesagemEl.value : "vivo";
+        let ehArroba = tipo === "arroba";
+        let ehValorAnimal = tipo === "valor_animal";
+        let rendEl = document.getElementById("rendimentoArroba");
+        let rendimentoNum = rendEl ? (parseFloat(rendEl.value.replace(",", ".")) || 0) : 0;
+        let arrobaItem = converterParaArroba(p.peso, rendimentoNum);
+        let valorItem = ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaItem : p.peso) * valorKgNum);
+        let numero = String(idx + 1).padStart(2, "0");
+        textoEl.innerText = `Deseja excluir esta pesagem "${numero} - ${formatarPeso(p.peso)}kg - R$ ${formatarMoeda(valorItem)}"?`;
+    } else if(textoEl){
+        textoEl.innerText = "Deseja excluir esta pesagem?";
+    }
+
     let modal = document.getElementById("modalConfirmacao");
     if(modal) modal.style.display = "flex";
 }
@@ -1681,6 +1724,7 @@ function digitar(numero){
     if(!display) return;
 
     display.value += numero;
+    somClique();
 }
 
 function digitarMeio(){
@@ -1690,6 +1734,7 @@ function digitarMeio(){
     if(display.value === "" || display.value.includes(",")) return;
 
     display.value += ",5";
+    somClique();
 }
 
 function apagar(){
