@@ -70,7 +70,11 @@ function iniciarPesagem(){
     }
 
     let tipoOperacaoEl = document.getElementById("tipoOperacao");
-    if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin"){
+    // o limite de compra é definido por kg/arroba -- não faz sentido comparar
+    // direto com um valor fixo por animal (unidades diferentes), então esse
+    // controle não se aplica no modo "valor fixo por animal".
+    let ehValorAnimalInicio = tipoPesagemEl && tipoPesagemEl.value === "valor_animal";
+    if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin" && !ehValorAnimalInicio){
         let limite = obterValorMaximoCompra();
         if(limite !== null){
             let valorDigitado = parseFloat(vKg.value.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
@@ -91,9 +95,11 @@ function alternarTipoPesagem(){
     let vKgEl = document.getElementById("valorKg");
     if(!tipoPesagemEl || !rendEl) return;
 
-    let ehArroba = tipoPesagemEl.value === "arroba";
+    let tipo = tipoPesagemEl.value;
+    let ehArroba = tipo === "arroba";
+    let ehValorAnimal = tipo === "valor_animal";
     rendEl.style.display = ehArroba ? "block" : "none";
-    if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : "Valor por kg (R$)";
+    if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
 }
 
 function resetarPesagemAtual() {
@@ -265,7 +271,9 @@ function atualizarStats(){
     let valorKgNum = parseFloat(valorKgTexto.replace("R$ ", "").replace(/\./g, "").replace(",", ".")) || 0;
 
     let tipoPesagemEl = document.getElementById("tipoPesagem");
-    let ehArroba = tipoPesagemEl ? tipoPesagemEl.value === "arroba" : false;
+    let tipoPesagemValor = tipoPesagemEl ? tipoPesagemEl.value : "vivo";
+    let ehArroba = tipoPesagemValor === "arroba";
+    let ehValorAnimal = tipoPesagemValor === "valor_animal";
     let rendEl = document.getElementById("rendimentoArroba");
     let rendimentoNum = rendEl ? (parseFloat(rendEl.value.replace(",", ".")) || 0) : 0;
 
@@ -273,8 +281,11 @@ function atualizarStats(){
     let totalArroba = converterParaArroba(total, rendimentoNum);
     let mediaArroba = qtd > 0 ? (totalArroba / qtd) : 0;
 
-    let ultimoValor = (ehArroba ? ultimoArroba : ultimo) * valorKgNum;
-    let totalValor = (ehArroba ? totalArroba : total) * valorKgNum;
+    // valor_animal: preço combinado por cabeça, não por peso -- cada animal
+    // vale o mesmo valor fixo, e o total é cabeças × valor fixo.
+    let ultimoValor = ehValorAnimal ? valorKgNum : ((ehArroba ? ultimoArroba : ultimo) * valorKgNum);
+    let totalValor = ehValorAnimal ? (qtd * valorKgNum) : ((ehArroba ? totalArroba : total) * valorKgNum);
+    let kgImplicito = total > 0 ? (totalValor / total) : 0;
 
     let qtdEl = document.getElementById("qtd");
     let medEl = document.getElementById("media");
@@ -286,8 +297,12 @@ function atualizarStats(){
     let cardUltimoValorEl = document.getElementById("cardUltimoValor");
     let cardTotalArrobaEl = document.getElementById("cardTotalArroba");
     let cardMediaArrobaEl = document.getElementById("cardMediaArroba");
+    let cardValorAnimalEl = document.getElementById("cardValorAnimal");
+    let cardKgImplicitoEl = document.getElementById("cardKgImplicito");
     let totalArrobaEl = document.getElementById("totalArroba");
     let mediaArrobaEl = document.getElementById("mediaArroba");
+    let valorAnimalFixoEl = document.getElementById("valorAnimalFixo");
+    let kgImplicitoEl = document.getElementById("kgImplicito");
 
     if(qtdEl) qtdEl.innerText = qtd;
     if(medEl) medEl.innerText = media.toFixed(2).replace(".", ",");
@@ -296,12 +311,16 @@ function atualizarStats(){
     if(uValEl) uValEl.innerText = "R$ " + formatarMoeda(ultimoValor);
     if(tValEl) tValEl.innerText = "R$ " + formatarMoeda(totalValor);
 
-    if(cardUltimoKgEl) cardUltimoKgEl.style.display = ehArroba ? "none" : "block";
-    if(cardUltimoValorEl) cardUltimoValorEl.style.display = ehArroba ? "none" : "block";
+    if(cardUltimoKgEl) cardUltimoKgEl.style.display = (ehArroba || ehValorAnimal) ? "none" : "block";
+    if(cardUltimoValorEl) cardUltimoValorEl.style.display = (ehArroba || ehValorAnimal) ? "none" : "block";
     if(cardTotalArrobaEl) cardTotalArrobaEl.style.display = ehArroba ? "block" : "none";
     if(cardMediaArrobaEl) cardMediaArrobaEl.style.display = ehArroba ? "block" : "none";
+    if(cardValorAnimalEl) cardValorAnimalEl.style.display = ehValorAnimal ? "block" : "none";
+    if(cardKgImplicitoEl) cardKgImplicitoEl.style.display = ehValorAnimal ? "block" : "none";
     if(totalArrobaEl) totalArrobaEl.innerText = totalArroba.toFixed(2).replace(".", ",");
     if(mediaArrobaEl) mediaArrobaEl.innerText = mediaArroba.toFixed(2).replace(".", ",");
+    if(valorAnimalFixoEl) valorAnimalFixoEl.innerText = "R$ " + formatarMoeda(valorKgNum);
+    if(kgImplicitoEl) kgImplicitoEl.innerText = "R$ " + formatarMoeda(kgImplicito);
 
     let listaHTML = "";
     if(pesos.length === 0){
@@ -310,11 +329,12 @@ function atualizarStats(){
         [...pesos].reverse().forEach((p, idx) => {
             let originalIdx = pesos.length - 1 - idx;
             let arrobaItem = converterParaArroba(p.peso, rendimentoNum);
-            let valorItem = (ehArroba ? arrobaItem : p.peso) * valorKgNum;
+            let valorItem = ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaItem : p.peso) * valorKgNum);
             let textoArroba = ehArroba ? ` (${arrobaItem.toFixed(2).replace(".", ",")} @)` : "";
+            let textoKgImplicito = (ehValorAnimal && p.peso > 0) ? ` (R$ ${formatarMoeda(valorKgNum / p.peso)}/kg)` : "";
             listaHTML += `
                 <div class="itemPesagem">
-                    <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b>${textoArroba} ${p.obs ? `(${p.obs})` : ''}</span>
+                    <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b>${textoArroba}${textoKgImplicito} ${p.obs ? `(${p.obs})` : ''}</span>
                     <span class="itemPesagemDireita">
                         <span style="color:#2e7d32">R$ ${formatarMoeda(valorItem)}</span>
                         <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
@@ -586,7 +606,7 @@ async function gerarPDF() {
         
         y += 7;
         pdf.text(`Lote/Desc: ${r.descricao || 'Sem Descrição'}`, 10, y);
-        pdf.text(`Valor base/kg: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
+        pdf.text(`${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
         
         y += 7;
         pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 10, y);
@@ -625,7 +645,7 @@ async function gerarPDF() {
             }
             
             let pAtual = p.peso || 0;
-            let valorInd = (d.ehArroba ? d.arrobaDe(pAtual) : pAtual) * d.valorKgNum;
+            let valorInd = d.valorDoItem(pAtual);
             pdf.text(String(i + 1), 10, y);
             pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
             pdf.text(`R$ ${formatarMoeda(valorInd)}`, 90, y);
@@ -675,6 +695,7 @@ function calcularDadosCompletos(r) {
     let valorKgNum = parseFloat(stringValor.replace("R$ ", "").replace(/\./g, "").replace(",", ".")) || 0;
 
     let ehArroba = r.tipoPesagem === "arroba";
+    let ehValorAnimal = r.tipoPesagem === "valor_animal";
     let rendimentoNum = parseFloat(String(r.rendimento || "0").replace(",", ".")) || 0;
 
     let listaPesos = r.pesos ? r.pesos.map(p => p.peso || 0) : [];
@@ -682,17 +703,30 @@ function calcularDadosCompletos(r) {
     let totalKg = pesosOrdenados.reduce((sum, w) => sum + w, 0);
     let totalAnimais = pesosOrdenados.length;
     let totalArroba = converterParaArroba(totalKg, rendimentoNum);
+    let arrobaDe = pesoKg => converterParaArroba(pesoKg, rendimentoNum);
+
+    // valor_animal: preço combinado por cabeça ("na perna"), não por peso --
+    // o animal é pesado só pra controle, então o valor de cada um é o mesmo
+    // valor fixo, e o total é cabeças × valor fixo (não peso × valor).
+    let totalRS = ehValorAnimal ? (totalAnimais * valorKgNum) : ((ehArroba ? totalArroba : totalKg) * valorKgNum);
+    let valorDoItem = pesoKg => ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaDe(pesoKg) : pesoKg) * valorKgNum);
 
     return {
         valorKgNum: valorKgNum,
         totalKg: totalKg,
         totalAnimais: totalAnimais,
         mediaKg: totalAnimais ? (totalKg / totalAnimais) : 0,
-        totalRS: (ehArroba ? totalArroba : totalKg) * valorKgNum,
+        totalRS: totalRS,
         totalArroba: totalArroba,
         ehArroba: ehArroba,
+        ehValorAnimal: ehValorAnimal,
+        // taxa de R$/kg que o preço fixo por animal acabou equivalendo, na
+        // média do lote -- útil pro rancheiro comparar com o mercado, já que
+        // a negociação foi por cabeça e não por peso.
+        kgImplicitoMedio: totalKg > 0 ? (totalRS / totalKg) : 0,
         rendimentoNum: rendimentoNum,
-        arrobaDe: pesoKg => converterParaArroba(pesoKg, rendimentoNum),
+        arrobaDe: arrobaDe,
+        valorDoItem: valorDoItem,
         leves: pesosOrdenados.slice(0, 3).map(formatarPeso).join(", ") + " kg",
         pesados: pesosOrdenados.slice(-3).reverse().map(formatarPeso).join(", ") + " kg",
         dataHora: r.data || new Date().toLocaleString()
@@ -713,7 +747,7 @@ function prepararImpressao(){
         <h2>Pesagem Estância Reis ${r.numero ? "— Nº " + r.numero : ""}</h2>
         <hr>
         <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${d.dataHora}</p>
-        <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Valor por Kg:</b> R$ ${formatarMoeda(d.valorKgNum)}</p>
+        <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>${d.ehValorAnimal ? "Valor por Animal" : "Valor por Kg"}:</b> R$ ${formatarMoeda(d.valorKgNum)}</p>
         <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg.toFixed(2).replace(".", ",")} kg</p>
         <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${formatarMoeda(d.totalRS)}</p>
         ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
@@ -727,7 +761,7 @@ function prepararImpressao(){
     
     r.pesos.forEach((p, i) => {
         let pAtual = p.peso || 0;
-        let vInd = (d.ehArroba ? d.arrobaDe(pAtual) : pAtual) * d.valorKgNum;
+        let vInd = d.valorDoItem(pAtual);
         html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${p.obs || "-"}</td></tr>`;
     });
     
@@ -786,7 +820,7 @@ function montarMensagemWhatsApp(r, d){
     linhas.push("*Vendedor:* " + (r.vendedor || "Não informado"));
     linhas.push("*Lote/Descrição:* " + (r.descricao || "Sem descrição"));
     linhas.push("*Data:* " + d.dataHora);
-    linhas.push("*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehArroba ? " por @" : " por kg"));
+    linhas.push("*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehValorAnimal ? " por animal" : (d.ehArroba ? " por @" : " por kg")));
     linhas.push("");
     linhas.push("*RESUMO*");
     linhas.push("Total de animais: " + d.totalAnimais);
@@ -794,6 +828,9 @@ function montarMensagemWhatsApp(r, d){
     linhas.push("Peso médio: " + d.mediaKg.toFixed(2).replace(".", ",") + " kg");
     if(d.ehArroba){
         linhas.push("Total em arrobas: " + d.totalArroba.toFixed(2).replace(".", ",") + " @ (Rend. " + d.rendimentoNum + "%)");
+    }
+    if(d.ehValorAnimal){
+        linhas.push("R$/kg médio (implícito no preço fixo): R$ " + formatarMoeda(d.kgImplicitoMedio));
     }
     linhas.push("Valor médio por animal: R$ " + formatarMoeda(valorMedio));
     linhas.push("3 mais pesados: " + d.pesados);
@@ -803,10 +840,13 @@ function montarMensagemWhatsApp(r, d){
     linhas.push("*PESAGENS*");
     (r.pesos || []).forEach((p, i) => {
         let pesoKg = p.peso || 0;
-        let valorInd = (d.ehArroba ? d.arrobaDe(pesoKg) : pesoKg) * d.valorKgNum;
+        let valorInd = d.valorDoItem(pesoKg);
         let linha = (i + 1) + " - " + formatarPeso(pesoKg) + "kg";
         if(d.ehArroba){
             linha += " (" + d.arrobaDe(pesoKg).toFixed(2).replace(".", ",") + " @)";
+        }
+        if(d.ehValorAnimal && pesoKg > 0){
+            linha += " (R$ " + formatarMoeda(d.valorKgNum / pesoKg) + "/kg)";
         }
         linha += " - R$ " + formatarMoeda(valorInd);
         if(p.obs) linha += " [" + p.obs + "]";

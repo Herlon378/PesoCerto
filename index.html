@@ -45,6 +45,7 @@
     <select id="tipoPesagem" onchange="alternarTipoPesagem()">
         <option value="vivo">Peso Vivo (Kg)</option>
         <option value="arroba">Arroba (@)</option>
+        <option value="valor_animal">Valor Fixo por Animal</option>
     </select>
     <input id="rendimentoArroba" placeholder="% de Rendimento (ex: 50)" inputmode="decimal" style="display:none">
     <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
@@ -197,6 +198,8 @@
         <div class="statCard" id="cardTotalArroba" style="display:none">Total @<br><span id="totalArroba">0</span></div>
         <div class="statCard" id="cardUltimoValor">Último R$<br><span id="ultimoValor">0</span></div>
         <div class="statCard" id="cardMediaArroba" style="display:none">Média @<br><span id="mediaArroba">0</span></div>
+        <div class="statCard" id="cardValorAnimal" style="display:none">Valor/Animal<br><span id="valorAnimalFixo">0</span></div>
+        <div class="statCard" id="cardKgImplicito" style="display:none">R$/kg médio<br><span id="kgImplicito">0</span></div>
         <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
