@@ -1029,7 +1029,7 @@ async function mostrarCustoPorLote() {
     // de cada lote — sem mexer nos registros originais de pesagem.
     let porLote = {};
     function grupoDoLote(nome) {
-        if (!porLote[nome]) porLote[nome] = { comprados: 0, vendidos: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0 };
+        if (!porLote[nome]) porLote[nome] = { comprados: 0, vendidos: 0, kgComprado: 0, kgVendido: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0 };
         return porLote[nome];
     }
 
@@ -1039,9 +1039,11 @@ async function mostrarCustoPorLote() {
         let d = calcularDadosCompletos(r);
         if ((r.tipo || "venda") === "compra") {
             grupo.comprados += d.totalAnimais;
+            grupo.kgComprado += d.totalKg;
             grupo.custoCompra += d.totalRS;
         } else {
             grupo.vendidos += d.totalAnimais;
+            grupo.kgVendido += d.totalKg;
             grupo.receitaVenda += d.totalRS;
         }
     });
@@ -1076,7 +1078,7 @@ async function mostrarCustoPorLote() {
 
     let nomesLotes = Object.keys(porLote).sort();
     if (nomesLotes.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7">Nenhum dado de lote disponível ainda.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="8">Nenhum dado de lote disponível ainda.</td></tr>`;
         return;
     }
 
@@ -1101,11 +1103,14 @@ async function mostrarCustoPorLote() {
     corpo.innerHTML = nomesLotes.map(nome => {
         let g = porLote[nome];
         let headcount = g.comprados - g.vendidos;
+        let kgAtual = g.kgComprado - g.kgVendido;
         let gastoTotal = g.custoCompra + g.custoInsumos;
         let custoRestante = gastoTotal - g.receitaVenda;
         let custoMedio = headcount > 0 ? custoRestante / headcount : 0;
+        let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
         let restanteFmt = formatarValorPossivelmenteNegativo(custoRestante, headcount);
         let medioFmt = formatarValorPossivelmenteNegativo(custoMedio, headcount);
+        let porKgFmt = formatarValorPossivelmenteNegativo(custoPorKg, headcount);
         return `
             <tr>
                 <td>${nome}</td>
@@ -1115,6 +1120,7 @@ async function mostrarCustoPorLote() {
                 <td>R$ ${formatarMoeda(g.receitaVenda)}</td>
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
                 <td style="color:${headcount > 0 ? medioFmt.cor : '#0b0b0b'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
+                <td style="color:${kgAtual > 0 ? porKgFmt.cor : '#0b0b0b'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
             </tr>
         `;
     }).join("");
