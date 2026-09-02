@@ -1078,7 +1078,7 @@ async function mostrarCustoPorLote() {
 
     let nomesLotes = Object.keys(porLote).sort();
     if (nomesLotes.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="8">Nenhum dado de lote disponível ainda.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="9">Nenhum dado de lote disponível ainda.</td></tr>`;
         return;
     }
 
@@ -1121,9 +1121,200 @@ async function mostrarCustoPorLote() {
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
                 <td style="color:${headcount > 0 ? medioFmt.cor : '#0b0b0b'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
                 <td style="color:${kgAtual > 0 ? porKgFmt.cor : '#0b0b0b'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
+                <td class="acoesUsuario"><button onclick='gerarRelatorioLotePDF(${JSON.stringify(nome)})'>📄 Relatório</button></td>
             </tr>
         `;
     }).join("");
+}
+
+// ========================================
+// RELATÓRIO PDF DO LOTE
+// ========================================
+// Mesma lógica de mostrarCustoPorLote(), recalculada só pro lote escolhido,
+// mais o detalhamento por categoria de insumo/despesa e a lista individual
+// de cada animal comprado -- pro rancheiro decidir a hora de vender com o
+// máximo de informação, não só o resumo da tabela.
+function gerarRelatorioLotePDF(nomeLote) {
+    let comprasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "compra");
+    let vendasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "venda");
+
+    let comprados = 0, vendidos = 0, kgComprado = 0, kgVendido = 0, custoCompra = 0, receitaVenda = 0;
+    let animaisDetalhados = [];
+
+    comprasDoLote.forEach(r => {
+        let d = calcularDadosCompletos(r);
+        comprados += d.totalAnimais;
+        kgComprado += d.totalKg;
+        custoCompra += d.totalRS;
+        (r.pesos || []).forEach(p => {
+            animaisDetalhados.push({
+                peso: p.peso || 0,
+                valor: d.valorDoItem(p.peso || 0),
+                data: r.data ? r.data.split(",")[0] : "—",
+                vendedor: r.vendedor || "Não informado",
+                obs: p.obs || ""
+            });
+        });
+    });
+    vendasDoLote.forEach(r => {
+        let d = calcularDadosCompletos(r);
+        vendidos += d.totalAnimais;
+        kgVendido += d.totalKg;
+        receitaVenda += d.totalRS;
+    });
+
+    let custoInsumos = 0;
+    let insumosPorCategoria = {};
+    function somarInsumo(chave, valor) {
+        insumosPorCategoria[chave] = (insumosPorCategoria[chave] || 0) + valor;
+    }
+    estoqueSaidasCacheAdmin.filter(s => s.loteNome === nomeLote).forEach(s => {
+        custoInsumos += s.valorTotal;
+        somarInsumo(s.produtoDescricao || "Outro insumo", s.valorTotal);
+    });
+    caixaLancamentosCacheAdmin.filter(l => l.loteNome === nomeLote).forEach(l => {
+        if (l.tipo === "saida") {
+            custoInsumos += l.valor;
+            somarInsumo(l.categoria || "Despesa avulsa", l.valor);
+        } else {
+            receitaVenda += l.valor;
+        }
+    });
+    transferenciasLotesCacheAdmin.filter(t => t.loteDestino === nomeLote).forEach(t => {
+        comprados += t.quantidade;
+        custoCompra += t.valorTotal;
+        somarInsumo("Recebido por transferência", t.valorTotal);
+    });
+    transferenciasLotesCacheAdmin.filter(t => t.loteOrigem === nomeLote).forEach(t => {
+        vendidos += t.quantidade;
+    });
+
+    let headcount = comprados - vendidos;
+    let kgAtual = kgComprado - kgVendido;
+    let gastoTotal = custoCompra + custoInsumos;
+    let custoRestante = gastoTotal - receitaVenda;
+    let custoMedioAnimalRestante = headcount > 0 ? custoRestante / headcount : 0;
+    let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
+    let pesoMedioCompra = comprados > 0 ? kgComprado / comprados : 0;
+    let custoMedioCompraAnimal = comprados > 0 ? custoCompra / comprados : 0;
+
+    let datasCompra = comprasDoLote.map(r => extrairDataISO(r.data)).filter(Boolean).sort();
+    let primeiraCompraISO = datasCompra[0] || null;
+    let diasEmPosse = primeiraCompraISO ? Math.max(0, Math.floor((new Date() - new Date(primeiraCompraISO + "T00:00:00")) / 86400000)) : null;
+
+    const { jsPDF } = window.jspdf;
+    let pdf = new jsPDF();
+    let y = 20;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.text("RELATÓRIO DE LOTE", 105, y, { align: "center" });
+    y += 7;
+    pdf.setFontSize(13);
+    pdf.text(nomeLote, 105, y, { align: "center" });
+    y += 4;
+    pdf.line(10, y, 200, y);
+    y += 8;
+
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 10, y);
+    y += 10;
+
+    function linhaResumo(label, valor) {
+        pdf.setFont("helvetica", "normal");
+        pdf.text(label, 10, y);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(valor, 130, y);
+        y += 6.5;
+    }
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text("RESUMO GERAL", 10, y);
+    y += 7;
+    pdf.setFontSize(10);
+    linhaResumo("Animais atuais:", String(headcount));
+    linhaResumo("Total já comprado (histórico):", String(comprados));
+    linhaResumo("Total já vendido (histórico):", String(vendidos));
+    linhaResumo("Peso total comprado:", formatarPeso(kgComprado) + " kg");
+    linhaResumo("Peso médio por animal (compra):", pesoMedioCompra.toFixed(2).replace(".", ",") + " kg");
+    linhaResumo("Data da 1ª compra:", primeiraCompraISO ? primeiraCompraISO.split("-").reverse().join("/") : "—");
+    linhaResumo("Dias em posse (desde a 1ª compra):", diasEmPosse !== null ? diasEmPosse + " dias" : "—");
+    y += 3;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.text("INVESTIMENTO", 10, y);
+    y += 7;
+    pdf.setFontSize(10);
+    linhaResumo("Sub-total investido em compra:", "R$ " + formatarMoeda(custoCompra));
+    linhaResumo("Custo médio de compra por animal:", "R$ " + formatarMoeda(custoMedioCompraAnimal));
+    linhaResumo("Sub-total investido em insumos/despesas:", "R$ " + formatarMoeda(custoInsumos));
+    linhaResumo("Investimento total (compra + insumos):", "R$ " + formatarMoeda(gastoTotal));
+    linhaResumo("Receita de vendas até agora:", "R$ " + formatarMoeda(receitaVenda));
+    y += 3;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.text("SITUAÇÃO ATUAL (pra decisão de venda)", 10, y);
+    y += 7;
+    pdf.setFontSize(10);
+    let restanteTexto = custoRestante < 0
+        ? `R$ ${formatarMoeda(Math.abs(custoRestante))} (lucro já garantido)`
+        : `R$ ${formatarMoeda(custoRestante)}`;
+    linhaResumo("Custo restante (ainda não recuperado):", restanteTexto);
+    linhaResumo("Custo médio por animal restante:", headcount > 0 ? "R$ " + formatarMoeda(custoMedioAnimalRestante) : "—");
+    linhaResumo("Custo por Kg (ponto de equilíbrio):", kgAtual > 0 ? "R$ " + formatarMoeda(custoPorKg) + "/kg" : "—");
+    y += 8;
+
+    let categorias = Object.keys(insumosPorCategoria).sort();
+    if (categorias.length > 0) {
+        if (y > 250) { pdf.addPage(); y = 20; }
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.text("DETALHAMENTO DE INSUMOS E DESPESAS", 10, y);
+        y += 8;
+        pdf.line(10, y - 5, 200, y - 5);
+        pdf.setFontSize(10);
+        categorias.forEach(cat => {
+            if (y > 275) { pdf.addPage(); y = 20; }
+            pdf.setFont("helvetica", "normal");
+            pdf.text(cat, 10, y);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("R$ " + formatarMoeda(insumosPorCategoria[cat]), 130, y);
+            y += 6.5;
+        });
+        y += 6;
+    }
+
+    if (y > 250) { pdf.addPage(); y = 20; }
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text(`ANIMAIS COMPRADOS NESTE LOTE (${animaisDetalhados.length})`, 10, y);
+    y += 8;
+    pdf.line(10, y - 5, 200, y - 5);
+    pdf.setFontSize(9);
+    pdf.text("Nº", 10, y);
+    pdf.text("Peso (kg)", 30, y);
+    pdf.text("Valor", 65, y);
+    pdf.text("Data", 100, y);
+    pdf.text("Vendedor", 130, y);
+    pdf.text("Obs.", 175, y);
+    y += 2;
+    pdf.line(10, y, 200, y);
+    y += 6;
+    pdf.setFont("helvetica", "normal");
+    animaisDetalhados.forEach((a, i) => {
+        if (y > 280) { pdf.addPage(); y = 20; }
+        pdf.text(String(i + 1), 10, y);
+        pdf.text(formatarPeso(a.peso), 30, y);
+        pdf.text("R$ " + formatarMoeda(a.valor), 65, y);
+        pdf.text(a.data, 100, y);
+        pdf.text(a.vendedor.slice(0, 20), 130, y);
+        pdf.text((a.obs || "-").slice(0, 15), 175, y);
+        y += 6;
+    });
+
+    pdf.save(`Relatorio_Lote_${nomeLote.replace(/\s+/g, "_")}.pdf`);
 }
 
 // ========================================
