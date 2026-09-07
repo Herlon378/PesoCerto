@@ -1017,6 +1017,51 @@ async function excluirEstoqueSaida(id) {
 // ========================================
 // ALMOXARIFADO — CUSTO POR LOTE
 // ========================================
+// Acha a data (ISO "yyyy-mm-dd") em que o CICLO ATUAL de um lote começou --
+// ou seja, a última vez que ele recebeu animais (compra ou transferência de
+// entrada) depois de ter ficado com 0 cabeças. Sem isso, um lote que já foi
+// vendido por completo (lucro/prejuízo já realizado) e depois é reaproveitado
+// pra uma compra nova com o MESMO nome continuaria arrastando pra sempre o
+// resultado do ciclo antigo, distorcendo a decisão sobre o lote em andamento.
+// Retorna null quando não dá pra detectar ciclo (sem data válida em nenhum
+// evento) -- nesse caso o chamador deve considerar o histórico inteiro.
+function calcularInicioCicloLote(nomeLote) {
+    // horário completo (quando disponível) só pra desempatar corretamente
+    // dois eventos no mesmo dia -- extrairDataISO() só dá o dia.
+    function chaveOrdenacao(dataStr) {
+        let m = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
+        return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}` : extrairDataISO(dataStr);
+    }
+
+    let eventos = [];
+    relatorios.forEach(r => {
+        if ((r.descricao || "Sem descrição") !== nomeLote) return;
+        let iso = extrairDataISO(r.data);
+        if (!iso) return;
+        let qtd = calcularDadosCompletos(r).totalAnimais;
+        eventos.push({ ordem: chaveOrdenacao(r.data), iso, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
+    });
+    transferenciasLotesCacheAdmin.forEach(t => {
+        let iso = extrairDataISO(t.data);
+        if (!iso) return;
+        if (t.loteDestino === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: t.quantidade });
+        if (t.loteOrigem === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: -t.quantidade });
+    });
+
+    if (eventos.length === 0) return null;
+    eventos.sort((a, b) => a.ordem.localeCompare(b.ordem));
+
+    let headcount = 0;
+    let inicioCiclo = eventos[0].iso;
+    let aguardandoNovoCiclo = false;
+    eventos.forEach(ev => {
+        if (aguardandoNovoCiclo) { inicioCiclo = ev.iso; aguardandoNovoCiclo = false; }
+        headcount += ev.delta;
+        if (headcount <= 0) aguardandoNovoCiclo = true;
+    });
+    return inicioCiclo;
+}
+
 async function mostrarCustoPorLote() {
     let token = obterToken();
     let corpo = document.getElementById("corpoTabelaCustoLote");
@@ -1033,8 +1078,21 @@ async function mostrarCustoPorLote() {
         return porLote[nome];
     }
 
+    // só conta o que aconteceu dentro do ciclo atual de cada lote (ver
+    // calcularInicioCicloLote acima) -- assim um lote fechado e reaberto com
+    // o mesmo nome começa "do zero" pra fins deste relatório.
+    let cicloInicioPorLote = {};
+    function dentroDoCicloAtual(nomeLote, dataStr) {
+        if (!(nomeLote in cicloInicioPorLote)) cicloInicioPorLote[nomeLote] = calcularInicioCicloLote(nomeLote);
+        let inicio = cicloInicioPorLote[nomeLote];
+        if (!inicio) return true;
+        let iso = extrairDataISO(dataStr);
+        return iso !== null && iso >= inicio;
+    }
+
     relatorios.forEach(r => {
         let nomeLote = r.descricao || "Sem descrição";
+        if (!dentroDoCicloAtual(nomeLote, r.data)) return;
         let grupo = grupoDoLote(nomeLote);
         let d = calcularDadosCompletos(r);
         if ((r.tipo || "venda") === "compra") {
@@ -1049,6 +1107,7 @@ async function mostrarCustoPorLote() {
     });
 
     estoqueSaidasCacheAdmin.forEach(s => {
+        if (!dentroDoCicloAtual(s.loteNome, s.data)) return;
         let grupo = grupoDoLote(s.loteNome);
         grupo.custoInsumos += s.valorTotal;
     });
@@ -1058,7 +1117,7 @@ async function mostrarCustoPorLote() {
     // receita entra junto com a receita de vendas. Lançamentos sem lote
     // marcado (ex: salário do funcionário) não afetam nenhum lote.
     caixaLancamentosCacheAdmin.forEach(l => {
-        if (!l.loteNome) return;
+        if (!l.loteNome || !dentroDoCicloAtual(l.loteNome, l.data)) return;
         let grupo = grupoDoLote(l.loteNome);
         if (l.tipo === "saida") grupo.custoInsumos += l.valor;
         else grupo.receitaVenda += l.valor;
@@ -1070,10 +1129,12 @@ async function mostrarCustoPorLote() {
     // aquisição, no valor exato que saiu — não cria nem apaga patrimônio,
     // só reorganiza entre os dois lotes.
     transferenciasLotesCacheAdmin.forEach(t => {
-        grupoDoLote(t.loteOrigem).vendidos += t.quantidade;
-        let destino = grupoDoLote(t.loteDestino);
-        destino.comprados += t.quantidade;
-        destino.custoCompra += t.valorTotal;
+        if (dentroDoCicloAtual(t.loteOrigem, t.data)) grupoDoLote(t.loteOrigem).vendidos += t.quantidade;
+        if (dentroDoCicloAtual(t.loteDestino, t.data)) {
+            let destino = grupoDoLote(t.loteDestino);
+            destino.comprados += t.quantidade;
+            destino.custoCompra += t.valorTotal;
+        }
     });
 
     let nomesLotes = Object.keys(porLote).sort();
@@ -1135,8 +1196,18 @@ async function mostrarCustoPorLote() {
 // de cada animal comprado -- pro rancheiro decidir a hora de vender com o
 // máximo de informação, não só o resumo da tabela.
 function gerarRelatorioLotePDF(nomeLote) {
-    let comprasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "compra");
-    let vendasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "venda");
+    // mesmo corte de ciclo do mostrarCustoPorLote() -- se esse lote já foi
+    // vendido por completo e reaberto com uma compra nova, o relatório mostra
+    // só o ciclo atual, não a história inteira desde sempre.
+    let inicioCiclo = calcularInicioCicloLote(nomeLote);
+    function noCicloAtual(dataStr) {
+        if (!inicioCiclo) return true;
+        let iso = extrairDataISO(dataStr);
+        return iso !== null && iso >= inicioCiclo;
+    }
+
+    let comprasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "compra" && noCicloAtual(r.data));
+    let vendasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "venda" && noCicloAtual(r.data));
 
     let comprados = 0, vendidos = 0, kgComprado = 0, kgVendido = 0, custoCompra = 0, receitaVenda = 0;
     let animaisDetalhados = [];
@@ -1168,11 +1239,11 @@ function gerarRelatorioLotePDF(nomeLote) {
     function somarInsumo(chave, valor) {
         insumosPorCategoria[chave] = (insumosPorCategoria[chave] || 0) + valor;
     }
-    estoqueSaidasCacheAdmin.filter(s => s.loteNome === nomeLote).forEach(s => {
+    estoqueSaidasCacheAdmin.filter(s => s.loteNome === nomeLote && noCicloAtual(s.data)).forEach(s => {
         custoInsumos += s.valorTotal;
         somarInsumo(s.produtoDescricao || "Outro insumo", s.valorTotal);
     });
-    caixaLancamentosCacheAdmin.filter(l => l.loteNome === nomeLote).forEach(l => {
+    caixaLancamentosCacheAdmin.filter(l => l.loteNome === nomeLote && noCicloAtual(l.data)).forEach(l => {
         if (l.tipo === "saida") {
             custoInsumos += l.valor;
             somarInsumo(l.categoria || "Despesa avulsa", l.valor);
@@ -1180,12 +1251,12 @@ function gerarRelatorioLotePDF(nomeLote) {
             receitaVenda += l.valor;
         }
     });
-    transferenciasLotesCacheAdmin.filter(t => t.loteDestino === nomeLote).forEach(t => {
+    transferenciasLotesCacheAdmin.filter(t => t.loteDestino === nomeLote && noCicloAtual(t.data)).forEach(t => {
         comprados += t.quantidade;
         custoCompra += t.valorTotal;
         somarInsumo("Recebido por transferência", t.valorTotal);
     });
-    transferenciasLotesCacheAdmin.filter(t => t.loteOrigem === nomeLote).forEach(t => {
+    transferenciasLotesCacheAdmin.filter(t => t.loteOrigem === nomeLote && noCicloAtual(t.data)).forEach(t => {
         vendidos += t.quantidade;
     });
 
@@ -1235,11 +1306,11 @@ function gerarRelatorioLotePDF(nomeLote) {
     y += 7;
     pdf.setFontSize(10);
     linhaResumo("Animais atuais:", String(headcount));
-    linhaResumo("Total já comprado (histórico):", String(comprados));
-    linhaResumo("Total já vendido (histórico):", String(vendidos));
+    linhaResumo("Total comprado neste ciclo:", String(comprados));
+    linhaResumo("Total vendido neste ciclo:", String(vendidos));
     linhaResumo("Peso total comprado:", formatarPeso(kgComprado) + " kg");
     linhaResumo("Peso médio por animal (compra):", pesoMedioCompra.toFixed(2).replace(".", ",") + " kg");
-    linhaResumo("Data da 1ª compra:", primeiraCompraISO ? primeiraCompraISO.split("-").reverse().join("/") : "—");
+    linhaResumo("Data da 1ª compra deste ciclo:", primeiraCompraISO ? primeiraCompraISO.split("-").reverse().join("/") : "—");
     linhaResumo("Dias em posse (desde a 1ª compra):", diasEmPosse !== null ? diasEmPosse + " dias" : "—");
     y += 3;
 
