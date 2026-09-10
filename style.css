@@ -120,6 +120,30 @@ input, select {
     color: #666;
 }
 
+.btnLogBalanca {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    opacity: 0.5;
+    padding: 2px 6px;
+}
+
+.logBalancaBox {
+    background: #111;
+    color: #0f0;
+    font-family: monospace;
+    font-size: 10px;
+    max-height: 110px;
+    overflow-y: auto;
+    border-radius: 8px;
+    padding: 6px 8px;
+    margin: 2px 0;
+    white-space: pre-wrap;
+}
+
 .pesoAtualLabel {
     display: block;
     font-size: 11px;

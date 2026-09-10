@@ -140,6 +140,10 @@ function resetarPesagemAtual() {
     if(labelPeso){ labelPeso.textContent = "PESO ATUAL"; labelPeso.classList.remove("aoVivo"); }
     let indicadorSinal = document.getElementById("balancaSinalIndicador");
     if(indicadorSinal) indicadorSinal.style.display = "none";
+    let botaoLog = document.getElementById("btnLogBalanca");
+    if(botaoLog) botaoLog.style.display = "none";
+    let boxLog = document.getElementById("logBalancaBox");
+    if(boxLog) boxLog.style.display = "none";
 
     let nv = document.getElementById("nomeVendedor");
     let desc = document.getElementById("descricao");
@@ -299,6 +303,10 @@ function finalizarPesagem(){
     if(labelPeso){ labelPeso.textContent = "PESO ATUAL"; labelPeso.classList.remove("aoVivo"); }
     let indicadorSinal = document.getElementById("balancaSinalIndicador");
     if(indicadorSinal) indicadorSinal.style.display = "none";
+    let botaoLog = document.getElementById("btnLogBalanca");
+    if(botaoLog) botaoLog.style.display = "none";
+    let boxLog = document.getElementById("logBalancaBox");
+    if(boxLog) boxLog.style.display = "none";
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
 
     alert("Pesagem salva com sucesso!");
@@ -1810,6 +1818,32 @@ let balancaBuffer = "";
 // da balança) ou mudar bastante (outro animal subiu) antes de aceitar o
 // próximo
 let balancaUltimoValorCapturado = null;
+// log de diagnóstico ao vivo (botão 🔍 na tela de pesagem) -- guarda os
+// últimos pacotes recebidos da balança com hora exata, pra investigar de
+// longe (sem precisar de acesso ao celular) se ela manda leituras
+// intermediárias enquanto o peso sobe ou só o valor final já travado
+let balancaLogEntradas = [];
+
+function logBalanca(msg){
+    let hora = new Date().toLocaleTimeString("pt-BR") + "." + String(new Date().getMilliseconds()).padStart(3, "0");
+    balancaLogEntradas.push(hora + " " + msg);
+    if(balancaLogEntradas.length > 30) balancaLogEntradas.shift();
+    renderizarLogBalanca();
+}
+
+function renderizarLogBalanca(){
+    let box = document.getElementById("logBalancaBox");
+    if(!box || box.style.display === "none") return;
+    box.textContent = balancaLogEntradas.join("\n");
+    box.scrollTop = box.scrollHeight;
+}
+
+function alternarLogBalanca(){
+    let box = document.getElementById("logBalancaBox");
+    if(!box) return;
+    box.style.display = box.style.display === "none" ? "block" : "none";
+    if(box.style.display === "block") renderizarLogBalanca();
+}
 let balancaEstadoCaptura = "aguardando";
 let balancaValorReferencia = null;
 let balancaTimerEstabilidade = null;
@@ -1861,6 +1895,9 @@ async function conectarBalancaBluetooth(){
         balancaBuffer = "";
         resetarEstadoCapturaBalanca();
         iniciarMonitoramentoSinalBalanca();
+        balancaLogEntradas = [];
+        let botaoLog = document.getElementById("btnLogBalanca");
+        if(botaoLog) botaoLog.style.display = "inline";
 
         atualizarStatusConexaoBalanca("✅ Conectado! Iniciando pesagem...", "conectada");
         // segurinha um instante só pra dar tempo de ver a confirmação na tela
@@ -1916,6 +1953,10 @@ function onBalancaBluetoothDesconectada(){
 
     let indicadorSinal = document.getElementById("balancaSinalIndicador");
     if(indicadorSinal) indicadorSinal.style.display = "none";
+    let botaoLog = document.getElementById("btnLogBalanca");
+    if(botaoLog) botaoLog.style.display = "none";
+    let boxLog = document.getElementById("logBalancaBox");
+    if(boxLog) boxLog.style.display = "none";
 
     // se a desconexão aconteceu no meio de uma pesagem (não na tela de
     // conectar), avisa discretamente perto do peso -- sem popup, sem
@@ -1948,6 +1989,7 @@ function resetarEstadoCapturaBalanca(){
 
 function processarNotificacaoBalanca(event){
     let texto = new TextDecoder("utf-8").decode(event.target.value);
+    logBalanca("pacote: " + JSON.stringify(texto));
     balancaBuffer += texto;
     if(balancaBuffer.length > 400) balancaBuffer = balancaBuffer.slice(-400);
 
@@ -1970,6 +2012,7 @@ function processarNotificacaoBalanca(event){
 // pra perto de zero entre uma pesagem e outra, então não dá pra confiar só
 // na queda pra zero.
 function processarLeituraBalanca(valorKg){
+    logBalanca("=> PESO interpretado: " + valorKg + "kg (estado: " + balancaEstadoCaptura + ")");
     let display = document.getElementById("displayPeso");
     if(display) display.value = formatarPeso(valorKg);
     let label = document.getElementById("pesoAtualLabel");
