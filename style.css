@@ -125,6 +125,65 @@ input, select {
     margin-top: -6px;
 }
 
+/* BALANÇA BLUETOOTH */
+.balancaBluetoothArea {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.btnBalancaBluetooth {
+    padding: 8px 14px;
+    font-size: 13px;
+    border: none;
+    border-radius: 20px;
+    background: #1976d2;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btnBalancaBluetooth:disabled {
+    opacity: 0.7;
+}
+
+.btnBalancaBluetooth.conectada {
+    background: #0ca30c;
+}
+
+.balancaLeituraAoVivo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0ca30c;
+    border-radius: 20px;
+    padding: 6px 8px 6px 14px;
+}
+
+#balancaValorAoVivo {
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.btnUsarPesoBalanca {
+    padding: 6px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 16px;
+    background: white;
+    color: #0ca30c;
+    font-weight: bold;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btnUsarPesoBalanca:active {
+    transform: scale(0.95);
+}
+
 /* DISPLAY PESO */
 #displayPeso {
     font-size: 38px;

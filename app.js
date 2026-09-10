@@ -110,6 +110,7 @@ function iniciarPesagem(){
 
     trocarTela("telaPesagem");
     atualizarStats();
+    atualizarVisibilidadeBalancaBluetooth();
 }
 
 function alternarTipoPesagem(){
@@ -127,6 +128,7 @@ function alternarTipoPesagem(){
 
 function resetarPesagemAtual() {
     pesos = [];
+    desconectarBalancaBluetooth();
 
     let nv = document.getElementById("nomeVendedor");
     let desc = document.getElementById("descricao");
@@ -280,6 +282,7 @@ function finalizarPesagem(){
         salvarPesagem();
     }
     pesos = [];
+    desconectarBalancaBluetooth();
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
 
     alert("Pesagem salva com sucesso!");
@@ -1750,6 +1753,128 @@ function apagar(){
 }
 
 function lancarPeso(){
+    adicionarPeso();
+}
+
+// ========================================
+// BALANÇA BLUETOOTH (indicador Prix Rebanho / Toledo, via BLE)
+// ========================================
+// A balança manda repetidamente um "cartão" de texto fragmentado em vários
+// pacotes BLE (o limite de tamanho de cada notificação obriga a quebrar em
+// pedaços), mais ou menos assim:
+//   PID:  ...  \r\nID: ...  \r\nEID: ...  \r\nPESO:  139.5kg\r\n
+// A estratégia aqui é simples e resistente a pacote perdido/cortado: junta
+// tudo num buffer contínuo (com um teto de tamanho, pra não crescer pra
+// sempre) e sempre procura a ÚLTIMA ocorrência de "PESO: <número>kg" nele —
+// não depende de saber onde cada pacote começa/termina.
+// Só existe no Android via Chrome -- o Safari do iPhone não implementa Web
+// Bluetooth e não tem contorno possível (ver atualizarVisibilidadeBalancaBluetooth).
+const BALANCA_SERVICO_UUID = "569a1101-b87f-490c-92cb-11ba5ea5167c";
+const BALANCA_CARACTERISTICA_UUID = "569a2000-b87f-490c-92cb-11ba5ea5167c";
+let balancaDevice = null;
+let balancaBuffer = "";
+let balancaUltimoValorKg = null;
+
+function balancaBluetoothDisponivel(){
+    return typeof navigator !== "undefined" && !!navigator.bluetooth;
+}
+
+function atualizarVisibilidadeBalancaBluetooth(){
+    let area = document.getElementById("balancaBluetoothArea");
+    if(area) area.style.display = balancaBluetoothDisponivel() ? "flex" : "none";
+}
+
+async function alternarBalancaBluetooth(){
+    if(balancaDevice && balancaDevice.gatt.connected){
+        balancaDevice.gatt.disconnect();
+        return;
+    }
+    await conectarBalancaBluetooth();
+}
+
+async function conectarBalancaBluetooth(){
+    let botao = document.getElementById("btnBalancaBluetooth");
+    if(!balancaBluetoothDisponivel()){
+        alert("Este celular não suporta conexão direta com a balança (funciona no Android, pelo Chrome).");
+        return;
+    }
+    try{
+        if(botao){ botao.disabled = true; botao.textContent = "Procurando..."; }
+
+        balancaDevice = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: "Prix" }],
+            optionalServices: [BALANCA_SERVICO_UUID]
+        });
+        balancaDevice.addEventListener("gattserverdisconnected", onBalancaBluetoothDesconectada);
+
+        let server = await balancaDevice.gatt.connect();
+        let servico = await server.getPrimaryService(BALANCA_SERVICO_UUID);
+        let caracteristica = await servico.getCharacteristic(BALANCA_CARACTERISTICA_UUID);
+        await caracteristica.startNotifications();
+        caracteristica.addEventListener("characteristicvaluechanged", processarNotificacaoBalanca);
+
+        balancaBuffer = "";
+        balancaUltimoValorKg = null;
+        if(botao){
+            botao.disabled = false;
+            botao.textContent = "🔗 Balança conectada";
+            botao.classList.add("conectada");
+        }
+    }catch(e){
+        if(botao){ botao.disabled = false; botao.textContent = "🔗 Conectar Balança"; }
+        // usuário cancelou a janela de escolha do dispositivo -- não é erro de verdade
+        if(e.name !== "NotFoundError"){
+            alert("Não consegui conectar com a balança: " + e.message);
+        }
+    }
+}
+
+function onBalancaBluetoothDesconectada(){
+    let botao = document.getElementById("btnBalancaBluetooth");
+    if(botao){
+        botao.disabled = false;
+        botao.textContent = "🔗 Conectar Balança";
+        botao.classList.remove("conectada");
+    }
+    let leituraEl = document.getElementById("balancaLeituraAoVivo");
+    if(leituraEl) leituraEl.style.display = "none";
+    balancaBuffer = "";
+    balancaUltimoValorKg = null;
+}
+
+function desconectarBalancaBluetooth(){
+    if(balancaDevice && balancaDevice.gatt.connected){
+        balancaDevice.gatt.disconnect();
+    }
+}
+
+function processarNotificacaoBalanca(event){
+    let texto = new TextDecoder("utf-8").decode(event.target.value);
+    balancaBuffer += texto;
+    if(balancaBuffer.length > 400) balancaBuffer = balancaBuffer.slice(-400);
+
+    // usa matchAll + pega o ÚLTIMO -- não o primeiro, senão uma leitura
+    // antiga que ainda sobrou no buffer travaria o valor mostrado
+    let ocorrencias = [...balancaBuffer.matchAll(/PESO:\s*(\d+[.,]?\d*)\s*kg/gi)];
+    if(ocorrencias.length === 0) return;
+    let valorKg = parseFloat(ocorrencias[ocorrencias.length - 1][1].replace(",", "."));
+    if(!Number.isFinite(valorKg) || valorKg <= 0) return;
+
+    balancaUltimoValorKg = valorKg;
+    let valorEl = document.getElementById("balancaValorAoVivo");
+    if(valorEl) valorEl.textContent = formatarPeso(valorKg) + " kg";
+    let leituraEl = document.getElementById("balancaLeituraAoVivo");
+    if(leituraEl) leituraEl.style.display = "flex";
+}
+
+function usarPesoDaBalanca(){
+    if(balancaUltimoValorKg === null || balancaUltimoValorKg <= 0){
+        alert("Ainda não recebi nenhum peso da balança.");
+        return;
+    }
+    let display = document.getElementById("displayPeso");
+    if(!display) return;
+    display.value = String(balancaUltimoValorKg).replace(".", ",");
     adicionarPeso();
 }
 
