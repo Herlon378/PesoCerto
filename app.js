@@ -138,6 +138,8 @@ function resetarPesagemAtual() {
     resetarEstadoCapturaBalanca();
     let labelPeso = document.getElementById("pesoAtualLabel");
     if(labelPeso){ labelPeso.textContent = "PESO ATUAL"; labelPeso.classList.remove("aoVivo"); }
+    let indicadorSinal = document.getElementById("balancaSinalIndicador");
+    if(indicadorSinal) indicadorSinal.style.display = "none";
 
     let nv = document.getElementById("nomeVendedor");
     let desc = document.getElementById("descricao");
@@ -295,6 +297,8 @@ function finalizarPesagem(){
     resetarEstadoCapturaBalanca();
     let labelPeso = document.getElementById("pesoAtualLabel");
     if(labelPeso){ labelPeso.textContent = "PESO ATUAL"; labelPeso.classList.remove("aoVivo"); }
+    let indicadorSinal = document.getElementById("balancaSinalIndicador");
+    if(indicadorSinal) indicadorSinal.style.display = "none";
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
 
     alert("Pesagem salva com sucesso!");
@@ -1856,6 +1860,7 @@ async function conectarBalancaBluetooth(){
 
         balancaBuffer = "";
         resetarEstadoCapturaBalanca();
+        iniciarMonitoramentoSinalBalanca();
 
         atualizarStatusConexaoBalanca("✅ Conectado! Iniciando pesagem...", "conectada");
         // segurinha um instante só pra dar tempo de ver a confirmação na tela
@@ -1874,6 +1879,33 @@ async function conectarBalancaBluetooth(){
     }
 }
 
+// Sinal Bluetooth (RSSI) em %, ao lado do display -- usa watchAdvertisements(),
+// um recurso mais novo do Bluetooth do navegador que nem todo Android/Chrome
+// tem. Se não existir ou nunca disparar, o indicador simplesmente fica
+// escondido (não quebra nada, só não mostra o número).
+function rssiParaPorcentagem(rssi){
+    if(rssi <= -100) return 0;
+    if(rssi >= -50) return 100;
+    return Math.round(2 * (rssi + 100));
+}
+
+async function iniciarMonitoramentoSinalBalanca(){
+    let indicador = document.getElementById("balancaSinalIndicador");
+    if(!indicador || !balancaDevice) return;
+    if(typeof balancaDevice.watchAdvertisements !== "function") return;
+
+    try{
+        balancaDevice.addEventListener("advertisementreceived", (event) => {
+            if(typeof event.rssi !== "number") return;
+            indicador.textContent = "📶 " + rssiParaPorcentagem(event.rssi) + "%";
+            indicador.style.display = "inline";
+        });
+        await balancaDevice.watchAdvertisements();
+    }catch(e){
+        // recurso existe mas não deu pra ativar -- sem problema, só não mostra
+    }
+}
+
 function onBalancaBluetoothDesconectada(){
     balancaBuffer = "";
     resetarEstadoCapturaBalanca();
@@ -1881,6 +1913,9 @@ function onBalancaBluetoothDesconectada(){
     let botao = document.getElementById("btnConectarBalancaTela");
     if(botao) botao.disabled = false;
     atualizarStatusConexaoBalanca("Balança não conectada", "");
+
+    let indicadorSinal = document.getElementById("balancaSinalIndicador");
+    if(indicadorSinal) indicadorSinal.style.display = "none";
 
     // se a desconexão aconteceu no meio de uma pesagem (não na tela de
     // conectar), avisa discretamente perto do peso -- sem popup, sem
