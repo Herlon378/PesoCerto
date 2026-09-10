@@ -1791,12 +1791,21 @@ const BALANCA_TOLERANCIA_ESTABILIDADE_KG = 0.5;
 // tempo que o peso precisa ficar parado nesse valor antes de lançar sozinho
 // na lista -- evita pegar o animal ainda subindo/se mexendo na balança
 const BALANCA_JANELA_ESTABILIDADE_MS = 1200;
+// o indicador pode manter o último peso "travado" no mostrador entre uma
+// pesagem e outra, em vez de voltar perto de zero sozinho -- então também
+// libera a próxima captura quando o peso mudar bastante em relação ao
+// ÚLTIMO ANIMAL LANÇADO (sinal de que é outro bicho), não só quando cair
+// perto de zero. Maior que a tolerância de estabilidade de propósito, pra
+// não confundir troca de animal com oscilação mecânica do mesmo animal.
+const BALANCA_LIMIAR_TROCA_ANIMAL_KG = 3;
 
 let balancaDevice = null;
 let balancaBuffer = "";
 // "aguardando" = livre pra capturar o próximo peso assim que estabilizar;
 // "capturado" = já lançamos esse animal, esperando o peso cair (ele descer
-// da balança) antes de aceitar o próximo
+// da balança) ou mudar bastante (outro animal subiu) antes de aceitar o
+// próximo
+let balancaUltimoValorCapturado = null;
 let balancaEstadoCaptura = "aguardando";
 let balancaValorReferencia = null;
 let balancaTimerEstabilidade = null;
@@ -1895,6 +1904,7 @@ function desconectarBalancaBluetooth(){
 function resetarEstadoCapturaBalanca(){
     balancaEstadoCaptura = "aguardando";
     balancaValorReferencia = null;
+    balancaUltimoValorCapturado = null;
     if(balancaTimerEstabilidade){
         clearTimeout(balancaTimerEstabilidade);
         balancaTimerEstabilidade = null;
@@ -1919,8 +1929,11 @@ function processarNotificacaoBalanca(event){
 // Mostra o peso ao vivo no display da tela de pesagem sempre, e lança
 // sozinho na lista quando o valor fica parado (estável) por um tempinho --
 // sem precisar apertar nenhum botão. O "estado" evita lançar o mesmo animal
-// várias vezes seguidas: só libera a próxima captura depois do peso cair
-// (o bicho descer da balança).
+// várias vezes seguidas: só libera a próxima captura quando o peso cair
+// perto de zero OU mudar bastante (indicando outro animal) -- o indicador
+// pode manter o último peso "travado" no mostrador em vez de voltar sozinho
+// pra perto de zero entre uma pesagem e outra, então não dá pra confiar só
+// na queda pra zero.
 function processarLeituraBalanca(valorKg){
     let display = document.getElementById("displayPeso");
     if(display) display.value = formatarPeso(valorKg);
@@ -1932,7 +1945,12 @@ function processarLeituraBalanca(valorKg){
         return;
     }
 
-    if(balancaEstadoCaptura === "capturado") return; // já lançado, esperando descer
+    if(balancaEstadoCaptura === "capturado"){
+        let mudouBastante = balancaUltimoValorCapturado !== null
+            && Math.abs(valorKg - balancaUltimoValorCapturado) > BALANCA_LIMIAR_TROCA_ANIMAL_KG;
+        if(!mudouBastante) return; // mesmo animal (ou balança travada no valor) -- ignora
+        balancaEstadoCaptura = "aguardando"; // peso mudou o suficiente -- outro animal, libera de novo
+    }
 
     if(balancaValorReferencia === null || Math.abs(valorKg - balancaValorReferencia) > BALANCA_TOLERANCIA_ESTABILIDADE_KG){
         // valor novo ou mudou o suficiente -- reinicia a espera de estabilidade
@@ -1941,6 +1959,7 @@ function processarLeituraBalanca(valorKg){
         balancaTimerEstabilidade = setTimeout(() => {
             if(balancaEstadoCaptura === "capturado") return;
             balancaEstadoCaptura = "capturado";
+            balancaUltimoValorCapturado = balancaValorReferencia;
             let d = document.getElementById("displayPeso");
             if(d) d.value = formatarPeso(balancaValorReferencia);
             adicionarPeso();
