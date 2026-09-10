@@ -108,9 +108,15 @@ function iniciarPesagem(){
         }
     }
 
-    trocarTela("telaPesagem");
-    atualizarStats();
-    atualizarVisibilidadeBalancaBluetooth();
+    if(balancaBluetoothDisponivel()){
+        atualizarStatusConexaoBalanca("Balança não conectada", "");
+        let botaoBalanca = document.getElementById("btnConectarBalancaTela");
+        if(botaoBalanca) botaoBalanca.disabled = false;
+        trocarTela("telaConectarBalanca");
+    } else {
+        trocarTela("telaPesagem");
+        atualizarStats();
+    }
 }
 
 function alternarTipoPesagem(){
@@ -129,6 +135,9 @@ function alternarTipoPesagem(){
 function resetarPesagemAtual() {
     pesos = [];
     desconectarBalancaBluetooth();
+    resetarEstadoCapturaBalanca();
+    let labelPeso = document.getElementById("pesoAtualLabel");
+    if(labelPeso){ labelPeso.textContent = "PESO ATUAL"; labelPeso.classList.remove("aoVivo"); }
 
     let nv = document.getElementById("nomeVendedor");
     let desc = document.getElementById("descricao");
@@ -283,6 +292,9 @@ function finalizarPesagem(){
     }
     pesos = [];
     desconectarBalancaBluetooth();
+    resetarEstadoCapturaBalanca();
+    let labelPeso = document.getElementById("pesoAtualLabel");
+    if(labelPeso){ labelPeso.textContent = "PESO ATUAL"; labelPeso.classList.remove("aoVivo"); }
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
 
     alert("Pesagem salva com sucesso!");
@@ -1768,38 +1780,57 @@ function lancarPeso(){
 // sempre) e sempre procura a ÚLTIMA ocorrência de "PESO: <número>kg" nele —
 // não depende de saber onde cada pacote começa/termina.
 // Só existe no Android via Chrome -- o Safari do iPhone não implementa Web
-// Bluetooth e não tem contorno possível (ver atualizarVisibilidadeBalancaBluetooth).
+// Bluetooth e não tem contorno possível (ver balancaBluetoothDisponivel).
 const BALANCA_SERVICO_UUID = "569a1101-b87f-490c-92cb-11ba5ea5167c";
 const BALANCA_CARACTERISTICA_UUID = "569a2000-b87f-490c-92cb-11ba5ea5167c";
+// abaixo disso considera que não tem bicho em cima (balança vazia/ruído) --
+// libera a próxima captura automática
+const BALANCA_LIMIAR_MINIMO_KG = 5;
+// variação máxima entre leituras seguidas pra ainda contar como "o mesmo peso"
+const BALANCA_TOLERANCIA_ESTABILIDADE_KG = 0.5;
+// tempo que o peso precisa ficar parado nesse valor antes de lançar sozinho
+// na lista -- evita pegar o animal ainda subindo/se mexendo na balança
+const BALANCA_JANELA_ESTABILIDADE_MS = 1200;
+
 let balancaDevice = null;
 let balancaBuffer = "";
-let balancaUltimoValorKg = null;
+// "aguardando" = livre pra capturar o próximo peso assim que estabilizar;
+// "capturado" = já lançamos esse animal, esperando o peso cair (ele descer
+// da balança) antes de aceitar o próximo
+let balancaEstadoCaptura = "aguardando";
+let balancaValorReferencia = null;
+let balancaTimerEstabilidade = null;
 
 function balancaBluetoothDisponivel(){
     return typeof navigator !== "undefined" && !!navigator.bluetooth;
 }
 
-function atualizarVisibilidadeBalancaBluetooth(){
-    let area = document.getElementById("balancaBluetoothArea");
-    if(area) area.style.display = balancaBluetoothDisponivel() ? "flex" : "none";
+function atualizarStatusConexaoBalanca(texto, classe){
+    let el = document.getElementById("statusConexaoBalanca");
+    if(!el) return;
+    el.textContent = texto;
+    el.className = "statusConexaoBalanca" + (classe ? " " + classe : "");
 }
 
-async function alternarBalancaBluetooth(){
-    if(balancaDevice && balancaDevice.gatt.connected){
-        balancaDevice.gatt.disconnect();
-        return;
-    }
-    await conectarBalancaBluetooth();
+function pularConexaoBalanca(){
+    trocarTela("telaPesagem");
+    atualizarStats();
+}
+
+function voltarDeConectarBalanca(){
+    desconectarBalancaBluetooth();
+    trocarTela("telaInicial");
 }
 
 async function conectarBalancaBluetooth(){
-    let botao = document.getElementById("btnBalancaBluetooth");
+    let botao = document.getElementById("btnConectarBalancaTela");
     if(!balancaBluetoothDisponivel()){
         alert("Este celular não suporta conexão direta com a balança (funciona no Android, pelo Chrome).");
         return;
     }
     try{
-        if(botao){ botao.disabled = true; botao.textContent = "Procurando..."; }
+        if(botao) botao.disabled = true;
+        atualizarStatusConexaoBalanca("Procurando...", "conectando");
 
         balancaDevice = await navigator.bluetooth.requestDevice({
             filters: [{ namePrefix: "Prix" }],
@@ -1807,6 +1838,7 @@ async function conectarBalancaBluetooth(){
         });
         balancaDevice.addEventListener("gattserverdisconnected", onBalancaBluetoothDesconectada);
 
+        atualizarStatusConexaoBalanca("Conectando...", "conectando");
         let server = await balancaDevice.gatt.connect();
         let servico = await server.getPrimaryService(BALANCA_SERVICO_UUID);
         let caracteristica = await servico.getCharacteristic(BALANCA_CARACTERISTICA_UUID);
@@ -1814,37 +1846,58 @@ async function conectarBalancaBluetooth(){
         caracteristica.addEventListener("characteristicvaluechanged", processarNotificacaoBalanca);
 
         balancaBuffer = "";
-        balancaUltimoValorKg = null;
-        if(botao){
-            botao.disabled = false;
-            botao.textContent = "🔗 Balança conectada";
-            botao.classList.add("conectada");
-        }
+        resetarEstadoCapturaBalanca();
+
+        atualizarStatusConexaoBalanca("✅ Conectado! Iniciando pesagem...", "conectada");
+        // segurinha um instante só pra dar tempo de ver a confirmação na tela
+        setTimeout(() => {
+            trocarTela("telaPesagem");
+            atualizarStats();
+        }, 700);
     }catch(e){
-        if(botao){ botao.disabled = false; botao.textContent = "🔗 Conectar Balança"; }
+        if(botao) botao.disabled = false;
         // usuário cancelou a janela de escolha do dispositivo -- não é erro de verdade
-        if(e.name !== "NotFoundError"){
-            alert("Não consegui conectar com a balança: " + e.message);
+        if(e.name === "NotFoundError"){
+            atualizarStatusConexaoBalanca("Balança não conectada", "");
+        }else{
+            atualizarStatusConexaoBalanca("❌ Erro ao conectar: " + e.message, "erro");
         }
     }
 }
 
 function onBalancaBluetoothDesconectada(){
-    let botao = document.getElementById("btnBalancaBluetooth");
-    if(botao){
-        botao.disabled = false;
-        botao.textContent = "🔗 Conectar Balança";
-        botao.classList.remove("conectada");
-    }
-    let leituraEl = document.getElementById("balancaLeituraAoVivo");
-    if(leituraEl) leituraEl.style.display = "none";
     balancaBuffer = "";
-    balancaUltimoValorKg = null;
+    resetarEstadoCapturaBalanca();
+
+    let botao = document.getElementById("btnConectarBalancaTela");
+    if(botao) botao.disabled = false;
+    atualizarStatusConexaoBalanca("Balança não conectada", "");
+
+    // se a desconexão aconteceu no meio de uma pesagem (não na tela de
+    // conectar), avisa discretamente perto do peso -- sem popup, sem
+    // travar o operador, que pode continuar digitando na mão normalmente
+    let label = document.getElementById("pesoAtualLabel");
+    let telaPesagemEl = document.getElementById("telaPesagem");
+    if(label){
+        label.classList.remove("aoVivo");
+        if(telaPesagemEl && telaPesagemEl.classList.contains("ativa")){
+            label.textContent = "⚠️ BALANÇA DESCONECTADA";
+        }
+    }
 }
 
 function desconectarBalancaBluetooth(){
     if(balancaDevice && balancaDevice.gatt.connected){
         balancaDevice.gatt.disconnect();
+    }
+}
+
+function resetarEstadoCapturaBalanca(){
+    balancaEstadoCaptura = "aguardando";
+    balancaValorReferencia = null;
+    if(balancaTimerEstabilidade){
+        clearTimeout(balancaTimerEstabilidade);
+        balancaTimerEstabilidade = null;
     }
 }
 
@@ -1858,24 +1911,43 @@ function processarNotificacaoBalanca(event){
     let ocorrencias = [...balancaBuffer.matchAll(/PESO:\s*(\d+[.,]?\d*)\s*kg/gi)];
     if(ocorrencias.length === 0) return;
     let valorKg = parseFloat(ocorrencias[ocorrencias.length - 1][1].replace(",", "."));
-    if(!Number.isFinite(valorKg) || valorKg <= 0) return;
+    if(!Number.isFinite(valorKg)) return;
 
-    balancaUltimoValorKg = valorKg;
-    let valorEl = document.getElementById("balancaValorAoVivo");
-    if(valorEl) valorEl.textContent = formatarPeso(valorKg) + " kg";
-    let leituraEl = document.getElementById("balancaLeituraAoVivo");
-    if(leituraEl) leituraEl.style.display = "flex";
+    processarLeituraBalanca(valorKg);
 }
 
-function usarPesoDaBalanca(){
-    if(balancaUltimoValorKg === null || balancaUltimoValorKg <= 0){
-        alert("Ainda não recebi nenhum peso da balança.");
+// Mostra o peso ao vivo no display da tela de pesagem sempre, e lança
+// sozinho na lista quando o valor fica parado (estável) por um tempinho --
+// sem precisar apertar nenhum botão. O "estado" evita lançar o mesmo animal
+// várias vezes seguidas: só libera a próxima captura depois do peso cair
+// (o bicho descer da balança).
+function processarLeituraBalanca(valorKg){
+    let display = document.getElementById("displayPeso");
+    if(display) display.value = formatarPeso(valorKg);
+    let label = document.getElementById("pesoAtualLabel");
+    if(label) label.classList.add("aoVivo");
+
+    if(valorKg < BALANCA_LIMIAR_MINIMO_KG){
+        resetarEstadoCapturaBalanca();
         return;
     }
-    let display = document.getElementById("displayPeso");
-    if(!display) return;
-    display.value = String(balancaUltimoValorKg).replace(".", ",");
-    adicionarPeso();
+
+    if(balancaEstadoCaptura === "capturado") return; // já lançado, esperando descer
+
+    if(balancaValorReferencia === null || Math.abs(valorKg - balancaValorReferencia) > BALANCA_TOLERANCIA_ESTABILIDADE_KG){
+        // valor novo ou mudou o suficiente -- reinicia a espera de estabilidade
+        balancaValorReferencia = valorKg;
+        if(balancaTimerEstabilidade) clearTimeout(balancaTimerEstabilidade);
+        balancaTimerEstabilidade = setTimeout(() => {
+            if(balancaEstadoCaptura === "capturado") return;
+            balancaEstadoCaptura = "capturado";
+            let d = document.getElementById("displayPeso");
+            if(d) d.value = formatarPeso(balancaValorReferencia);
+            adicionarPeso();
+        }, BALANCA_JANELA_ESTABILIDADE_MS);
+    }
+    // se bateu com a referência (dentro da tolerância), não faz nada -- o
+    // timer que já está rodando dispara sozinho quando o tempo passar
 }
 
 // ========================================

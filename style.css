@@ -126,62 +126,35 @@ input, select {
 }
 
 /* BALANÇA BLUETOOTH */
-.balancaBluetoothArea {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 4px 0;
-}
-
-.btnBalancaBluetooth {
-    padding: 8px 14px;
-    font-size: 13px;
-    border: none;
-    border-radius: 20px;
-    background: #1976d2;
-    color: white;
+.statusConexaoBalanca {
+    text-align: center;
     font-weight: bold;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    -webkit-tap-highlight-color: transparent;
+    padding: 10px;
+    border-radius: 10px;
+    background: #f0f0f0;
+    color: #666;
+    margin-bottom: 6px;
 }
 
-.btnBalancaBluetooth:disabled {
-    opacity: 0.7;
+.statusConexaoBalanca.conectando {
+    background: #fff3cd;
+    color: #856404;
 }
 
-.btnBalancaBluetooth.conectada {
-    background: #0ca30c;
-}
-
-.balancaLeituraAoVivo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #0ca30c;
-    border-radius: 20px;
-    padding: 6px 8px 6px 14px;
-}
-
-#balancaValorAoVivo {
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.btnUsarPesoBalanca {
-    padding: 6px 12px;
-    font-size: 13px;
-    border: none;
-    border-radius: 16px;
-    background: white;
+.statusConexaoBalanca.conectada {
+    background: #d4edda;
     color: #0ca30c;
-    font-weight: bold;
-    -webkit-tap-highlight-color: transparent;
 }
 
-.btnUsarPesoBalanca:active {
-    transform: scale(0.95);
+.statusConexaoBalanca.erro {
+    background: #f8d7da;
+    color: #d03b3b;
+}
+
+/* pisca discretamente enquanto a balança está ativa, pra indicar "ao vivo"
+   sem precisar de nenhum botão extra na tela de pesagem */
+.pesoAtualLabel.aoVivo {
+    color: #0ca30c;
 }
 
 /* DISPLAY PESO */

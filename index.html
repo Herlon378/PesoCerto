@@ -56,6 +56,15 @@
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
+<div id="telaConectarBalanca" class="tela">
+    <h2>🔗 Conectar Balança</h2>
+    <p class="loginSubtitulo">Conecte na balança Bluetooth antes de começar — o peso vai aparecer sozinho na tela e lançar automaticamente na lista.</p>
+    <div id="statusConexaoBalanca" class="statusConexaoBalanca">Balança não conectada</div>
+    <button class="btnGrande" id="btnConectarBalancaTela" onclick="conectarBalancaBluetooth()">📶 Conectar Balança</button>
+    <button class="btnGrande" style="background:#666" onclick="pularConexaoBalanca()">Continuar sem balança</button>
+    <button class="btnGrande" style="background:#666" onclick="voltarDeConectarBalanca()">← Voltar</button>
+</div>
+
 <div id="telaSaidaAlmoxarifado" class="tela">
     <h2>📦 Saída de Produtos</h2>
     <select id="saidaMobLoteInput">
@@ -203,15 +212,8 @@
         <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
-    <div id="balancaBluetoothArea" class="balancaBluetoothArea" style="display:none">
-        <button id="btnBalancaBluetooth" class="btnBalancaBluetooth" onclick="alternarBalancaBluetooth()">🔗 Conectar Balança</button>
-        <div id="balancaLeituraAoVivo" class="balancaLeituraAoVivo" style="display:none">
-            <span id="balancaValorAoVivo">-- kg</span>
-            <button class="btnUsarPesoBalanca" onclick="usarPesoDaBalanca()">✓ Usar peso</button>
-        </div>
-    </div>
     <div class="pesoAtualCard">
-        <span class="pesoAtualLabel">PESO ATUAL</span>
+        <span class="pesoAtualLabel" id="pesoAtualLabel">PESO ATUAL</span>
         <input id="displayPeso" readonly placeholder="0">
         <span class="pesoAtualUnidade">kg</span>
     </div>
