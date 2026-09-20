@@ -1158,7 +1158,10 @@ async function mostrarCustoPorLote() {
     function formatarValorPossivelmenteNegativo(valor, headcount) {
         if (valor < 0) return { texto: "▲ R$ " + formatarMoeda(Math.abs(valor)) + " (lucro)", cor: "#0ca30c" };
         if (valor > 0 && headcount === 0) return { texto: "▼ R$ " + formatarMoeda(valor) + " (prejuízo)", cor: "#d03b3b" };
-        return { texto: "R$ " + formatarMoeda(valor), cor: "#0b0b0b" };
+        // "inherit" em vez de uma cor fixa -- acompanha a cor de texto normal
+        // da tela (clara no tema escuro, escura se algum dia voltar a ser
+        // tema claro), em vez de travar num tom que só funciona num dos dois
+        return { texto: "R$ " + formatarMoeda(valor), cor: "inherit" };
     }
 
     corpo.innerHTML = nomesLotes.map(nome => {
@@ -1180,8 +1183,8 @@ async function mostrarCustoPorLote() {
                 <td>R$ ${formatarMoeda(g.custoInsumos)}</td>
                 <td>R$ ${formatarMoeda(g.receitaVenda)}</td>
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
-                <td style="color:${headcount > 0 ? medioFmt.cor : '#0b0b0b'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
-                <td style="color:${kgAtual > 0 ? porKgFmt.cor : '#0b0b0b'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
+                <td style="color:${headcount > 0 ? medioFmt.cor : 'inherit'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
+                <td style="color:${kgAtual > 0 ? porKgFmt.cor : 'inherit'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
                 <td class="acoesUsuario"><button onclick='gerarRelatorioLotePDF(${JSON.stringify(nome)})'>📄 Relatório</button></td>
             </tr>
         `;
