@@ -3171,18 +3171,19 @@ function linhaTracejadaPdf(pdf, y) {
     pdf.setDrawColor(0);
 }
 
-// Recibo de vale compacto: 3 vias idênticas empilhadas numa única folha A4
-// (funcionário / estância / arquivo — o modelo clássico de recibo em 3 vias),
-// separadas por uma linha de corte, pra gastar 1/3 do papel de uma via cheia.
-function desenharViaReciboVale(pdf, yTop, a, nomeFunc, cargoFunc, viaLabel) {
-    let y = yTop + 8;
+// Recibo de vale compacto: imprime só no primeiro terço de uma folha A4,
+// com uma linha de corte indicando onde separar -- o resto da folha fica
+// em branco de propósito. É assim que o Herlon economiza papel: imprime um
+// vale, corta na linha, reaproveita o pedaço restante da mesma folha (que
+// ainda tem ~2/3 de A4, mais que o suficiente) pra imprimir o PRÓXIMO vale
+// (de outro adiantamento/funcionário, cada um com sua própria impressão),
+// e repete uma terceira vez antes de a folha acabar.
+function desenharReciboVale(pdf, a, nomeFunc, cargoFunc) {
+    let y = 8;
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
     pdf.text("ESTÂNCIA REIS", 10, y);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.text(viaLabel, 200, y, { align: "right" });
     y += 5;
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
@@ -3239,13 +3240,14 @@ function gerarReciboVale(adiantamentoId) {
     const { jsPDF } = window.jspdf;
     let pdf = new jsPDF();
 
-    let vias = ["1ª VIA — FUNCIONÁRIO", "2ª VIA — ESTÂNCIA REIS", "3ª VIA — ARQUIVO"];
-    let alturaBloco = 99; // 297mm (A4) / 3
-    vias.forEach((via, i) => {
-        let yTop = i * alturaBloco;
-        desenharViaReciboVale(pdf, yTop, a, nomeFunc, cargoFunc, via);
-        if (i < vias.length - 1) linhaTracejadaPdf(pdf, yTop + alturaBloco);
-    });
+    let alturaBloco = 99; // 297mm (A4) / 3 -- só o primeiro terço é usado
+    desenharReciboVale(pdf, a, nomeFunc, cargoFunc);
+    linhaTracejadaPdf(pdf, alturaBloco);
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(7);
+    pdf.setTextColor(150);
+    pdf.text("✂ corte aqui — o restante da folha fica em branco para imprimir o próximo vale", 105, alturaBloco + 4, { align: "center" });
+    pdf.setTextColor(0);
 
     abrirPdfParaImpressao(pdf);
 }
