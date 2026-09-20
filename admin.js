@@ -2978,7 +2978,7 @@ function mostrarFolhaPagamento() {
             let parcela = contaGerada.parcelas[0];
             let status = statusParcela(parcela);
             let acoes = status.chave === "paga"
-                ? `<button onclick='estornarPagamentoParcela(${JSON.stringify(parcela.id)})'>↩️ Estornar</button>`
+                ? `<button onclick='gerarReciboSalario(${JSON.stringify(contaGerada.id)})'>🖨️ Recibo</button><button onclick='estornarPagamentoParcela(${JSON.stringify(parcela.id)})'>↩️ Estornar</button>`
                 : `<button onclick='abrirModalPagarParcela(${JSON.stringify(parcela.id)})'>💰 Pagar</button><button onclick='abrirModalEditarParcela(${JSON.stringify(parcela.id)})'>✏️</button>`;
             return `
                 <tr>
@@ -3056,7 +3056,10 @@ function mostrarAdiantamentos() {
             <td>${a.competencia}</td>
             <td>R$ ${formatarMoeda(a.valor)}</td>
             <td>${a.observacoes || "—"}</td>
-            <td class="acoesUsuario"><button onclick='excluirAdiantamento(${JSON.stringify(a.id)}, ${JSON.stringify(nomeFuncionario(a.funcionarioId))})'>🗑️</button></td>
+            <td class="acoesUsuario">
+                <button onclick='gerarReciboVale(${JSON.stringify(a.id)})'>🖨️ Recibo</button>
+                <button onclick='excluirAdiantamento(${JSON.stringify(a.id)}, ${JSON.stringify(nomeFuncionario(a.funcionarioId))})'>🗑️</button>
+            </td>
         </tr>
     `).join("");
 }
@@ -3129,6 +3132,171 @@ async function excluirAdiantamento(id, nomeFunc) {
     } catch (e) {
         alert("Erro de conexão: " + e.message);
     }
+}
+
+// ---------- Recibos (PDF) ----------
+
+function formatarCompetenciaExtenso(competencia) {
+    if (!competencia) return "—";
+    let [ano, mes] = competencia.split("-");
+    let nomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    let idx = parseInt(mes, 10) - 1;
+    return (nomes[idx] || mes) + "/" + ano;
+}
+
+function assinaturaPdf(pdf, y, nomeAssinante, papel) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.text("_______________________________________", 10, y);
+    y += 6;
+    pdf.text(`${nomeAssinante} — ${papel}`, 10, y);
+    return y;
+}
+
+function gerarReciboVale(adiantamentoId) {
+    let a = adiantamentosCacheAdmin.find(x => x.id === adiantamentoId);
+    if (!a) { alert("Adiantamento não encontrado."); return; }
+    let f = funcionariosCacheAdmin.find(x => x.id === a.funcionarioId);
+    let nomeFunc = f ? f.nome : "—";
+    let cargoFunc = f && f.cargo ? f.cargo : "—";
+
+    const { jsPDF } = window.jspdf;
+    let pdf = new jsPDF();
+    let y = 20;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.text("ESTÂNCIA REIS", 105, y, { align: "center" });
+    y += 7;
+    pdf.setFontSize(13);
+    pdf.text("RECIBO DE ADIANTAMENTO (VALE)", 105, y, { align: "center" });
+    y += 4;
+    pdf.line(10, y, 200, y);
+    y += 10;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 10, y);
+    y += 12;
+
+    function linha(label, valor) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.text(label, 10, y);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(valor, 75, y);
+        y += 8;
+    }
+
+    linha("Funcionário:", nomeFunc);
+    linha("Cargo:", cargoFunc);
+    linha("Competência (mês abatido):", formatarCompetenciaExtenso(a.competencia));
+    linha("Data do adiantamento:", a.data ? a.data.split(",")[0] : "—");
+    linha("Valor do adiantamento:", "R$ " + formatarMoeda(a.valor));
+    if (a.observacoes) linha("Observação:", a.observacoes);
+    y += 10;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    let declaracao = `Recebi de ESTÂNCIA REIS a quantia de R$ ${formatarMoeda(a.valor)} referente a adiantamento (vale) sobre o salário da competência de ${formatarCompetenciaExtenso(a.competencia)}, a ser descontada na folha de pagamento correspondente.`;
+    let linhasDeclaracao = pdf.splitTextToSize(declaracao, 180);
+    pdf.text(linhasDeclaracao, 10, y);
+    y += linhasDeclaracao.length * 6 + 24;
+
+    y = assinaturaPdf(pdf, y, nomeFunc, "Assinatura do Funcionário");
+    y += 20;
+    assinaturaPdf(pdf, y, "Estância Reis", "Assinatura do Responsável");
+
+    pdf.save(`Recibo_Vale_${nomeFunc.replace(/\s+/g, "_")}_${a.competencia}.pdf`);
+}
+
+function gerarReciboSalario(contaId) {
+    let c = contasPagarCacheAdmin.find(x => x.id === contaId);
+    if (!c) { alert("Folha não encontrada."); return; }
+    let parcela = c.parcelas[0];
+    if (!parcela || !parcela.paga) { alert("Essa folha ainda não foi paga."); return; }
+
+    let f = funcionariosCacheAdmin.find(x => x.id === c.funcionarioId);
+    let nomeFunc = f ? f.nome : "—";
+    let cargoFunc = f && f.cargo ? f.cargo : "—";
+    let adiantamentosFunc = adiantamentosCacheAdmin.filter(x => x.funcionarioId === c.funcionarioId && x.competencia === c.competencia);
+    let totalAdiantamentos = adiantamentosFunc.reduce((s, x) => s + x.valor, 0);
+    // reconstrói o bruto usado NA ÉPOCA (conta.valorTotal já é o líquido
+    // programado = salário daquele momento - adiantamentos) em vez de ler
+    // funcionarios.salario, que pode ter mudado desde então -- mesmo
+    // cuidado de "snapshot, não recalcula depois" já usado em Energia.
+    let salarioBruto = c.valorTotal + totalAdiantamentos;
+
+    const { jsPDF } = window.jspdf;
+    let pdf = new jsPDF();
+    let y = 20;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.text("ESTÂNCIA REIS", 105, y, { align: "center" });
+    y += 7;
+    pdf.setFontSize(13);
+    pdf.text("RECIBO DE PAGAMENTO DE SALÁRIO", 105, y, { align: "center" });
+    y += 4;
+    pdf.line(10, y, 200, y);
+    y += 10;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 10, y);
+    y += 12;
+
+    function linha(label, valor, negrito) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        pdf.text(label, 10, y);
+        pdf.setFont("helvetica", negrito === false ? "normal" : "bold");
+        pdf.text(valor, 95, y);
+        y += 8;
+    }
+
+    linha("Funcionário:", nomeFunc);
+    linha("Cargo:", cargoFunc);
+    linha("Competência:", formatarCompetenciaExtenso(c.competencia));
+    y += 2;
+    pdf.line(10, y - 4, 200, y - 4);
+    y += 4;
+
+    linha("Salário bruto:", "R$ " + formatarMoeda(salarioBruto));
+    linha("(-) Adiantamentos descontados:", "R$ " + formatarMoeda(totalAdiantamentos));
+    if (adiantamentosFunc.length > 0) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        adiantamentosFunc.forEach(x => {
+            pdf.text(`     • ${x.data ? x.data.split(",")[0] : "—"} — R$ ${formatarMoeda(x.valor)}${x.observacoes ? " (" + x.observacoes + ")" : ""}`, 12, y);
+            y += 5.5;
+        });
+        y += 2;
+    }
+    pdf.line(10, y - 2, 200, y - 2);
+    y += 6;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text("Valor líquido pago:", 10, y);
+    pdf.text("R$ " + formatarMoeda(parcela.valor), 95, y);
+    y += 10;
+
+    linha("Data do pagamento:", parcela.dataPagamento ? parcela.dataPagamento.split(",")[0] : "—");
+    y += 8;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    let declaracao = `Recebi de ESTÂNCIA REIS a quantia líquida de R$ ${formatarMoeda(parcela.valor)}, referente ao pagamento do salário da competência de ${formatarCompetenciaExtenso(c.competencia)}, dando plena e geral quitação.`;
+    let linhasDeclaracao = pdf.splitTextToSize(declaracao, 180);
+    pdf.text(linhasDeclaracao, 10, y);
+    y += linhasDeclaracao.length * 6 + 24;
+
+    y = assinaturaPdf(pdf, y, nomeFunc, "Assinatura do Funcionário");
+    y += 20;
+    assinaturaPdf(pdf, y, "Estância Reis", "Assinatura do Responsável");
+
+    pdf.save(`Recibo_Salario_${nomeFunc.replace(/\s+/g, "_")}_${c.competencia}.pdf`);
 }
 
 // ========================================
