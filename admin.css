@@ -559,6 +559,26 @@ body.modoDesktop button:not(.navDesktop *):active {
     --border: rgba(255,255,255,0.08);
     --border-strong: rgba(255,255,255,0.14);
     background: var(--navy-900);
+    /* o Dashboard preenche a área toda, sem o "cartão flutuando" com moldura
+       clara ao redor que as outras telas usam (max-width/borda/sombra) */
+    max-width: none;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    padding: 28px 24px 60px;
+}
+
+/* o entorno do cartão também precisa ficar escuro quando o Dashboard está
+   ativo (senão sobra a moldura clara do fundo antigo de .painelDesktop nas
+   bordas) e sem o padding/centralização que as outras telas usam --
+   :has() é seguro aqui porque o app só roda em Chrome */
+.painelDesktop:has(#telaDashboard.ativa) {
+    background: var(--navy-900);
+    padding: 0;
+}
+.areaConteudo:has(#telaDashboard.ativa) {
+    background: var(--navy-900);
 }
 
 /* .loginSubtitulo vem do style.css com cor fixa (não usa var(--ink-muted)) --
