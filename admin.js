@@ -3153,6 +3153,82 @@ function assinaturaPdf(pdf, y, nomeAssinante, papel) {
     return y;
 }
 
+// Abre o PDF numa aba nova e já dispara a caixa de diálogo de impressão do
+// navegador, em vez de baixar o arquivo -- é assim que o Herlon realmente
+// usa os recibos (imprime na hora, não guarda o PDF).
+function abrirPdfParaImpressao(pdf) {
+    pdf.autoPrint();
+    window.open(pdf.output("bloburl"), "_blank");
+}
+
+// linha pontilhada desenhada "na mão" (segmentos curtos) em vez de
+// setLineDashPattern -- evita depender de uma API do jsPDF que não é usada
+// em nenhum outro lugar do sistema e cuja disponibilidade nessa versão
+// vendorizada não foi confirmada.
+function linhaTracejadaPdf(pdf, y) {
+    pdf.setDrawColor(150);
+    for (let x = 10; x < 200; x += 4) pdf.line(x, y, x + 2, y);
+    pdf.setDrawColor(0);
+}
+
+// Recibo de vale compacto: 3 vias idênticas empilhadas numa única folha A4
+// (funcionário / estância / arquivo — o modelo clássico de recibo em 3 vias),
+// separadas por uma linha de corte, pra gastar 1/3 do papel de uma via cheia.
+function desenharViaReciboVale(pdf, yTop, a, nomeFunc, cargoFunc, viaLabel) {
+    let y = yTop + 8;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text("ESTÂNCIA REIS", 10, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text(viaLabel, 200, y, { align: "right" });
+    y += 5;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("RECIBO DE ADIANTAMENTO (VALE)", 10, y);
+    y += 3;
+    pdf.line(10, y, 200, y);
+    y += 7;
+
+    function campo(x, label, valor) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.text(label, x, y);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.text(valor, x, y + 5);
+    }
+    campo(10, "FUNCIONÁRIO", nomeFunc);
+    campo(140, "CARGO", cargoFunc);
+    y += 13;
+    campo(10, "COMPETÊNCIA (mês abatido)", formatarCompetenciaExtenso(a.competencia));
+    campo(90, "DATA", a.data ? a.data.split(",")[0] : "—");
+    campo(140, "VALOR", "R$ " + formatarMoeda(a.valor));
+    y += 12;
+
+    if (a.observacoes) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.text(`Obs.: ${a.observacoes}`.slice(0, 100), 10, y);
+        y += 5;
+    }
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    let declaracao = `Recebi de ESTÂNCIA REIS a quantia de R$ ${formatarMoeda(a.valor)} referente a adiantamento (vale) a ser descontado na folha de pagamento da competência de ${formatarCompetenciaExtenso(a.competencia)}.`;
+    let linhasDeclaracao = pdf.splitTextToSize(declaracao, 190);
+    pdf.text(linhasDeclaracao, 10, y);
+    y += linhasDeclaracao.length * 4 + 10;
+
+    pdf.setFontSize(8);
+    pdf.text("_______________________________", 10, y);
+    pdf.text("_______________________________", 115, y);
+    y += 4;
+    pdf.text("Assinatura do Funcionário", 10, y);
+    pdf.text("Assinatura do Responsável", 115, y);
+}
+
 function gerarReciboVale(adiantamentoId) {
     let a = adiantamentosCacheAdmin.find(x => x.id === adiantamentoId);
     if (!a) { alert("Adiantamento não encontrado."); return; }
@@ -3162,52 +3238,16 @@ function gerarReciboVale(adiantamentoId) {
 
     const { jsPDF } = window.jspdf;
     let pdf = new jsPDF();
-    let y = 20;
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.text("ESTÂNCIA REIS", 105, y, { align: "center" });
-    y += 7;
-    pdf.setFontSize(13);
-    pdf.text("RECIBO DE ADIANTAMENTO (VALE)", 105, y, { align: "center" });
-    y += 4;
-    pdf.line(10, y, 200, y);
-    y += 10;
+    let vias = ["1ª VIA — FUNCIONÁRIO", "2ª VIA — ESTÂNCIA REIS", "3ª VIA — ARQUIVO"];
+    let alturaBloco = 99; // 297mm (A4) / 3
+    vias.forEach((via, i) => {
+        let yTop = i * alturaBloco;
+        desenharViaReciboVale(pdf, yTop, a, nomeFunc, cargoFunc, via);
+        if (i < vias.length - 1) linhaTracejadaPdf(pdf, yTop + alturaBloco);
+    });
 
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9);
-    pdf.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 10, y);
-    y += 12;
-
-    function linha(label, valor) {
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        pdf.text(label, 10, y);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(valor, 75, y);
-        y += 8;
-    }
-
-    linha("Funcionário:", nomeFunc);
-    linha("Cargo:", cargoFunc);
-    linha("Competência (mês abatido):", formatarCompetenciaExtenso(a.competencia));
-    linha("Data do adiantamento:", a.data ? a.data.split(",")[0] : "—");
-    linha("Valor do adiantamento:", "R$ " + formatarMoeda(a.valor));
-    if (a.observacoes) linha("Observação:", a.observacoes);
-    y += 10;
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    let declaracao = `Recebi de ESTÂNCIA REIS a quantia de R$ ${formatarMoeda(a.valor)} referente a adiantamento (vale) sobre o salário da competência de ${formatarCompetenciaExtenso(a.competencia)}, a ser descontada na folha de pagamento correspondente.`;
-    let linhasDeclaracao = pdf.splitTextToSize(declaracao, 180);
-    pdf.text(linhasDeclaracao, 10, y);
-    y += linhasDeclaracao.length * 6 + 24;
-
-    y = assinaturaPdf(pdf, y, nomeFunc, "Assinatura do Funcionário");
-    y += 20;
-    assinaturaPdf(pdf, y, "Estância Reis", "Assinatura do Responsável");
-
-    pdf.save(`Recibo_Vale_${nomeFunc.replace(/\s+/g, "_")}_${a.competencia}.pdf`);
+    abrirPdfParaImpressao(pdf);
 }
 
 function gerarReciboSalario(contaId) {
@@ -3296,7 +3336,7 @@ function gerarReciboSalario(contaId) {
     y += 20;
     assinaturaPdf(pdf, y, "Estância Reis", "Assinatura do Responsável");
 
-    pdf.save(`Recibo_Salario_${nomeFunc.replace(/\s+/g, "_")}_${c.competencia}.pdf`);
+    abrirPdfParaImpressao(pdf);
 }
 
 // ========================================
