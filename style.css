@@ -21,17 +21,16 @@ body {
     display: none;
     position: fixed;   /* 🔥 trava na tela */
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 480px;   /* mantém proporção de celular mesmo em tela grande */
+    left: 0;
+    width: 100%;   /* preenche a tela do celular de ponta a ponta -- sem
+                      max-width/centralização, que é o que causava a faixa
+                      estreita com borda em telas mais largas */
     height: 100vh;
     background: #f0f0f0;
     padding: 10px;
     overflow-y: auto;  /* permite rolar dentro da tela */
     overscroll-behavior-y: contain;  /* evita que arrastar a lista dispare o "puxar pra atualizar" do navegador */
     touch-action: pan-y;  /* rolagem vertical normal, mas bloqueia o gesto de pinça (zoom) */
-    box-shadow: 0 0 20px rgba(0,0,0,0.15);
 }
 
 
