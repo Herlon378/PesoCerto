@@ -1623,6 +1623,48 @@ async function mostrarPatrimonio() {
     document.getElementById("patrimonioRebanho").innerText = "R$ " + formatarMoeda(valorRebanho);
     document.getElementById("patrimonioEstoque").innerText = "R$ " + formatarMoeda(valorEstoqueAlmoxarifado);
     elTotal.innerText = "R$ " + formatarMoeda(patrimonioTotal);
+
+    atualizarDonutPatrimonio(caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, patrimonioTotal);
+}
+
+// Desenha o gráfico de rosca "Composição do Patrimônio" a partir dos mesmos
+// 3 valores que já aparecem nas submétricas acima -- cada fatia é o mesmo
+// círculo com um traço parcial (stroke-dasharray/-dashoffset), técnica
+// padrão de donut em SVG sem precisar de nenhuma biblioteca de gráfico.
+function atualizarDonutPatrimonio(caixa, rebanho, estoque, total) {
+    let elRebanho = document.getElementById("donutFatiaRebanho");
+    if (!elRebanho) return; // defensivo -- só existe na tela do Dashboard
+
+    let raio = 50;
+    let circunferencia = 2 * Math.PI * raio;
+    let gap = 3; // espaço visual entre fatias, em unidades do perímetro
+    let totalPositivo = Math.max(total, 0.01); // evita dividir por zero
+
+    let fatias = [
+        { chave: "rebanho", valor: rebanho, el: elRebanho },
+        { chave: "caixa", valor: caixa, el: document.getElementById("donutFatiaCaixa") },
+        { chave: "estoque", valor: estoque, el: document.getElementById("donutFatiaEstoque") }
+    ];
+
+    let acumulado = 0;
+    fatias.forEach(f => {
+        let valorPositivo = Math.max(f.valor, 0);
+        let fracao = valorPositivo / totalPositivo;
+        let comprimento = Math.max(fracao * circunferencia - gap, 0);
+        f.el.setAttribute("stroke-dasharray", `${comprimento} ${circunferencia - comprimento}`);
+        f.el.setAttribute("stroke-dashoffset", String(-acumulado));
+        acumulado += fracao * circunferencia;
+    });
+
+    function pct(v) {
+        return totalPositivo > 0 ? Math.round((Math.max(v, 0) / totalPositivo) * 100) : 0;
+    }
+    let legRebanho = document.getElementById("donutLegendaRebanho");
+    let legCaixa = document.getElementById("donutLegendaCaixa");
+    let legEstoque = document.getElementById("donutLegendaEstoque");
+    if (legRebanho) legRebanho.innerText = `R$ ${formatarMoeda(rebanho)} (${pct(rebanho)}%)`;
+    if (legCaixa) legCaixa.innerText = `R$ ${formatarMoeda(caixa)} (${pct(caixa)}%)`;
+    if (legEstoque) legEstoque.innerText = `R$ ${formatarMoeda(estoque)} (${pct(estoque)}%)`;
 }
 
 const NOMES_MESES_RESULTADO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];

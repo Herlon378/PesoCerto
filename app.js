@@ -1256,8 +1256,8 @@ function atualizarBotaoLogin(){
     let logado = !!obterToken();
 
     let btn = document.getElementById("btnLoginLogout");
+    let nome = obterUsuarioLogado();
     if(btn){
-        let nome = obterUsuarioLogado();
         if(nome){
             btn.innerText = "🚪 Sair (" + nome + ")";
             btn.onclick = sair;
@@ -1266,6 +1266,10 @@ function atualizarBotaoLogin(){
             btn.onclick = mostrarTelaLogin;
         }
     }
+
+    // saudação do Dashboard ("Olá, <nome>!") -- só existe no admin.html
+    let saudacao = document.getElementById("saudacaoNome");
+    if(saudacao && nome) saudacao.innerText = nome;
 
     // Nav do gerenciamento (desktop): cada botão só aparece se o usuário
     // estiver logado, e Usuários/Lotes exigem também o papel admin.
