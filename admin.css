@@ -544,13 +544,13 @@ body.modoDesktop button:not(.navDesktop *):active {
     }
 }
 
-/* ============ DASHBOARD: TEMA ESCURO ============ */
-/* redefine os tokens de cor só dentro do Dashboard -- as outras telas
-   continuam com o visual claro de sempre. Como quase todo o CSS do
-   Dashboard (.dashComparativo, .statTile, tabelas, barras) já usa
-   var(--surface)/var(--ink)/etc, essa redefinição sozinha já escurece tudo
-   por baixo, sem precisar reescrever regra por regra. */
-#telaDashboard {
+/* ============ TEMA ESCURO (TODAS AS TELAS DO PAINEL) ============ */
+/* redefine os tokens de cor pra todo o painel desktop -- como quase todo o
+   CSS existente (.dashComparativo, .statTile, .tabelaUsuarios, inputs,
+   barras) já usa var(--surface)/var(--ink)/etc, essa redefinição sozinha já
+   escurece tudo por baixo, sem precisar reescrever regra por regra tela
+   por tela. */
+body.modoDesktop {
     --surface: #16203a;
     --surface-sunken: #101a30;
     --ink: #eef2fb;
@@ -558,9 +558,19 @@ body.modoDesktop button:not(.navDesktop *):active {
     --ink-faint: #7c869e;
     --border: rgba(255,255,255,0.08);
     --border-strong: rgba(255,255,255,0.14);
+}
+
+.areaConteudo, .painelDesktop {
     background: var(--navy-900);
-    /* o Dashboard preenche a área toda, sem o "cartão flutuando" com moldura
-       clara ao redor que as outras telas usam (max-width/borda/sombra) */
+}
+
+/* toda tela preenche a área toda, sem o "cartão flutuando" com moldura
+   clara ao redor (max-width/borda/sombra/padding do centralizador) */
+.painelDesktop {
+    padding: 0;
+}
+
+body.modoDesktop .tela {
     max-width: none;
     width: 100%;
     border-radius: 0;
@@ -569,21 +579,9 @@ body.modoDesktop button:not(.navDesktop *):active {
     padding: 28px 24px 60px;
 }
 
-/* o entorno do cartão também precisa ficar escuro quando o Dashboard está
-   ativo (senão sobra a moldura clara do fundo antigo de .painelDesktop nas
-   bordas) e sem o padding/centralização que as outras telas usam --
-   :has() é seguro aqui porque o app só roda em Chrome */
-.painelDesktop:has(#telaDashboard.ativa) {
-    background: var(--navy-900);
-    padding: 0;
-}
-.areaConteudo:has(#telaDashboard.ativa) {
-    background: var(--navy-900);
-}
-
 /* .loginSubtitulo vem do style.css com cor fixa (não usa var(--ink-muted)) --
    precisa de um ajuste manual aqui, senão o texto fica escuro sobre escuro */
-#telaDashboard .loginSubtitulo {
+body.modoDesktop .loginSubtitulo {
     color: var(--ink-muted);
 }
 
