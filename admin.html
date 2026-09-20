@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="admin.css?v=3">
+    <link rel="stylesheet" href="admin.css?v=4">
 </head>
 <body class="modoDesktop">
 
@@ -754,7 +754,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
 <script src="app.js?v=3"></script>
-<script src="admin.js?v=8"></script>
+<script src="admin.js?v=9"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
@@ -778,6 +778,17 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalAcao()">NÃO</button>
             <button class="btn-sim" onclick="confirmarModalAcao()">SIM</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalConfirmacaoModerna" class="modal">
+    <div class="modal-box">
+        <h2 id="confirmacaoModernaTitulo">⚠️ Atenção</h2>
+        <p id="confirmacaoModernaTexto"></p>
+        <div class="botoes">
+            <button class="btn-nao" id="confirmacaoModernaBtnCancelar" onclick="_resolverModalConfirmacaoModerna(false)">Cancelar</button>
+            <button class="btn-sim" id="confirmacaoModernaBtnOk" onclick="_resolverModalConfirmacaoModerna(true)">Confirmar</button>
         </div>
     </div>
 </div>

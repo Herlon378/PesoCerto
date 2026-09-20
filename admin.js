@@ -22,6 +22,46 @@
 })();
 
 // ========================================
+// CONFIRMAÇÃO/AVISO MODERNOS (substitui confirm()/alert() nativos do
+// navegador em todo o painel desktop pelo mesmo cartãozinho escuro já
+// usado nos outros modais do sistema -- um único modal reaproveitado por
+// todo mundo, resolvido por Promise pra poder usar "await" no lugar exato
+// onde antes estava o confirm()/alert() síncrono)
+// ========================================
+let _resolvedorModalConfirmacaoModerna = null;
+
+function confirmarModerno(mensagem, opcoes) {
+    opcoes = opcoes || {};
+    return new Promise(resolve => {
+        _resolvedorModalConfirmacaoModerna = resolve;
+        document.getElementById("confirmacaoModernaTitulo").innerText = opcoes.titulo || "⚠️ Atenção";
+        document.getElementById("confirmacaoModernaTexto").innerText = mensagem;
+        document.getElementById("confirmacaoModernaBtnCancelar").style.display = "inline-block";
+        document.getElementById("confirmacaoModernaBtnOk").innerText = opcoes.textoConfirmar || "Confirmar";
+        document.getElementById("modalConfirmacaoModerna").style.display = "flex";
+    });
+}
+
+function alertarModerno(mensagem, opcoes) {
+    opcoes = opcoes || {};
+    return new Promise(resolve => {
+        _resolvedorModalConfirmacaoModerna = () => resolve(true);
+        document.getElementById("confirmacaoModernaTitulo").innerText = opcoes.titulo || "Aviso";
+        document.getElementById("confirmacaoModernaTexto").innerText = mensagem;
+        document.getElementById("confirmacaoModernaBtnCancelar").style.display = "none";
+        document.getElementById("confirmacaoModernaBtnOk").innerText = "OK";
+        document.getElementById("modalConfirmacaoModerna").style.display = "flex";
+    });
+}
+
+function _resolverModalConfirmacaoModerna(valor) {
+    document.getElementById("modalConfirmacaoModerna").style.display = "none";
+    let resolve = _resolvedorModalConfirmacaoModerna;
+    _resolvedorModalConfirmacaoModerna = null;
+    if (resolve) resolve(valor);
+}
+
+// ========================================
 // GERENCIAMENTO DE USUÁRIOS
 // ========================================
 let usuarioEditandoId = null;
@@ -177,7 +217,7 @@ async function salvarUsuario() {
 }
 
 async function alternarAtivoUsuario(id, novoAtivo) {
-    if (!confirm(novoAtivo ? "Reativar este usuário?" : "Desativar este usuário? Ele não conseguirá mais entrar.")) return;
+    if (!await confirmarModerno(novoAtivo ? "Reativar este usuário?" : "Desativar este usuário? Ele não conseguirá mais entrar.")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
@@ -187,17 +227,17 @@ async function alternarAtivoUsuario(id, novoAtivo) {
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            alert(dados.erro || `Erro ao atualizar usuário (HTTP ${resp.status}).`);
+            await alertarModerno(dados.erro || `Erro ao atualizar usuário (HTTP ${resp.status}).`);
             return;
         }
         carregarUsuarios();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirUsuario(id, nome) {
-    if (!confirm(`Excluir o usuário "${nome}" permanentemente?`)) return;
+    if (!await confirmarModerno(`Excluir o usuário "${nome}" permanentemente?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
@@ -206,12 +246,12 @@ async function excluirUsuario(id, nome) {
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            alert(dados.erro || `Erro ao excluir usuário (HTTP ${resp.status}).`);
+            await alertarModerno(dados.erro || `Erro ao excluir usuário (HTTP ${resp.status}).`);
             return;
         }
         carregarUsuarios();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -308,7 +348,7 @@ async function salvarLote() {
 }
 
 async function alternarAtivoLote(id, novoAtivo) {
-    if (!confirm(novoAtivo ? "Reativar este lote?" : "Desativar este lote? Ele deixa de aparecer na lista do celular.")) return;
+    if (!await confirmarModerno(novoAtivo ? "Reativar este lote?" : "Desativar este lote? Ele deixa de aparecer na lista do celular.")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/lotes/${id}`, {
@@ -318,17 +358,17 @@ async function alternarAtivoLote(id, novoAtivo) {
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            alert(dados.erro || `Erro ao atualizar lote (HTTP ${resp.status}).`);
+            await alertarModerno(dados.erro || `Erro ao atualizar lote (HTTP ${resp.status}).`);
             return;
         }
         carregarLotes();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirLote(id, nome) {
-    if (!confirm(`Excluir o lote "${nome}" permanentemente?`)) return;
+    if (!await confirmarModerno(`Excluir o lote "${nome}" permanentemente?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/lotes/${id}`, {
@@ -337,12 +377,12 @@ async function excluirLote(id, nome) {
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-            alert(dados.erro || `Erro ao excluir lote (HTTP ${resp.status}).`);
+            await alertarModerno(dados.erro || `Erro ao excluir lote (HTTP ${resp.status}).`);
             return;
         }
         carregarLotes();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -467,7 +507,7 @@ async function carregarHistoricoTransferencias() {
 }
 
 async function excluirTransferenciaLote(id) {
-    if (!confirm("Desfazer esta transferência? Os animais voltam pro lote de origem.")) return;
+    if (!await confirmarModerno("Desfazer esta transferência? Os animais voltam pro lote de origem.")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/transferencias-lotes/${id}`, {
@@ -475,10 +515,10 @@ async function excluirTransferenciaLote(id) {
             headers: { "Authorization": "Bearer " + token }
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await atualizarTelasAposMudancaDeLote();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -584,23 +624,23 @@ async function alternarAtivoDepartamento(id, novoAtivo) {
             body: JSON.stringify({ ativo: novoAtivo })
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao atualizar departamento (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao atualizar departamento (HTTP ${resp.status}).`); return; }
         await carregarDepartamentosModal();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirDepartamento(id, nome) {
-    if (!confirm(`Excluir o departamento "${nome}" permanentemente?`)) return;
+    if (!await confirmarModerno(`Excluir o departamento "${nome}" permanentemente?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/departamentos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir departamento (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir departamento (HTTP ${resp.status}).`); return; }
         await carregarDepartamentosModal();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -754,7 +794,7 @@ async function salvarProduto() {
 }
 
 async function alternarAtivoProduto(id, novoAtivo) {
-    if (!confirm(novoAtivo ? "Reativar este produto?" : "Desativar este produto? Ele deixa de aparecer pra seleção de estoque/saída.")) return;
+    if (!await confirmarModerno(novoAtivo ? "Reativar este produto?" : "Desativar este produto? Ele deixa de aparecer pra seleção de estoque/saída.")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/produtos/${id}`, {
@@ -763,23 +803,23 @@ async function alternarAtivoProduto(id, novoAtivo) {
             body: JSON.stringify({ ativo: novoAtivo })
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao atualizar produto (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao atualizar produto (HTTP ${resp.status}).`); return; }
         carregarProdutos();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirProduto(id, descricao) {
-    if (!confirm(`Excluir o produto "${descricao}" permanentemente?`)) return;
+    if (!await confirmarModerno(`Excluir o produto "${descricao}" permanentemente?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/produtos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir produto (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir produto (HTTP ${resp.status}).`); return; }
         carregarProdutos();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -998,7 +1038,7 @@ async function carregarHistoricoSaidas() {
 }
 
 async function excluirEstoqueSaida(id) {
-    if (!confirm("Excluir esta saída? O estoque do produto volta a ficar disponível.")) return;
+    if (!await confirmarModerno("Excluir esta saída? O estoque do produto volta a ficar disponível.")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/estoque-saidas/${id}`, {
@@ -1006,11 +1046,11 @@ async function excluirEstoqueSaida(id) {
             headers: { "Authorization": "Bearer " + token }
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir saída (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir saída (HTTP ${resp.status}).`); return; }
         await carregarProdutosAdmin();
         carregarHistoricoSaidas();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -1903,23 +1943,23 @@ async function alternarAtivoSubCaixa(id, novoAtivo) {
             body: JSON.stringify({ ativo: novoAtivo })
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao atualizar sub-caixa (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao atualizar sub-caixa (HTTP ${resp.status}).`); return; }
         await mostrarSubCaixas();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirSubCaixa(id, nome) {
-    if (!confirm(`Excluir o sub-caixa "${nome}"? Os lançamentos já marcados com ele continuam existindo normalmente, só perdem essa etiqueta.`)) return;
+    if (!await confirmarModerno(`Excluir o sub-caixa "${nome}"? Os lançamentos já marcados com ele continuam existindo normalmente, só perdem essa etiqueta.`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/sub-caixas/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir sub-caixa (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir sub-caixa (HTTP ${resp.status}).`); return; }
         await mostrarSubCaixas();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -2194,7 +2234,7 @@ async function salvarLancamento() {
 }
 
 async function excluirLancamento(id) {
-    if (!confirm("Excluir este lançamento?")) return;
+    if (!await confirmarModerno("Excluir este lançamento?")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/caixa-lancamentos/${id}`, {
@@ -2202,16 +2242,16 @@ async function excluirLancamento(id) {
             headers: { "Authorization": "Bearer " + token }
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir lançamento (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir lançamento (HTTP ${resp.status}).`); return; }
         await carregarCaixaLancamentosAdmin();
         mostrarFluxoCaixa();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirEntradaEstoque(id, produtoDescricao) {
-    if (!confirm(`Excluir esta entrada de "${produtoDescricao}"? Só é possível se esse estoque ainda não tiver sido consumido em nenhuma saída.`)) return;
+    if (!await confirmarModerno(`Excluir esta entrada de "${produtoDescricao}"? Só é possível se esse estoque ainda não tiver sido consumido em nenhuma saída.`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/estoque-entradas/${id}`, {
@@ -2219,10 +2259,10 @@ async function excluirEntradaEstoque(id, produtoDescricao) {
             headers: { "Authorization": "Bearer " + token }
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir entrada (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir entrada (HTTP ${resp.status}).`); return; }
         await carregarEstoque();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -2442,15 +2482,15 @@ async function salvarContaPagar() {
 }
 
 async function excluirContaPagar(id, descricao) {
-    if (!confirm(`Excluir a conta "${descricao}" e todas as suas parcelas?`)) return;
+    if (!await confirmarModerno(`Excluir a conta "${descricao}" e todas as suas parcelas?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/contas-pagar/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await abrirTelaContasPagar();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -2576,7 +2616,7 @@ async function confirmarEditarParcela() {
 }
 
 async function estornarPagamentoParcela(parcelaId) {
-    if (!confirm("Estornar esse pagamento? O lançamento correspondente no Fluxo de Caixa será removido.")) return;
+    if (!await confirmarModerno("Estornar esse pagamento? O lançamento correspondente no Fluxo de Caixa será removido.")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaId}/estornar`, {
@@ -2584,12 +2624,12 @@ async function estornarPagamentoParcela(parcelaId) {
             headers: { "Authorization": "Bearer " + token }
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao estornar (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao estornar (HTTP ${resp.status}).`); return; }
 
         await abrirTelaContasPagar();
         atualizarRelatoriosFinanceirosAposMudanca();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -2743,15 +2783,15 @@ async function salvarEnergia() {
 }
 
 async function excluirEnergia(id) {
-    if (!confirm("Excluir este lançamento de energia? A Contas a Pagar vinculada também será excluída (se ainda não paga).")) return;
+    if (!await confirmarModerno("Excluir este lançamento de energia? A Contas a Pagar vinculada também será excluída (se ainda não paga).")) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/energia/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await abrirTelaEnergia();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -2932,15 +2972,15 @@ async function salvarFuncionario() {
 }
 
 async function excluirFuncionario(id, nome) {
-    if (!confirm(`Excluir o funcionário "${nome}"? Só é possível se ele nunca teve folha ou adiantamento lançado — considere desativá-lo em vez de excluir.`)) return;
+    if (!await confirmarModerno(`Excluir o funcionário "${nome}"? Só é possível se ele nunca teve folha ou adiantamento lançado — considere desativá-lo em vez de excluir.`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/funcionarios/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await abrirTelaFuncionarios();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -3011,8 +3051,8 @@ function mostrarFolhaPagamento() {
 async function gerarFolhaPagamento() {
     let input = document.getElementById("folhaCompetenciaInput");
     let competencia = input ? input.value : "";
-    if (!competencia) { alert("Selecione a competência antes de gerar a folha."); return; }
-    if (!confirm(`Gerar a folha de pagamento da competência ${competencia} para os funcionários ativos que ainda não têm folha gerada nesse mês?`)) return;
+    if (!competencia) { await alertarModerno("Selecione a competência antes de gerar a folha."); return; }
+    if (!await confirmarModerno(`Gerar a folha de pagamento da competência ${competencia} para os funcionários ativos que ainda não têm folha gerada nesse mês?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/folha-pagamento/gerar`, {
@@ -3021,17 +3061,17 @@ async function gerarFolhaPagamento() {
             body: JSON.stringify({ competencia })
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao gerar folha (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao gerar folha (HTTP ${resp.status}).`); return; }
 
         let msg = `Folha gerada para ${dados.geradas.length} funcionário(s).`;
         if (dados.puladas.length > 0) msg += ` Pulados (já tinham folha gerada nesse mês, ou valor líquido zerado/negativo): ${dados.puladas.join(", ")}.`;
-        alert(msg);
+        await alertarModerno(msg);
 
         await carregarContasPagarAdmin();
         mostrarFolhaPagamento();
         mostrarResumoSalarios();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -3121,16 +3161,16 @@ async function salvarAdiantamento() {
 }
 
 async function excluirAdiantamento(id, nomeFunc) {
-    if (!confirm(`Excluir o adiantamento de ${nomeFunc}? O lançamento correspondente no Fluxo de Caixa também será removido.`)) return;
+    if (!await confirmarModerno(`Excluir o adiantamento de ${nomeFunc}? O lançamento correspondente no Fluxo de Caixa também será removido.`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/adiantamentos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await abrirTelaAdiantamentos();
         atualizarRelatoriosFinanceirosAposMudanca();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -3230,9 +3270,9 @@ function desenharReciboVale(pdf, a, nomeFunc, cargoFunc) {
     pdf.text("Assinatura do Responsável", 115, y);
 }
 
-function gerarReciboVale(adiantamentoId) {
+async function gerarReciboVale(adiantamentoId) {
     let a = adiantamentosCacheAdmin.find(x => x.id === adiantamentoId);
-    if (!a) { alert("Adiantamento não encontrado."); return; }
+    if (!a) { await alertarModerno("Adiantamento não encontrado."); return; }
     let f = funcionariosCacheAdmin.find(x => x.id === a.funcionarioId);
     let nomeFunc = f ? f.nome : "—";
     let cargoFunc = f && f.cargo ? f.cargo : "—";
@@ -3252,11 +3292,11 @@ function gerarReciboVale(adiantamentoId) {
     abrirPdfParaImpressao(pdf);
 }
 
-function gerarReciboSalario(contaId) {
+async function gerarReciboSalario(contaId) {
     let c = contasPagarCacheAdmin.find(x => x.id === contaId);
-    if (!c) { alert("Folha não encontrada."); return; }
+    if (!c) { await alertarModerno("Folha não encontrada."); return; }
     let parcela = c.parcelas[0];
-    if (!parcela || !parcela.paga) { alert("Essa folha ainda não foi paga."); return; }
+    if (!parcela || !parcela.paga) { await alertarModerno("Essa folha ainda não foi paga."); return; }
 
     let f = funcionariosCacheAdmin.find(x => x.id === c.funcionarioId);
     let nomeFunc = f ? f.nome : "—";
@@ -3471,23 +3511,23 @@ async function alternarAtivoPasto(id, novoAtivo) {
             body: JSON.stringify({ ativo: novoAtivo })
         });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao atualizar pasto (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao atualizar pasto (HTTP ${resp.status}).`); return; }
         carregarPastos();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
 async function excluirPasto(id, nome) {
-    if (!confirm(`Excluir o pasto "${nome}" permanentemente?`)) return;
+    if (!await confirmarModerno(`Excluir o pasto "${nome}" permanentemente?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/pastos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir pasto (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir pasto (HTTP ${resp.status}).`); return; }
         carregarPastos();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -3631,17 +3671,17 @@ async function salvarVaca() {
 }
 
 async function excluirVaca(id, numero) {
-    if (!confirm(`Excluir a vaca "${numero}" permanentemente? Os nascimentos já registrados dela continuam existindo.`)) return;
+    if (!await confirmarModerno(`Excluir a vaca "${numero}" permanentemente? Os nascimentos já registrados dela continuam existindo.`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/vacas-matriz/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await carregarVacasMatrizAdmin();
         mostrarVacas();
         mostrarResumoVacasMatriz();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 
@@ -3786,17 +3826,17 @@ async function salvarNascimento() {
 }
 
 async function excluirNascimento(id, numeroBezerro) {
-    if (!confirm(`Excluir o registro de nascimento do bezerro "${numeroBezerro}"?`)) return;
+    if (!await confirmarModerno(`Excluir o registro de nascimento do bezerro "${numeroBezerro}"?`)) return;
     try {
         let token = obterToken();
         let resp = await fetch(`${API_URL}/api/nascimentos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
         let dados = await resp.json().catch(() => ({}));
-        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await carregarNascimentosAdmin();
         mostrarNascimentos();
         mostrarResumoVacasMatriz();
     } catch (e) {
-        alert("Erro de conexão: " + e.message);
+        await alertarModerno("Erro de conexão: " + e.message);
     }
 }
 

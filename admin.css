@@ -977,6 +977,15 @@ body.modoDesktop .modal-box {
     border: 1px solid var(--border);
     padding: 28px;
     text-align: left;
+    /* .modal-box vem do style.css com background:white fixo -- sem isso
+       aqui o texto (herdando --ink claro de body.modoDesktop) fica
+       praticamente invisível em cima do branco. */
+    background: var(--surface);
+    color: var(--ink);
+}
+
+body.modoDesktop .linhaCheckboxCiente {
+    color: var(--ink-muted);
 }
 
 body.modoDesktop .modal-box h2 {
