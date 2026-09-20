@@ -23,6 +23,7 @@
     <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
     <button data-tela="telaContasPagar" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();">🧾 Contas a Pagar</button>
     <button data-tela="telaEnergia" onclick="trocarTela('telaEnergia'); abrirTelaEnergia();">⚡ Energia</button>
+    <button data-tela="telaSalarios" onclick="trocarTela('telaSalarios'); abrirTelaSalarios();">💰 Salários</button>
     <button data-tela="telaVacasMatriz" onclick="trocarTela('telaVacasMatriz'); abrirTelaVacasMatriz();">🐄 Vacas Matriz</button>
     <div class="navRodape">
         <span class="navRodapeLogo">🐂</span>
@@ -554,6 +555,88 @@
     </table>
 </div>
 
+<div id="telaSalarios" class="tela">
+    <h2>💰 Salários</h2>
+    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+        Cadastro de funcionários, adiantamentos por competência e geração mensal da folha — cada salário pago vira uma Conta a Pagar de verdade, aparecendo automaticamente lá também.
+    </p>
+    <div class="almoxHubGrade" style="margin-bottom:20px">
+        <button class="almoxHubBotao" onclick="trocarTela('telaFuncionarios'); abrirTelaFuncionarios();">
+            <span class="almoxHubIcone">👤</span>
+            <span>Funcionários</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaFolhaPagamento'); abrirTelaFolhaPagamento();">
+            <span class="almoxHubIcone">📄</span>
+            <span>Folha de Pagamento</span>
+        </button>
+        <button class="almoxHubBotao" onclick="trocarTela('telaAdiantamentos'); abrirTelaAdiantamentos();">
+            <span class="almoxHubIcone">💵</span>
+            <span>Adiantamentos</span>
+        </button>
+    </div>
+
+    <div class="dashKpiRow">
+        <div class="statTile">
+            <span class="statTileLabel">👥 Funcionários Ativos</span>
+            <span class="statTileValor" id="salFuncionariosAtivos">0</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">💰 Folha do Mês Atual (bruta)</span>
+            <span class="statTileValor" id="salFolhaMesBruta">R$ 0,00</span>
+        </div>
+        <div class="statTile">
+            <span class="statTileLabel">💵 Adiantamentos no Mês Atual</span>
+            <span class="statTileValor" id="salAdiantamentosMes">R$ 0,00</span>
+        </div>
+    </div>
+</div>
+
+<div id="telaFuncionarios" class="tela">
+    <h2>Funcionários</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalFuncionario()" style="background:#2e7d32">➕ Novo Funcionário</button>
+        <button onclick="trocarTela('telaSalarios')" style="background:#666">← Salários</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Nome</th><th>Cargo</th><th>Salário</th><th>Dia Pagamento</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaFuncionarios"></tbody>
+    </table>
+</div>
+
+<div id="telaFolhaPagamento" class="tela">
+    <h2>Folha de Pagamento</h2>
+    <div class="botoesRelatorio">
+        <button onclick="trocarTela('telaSalarios')" style="background:#666">← Salários</button>
+    </div>
+    <div class="dashFiltros">
+        <p class="loginSubtitulo" style="text-align:left; margin:0 6px 0 0">Competência:</p>
+        <input id="folhaCompetenciaInput" type="month" onchange="mostrarFolhaPagamento()">
+        <button onclick="gerarFolhaPagamento()" style="background:#2e7d32">⚙️ Gerar Folha do Mês</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Funcionário</th><th>Salário Bruto</th><th>Adiantamentos</th><th>Valor Líquido</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaFolhaPagamento"></tbody>
+    </table>
+</div>
+
+<div id="telaAdiantamentos" class="tela">
+    <h2>Adiantamentos</h2>
+    <div class="botoesRelatorio">
+        <button onclick="abrirModalAdiantamento()" style="background:#2e7d32">➕ Novo Adiantamento</button>
+        <button onclick="trocarTela('telaSalarios')" style="background:#666">← Salários</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Data</th><th>Funcionário</th><th>Competência</th><th>Valor</th><th>Observação</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaAdiantamentos"></tbody>
+    </table>
+</div>
+
 <div id="telaVacasMatriz" class="tela">
     <h2>🐄 Vacas Matriz</h2>
     <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
@@ -671,7 +754,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
 <script src="app.js?v=3"></script>
-<script src="admin.js?v=4"></script>
+<script src="admin.js?v=5"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
@@ -890,6 +973,47 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalEditarParcela()">Cancelar</button>
             <button class="btn-sim" onclick="confirmarEditarParcela()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalFuncionario" class="modal">
+    <div class="modal-box">
+        <h2 id="modalFuncionarioTitulo">➕ Novo Funcionário</h2>
+        <input id="funcNomeInput" placeholder="Nome completo">
+        <input id="funcCargoInput" placeholder="Cargo (opcional)">
+        <input id="funcSalarioInput" placeholder="Salário (R$)" inputmode="decimal">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Dia do pagamento (mês seguinte à competência)</p>
+        <input id="funcDiaPagamentoInput" placeholder="Ex: 5" inputmode="numeric" value="5">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Data de admissão (opcional)</p>
+        <input id="funcDataAdmissaoInput" type="date">
+        <input id="funcObservacoesInput" placeholder="Observações (opcional)">
+        <label class="linhaCheckboxCiente" id="funcAtivoLinha" style="display:none">
+            <input type="checkbox" id="funcAtivoInput" checked>
+            <span>Ativo</span>
+        </label>
+        <p id="funcErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalFuncionario()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarFuncionario()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalAdiantamento" class="modal">
+    <div class="modal-box">
+        <h2>💵 Novo Adiantamento</h2>
+        <select id="adiFuncionarioInput"><option value="">Selecione o funcionário</option></select>
+        <input id="adiValorInput" placeholder="Valor (R$)" inputmode="decimal">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Data</p>
+        <input id="adiDataInput" type="date">
+        <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Competência que esse adiantamento abate</p>
+        <input id="adiCompetenciaInput" type="month">
+        <input id="adiObservacoesInput" placeholder="Observação (opcional)">
+        <p id="adiErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalAdiantamento()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarAdiantamento()">Salvar</button>
         </div>
     </div>
 </div>

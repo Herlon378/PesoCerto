@@ -2487,6 +2487,8 @@ function atualizarRelatoriosFinanceirosAposMudanca() {
     if (typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
     if (typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
     if (typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
+    if (typeof mostrarFolhaPagamento === "function") mostrarFolhaPagamento();
+    if (typeof mostrarResumoSalarios === "function") mostrarResumoSalarios();
 }
 
 async function confirmarPagarParcela() {
@@ -2748,6 +2750,382 @@ async function excluirEnergia(id) {
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
         await abrirTelaEnergia();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ========================================
+// SALÁRIOS
+// ========================================
+// Folha de pagamento NÃO tem tabela própria de pagamentos: cada salário de
+// um funcionário numa competência é uma contas_pagar comum (1 parcela),
+// marcada com funcionarioId/competencia -- pagar/editar/estornar já
+// funcionam de graça reaproveitando as funções de Contas a Pagar acima.
+// Adiantamento é diferente: já saiu do caixa na hora, então é um
+// caixa_lancamentos direto (o servidor cuida disso).
+let funcionariosCacheAdmin = [];
+let adiantamentosCacheAdmin = [];
+let funcionarioEmEdicaoId = null;
+
+function competenciaAtualPadrao() {
+    return new Date().toISOString().slice(0, 7);
+}
+
+function nomeFuncionario(id) {
+    let f = funcionariosCacheAdmin.find(x => x.id === id);
+    return f ? f.nome : "—";
+}
+
+async function carregarFuncionariosAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/funcionarios`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        funcionariosCacheAdmin = await resp.json();
+        return funcionariosCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function carregarAdiantamentosAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/adiantamentos`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        adiantamentosCacheAdmin = await resp.json();
+        return adiantamentosCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+async function abrirTelaSalarios() {
+    await Promise.all([carregarFuncionariosAdmin(), carregarAdiantamentosAdmin(), carregarContasPagarAdmin()]);
+    mostrarResumoSalarios();
+}
+
+function mostrarResumoSalarios() {
+    let elAtivos = document.getElementById("salFuncionariosAtivos");
+    if (elAtivos) elAtivos.innerText = String(funcionariosCacheAdmin.filter(f => f.ativo).length);
+
+    let competenciaAtual = competenciaAtualPadrao();
+
+    let folhaBruta = 0;
+    contasPagarCacheAdmin.forEach(c => {
+        if (c.competencia === competenciaAtual && c.categoria === "Salário") folhaBruta += c.valorTotal;
+    });
+    let elFolha = document.getElementById("salFolhaMesBruta");
+    if (elFolha) elFolha.innerText = "R$ " + formatarMoeda(folhaBruta);
+
+    let adiantamentosMes = 0;
+    adiantamentosCacheAdmin.forEach(a => {
+        if (a.competencia === competenciaAtual) adiantamentosMes += a.valor;
+    });
+    let elAdi = document.getElementById("salAdiantamentosMes");
+    if (elAdi) elAdi.innerText = "R$ " + formatarMoeda(adiantamentosMes);
+}
+
+// ---------- Funcionários ----------
+
+async function abrirTelaFuncionarios() {
+    await carregarFuncionariosAdmin();
+    mostrarFuncionarios();
+}
+
+function mostrarFuncionarios() {
+    let corpo = document.getElementById("corpoTabelaFuncionarios");
+    if (!corpo) return;
+    if (funcionariosCacheAdmin.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="6">Nenhum funcionário cadastrado.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = funcionariosCacheAdmin.map(f => `
+        <tr>
+            <td>${f.nome}</td>
+            <td>${f.cargo || "—"}</td>
+            <td>R$ ${formatarMoeda(f.salario)}</td>
+            <td>Dia ${f.diaPagamento}</td>
+            <td style="color:${f.ativo ? "#0ca30c" : "#d03b3b"}">${f.ativo ? "Ativo" : "Inativo"}</td>
+            <td class="acoesUsuario">
+                <button onclick='abrirModalFuncionario(${JSON.stringify(f.id)})'>✏️</button>
+                <button onclick='excluirFuncionario(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'>🗑️</button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function abrirModalFuncionario(id) {
+    funcionarioEmEdicaoId = id || null;
+    let f = id ? funcionariosCacheAdmin.find(x => x.id === id) : null;
+    document.getElementById("modalFuncionarioTitulo").innerText = f ? "✏️ Editar Funcionário" : "➕ Novo Funcionário";
+    document.getElementById("funcNomeInput").value = f ? f.nome : "";
+    document.getElementById("funcCargoInput").value = f ? (f.cargo || "") : "";
+    document.getElementById("funcSalarioInput").value = f ? String(f.salario).replace(".", ",") : "";
+    document.getElementById("funcDiaPagamentoInput").value = f ? f.diaPagamento : "5";
+    document.getElementById("funcDataAdmissaoInput").value = f ? (extrairDataISO(f.dataAdmissao) || "") : "";
+    document.getElementById("funcObservacoesInput").value = f ? (f.observacoes || "") : "";
+    let linhaAtivo = document.getElementById("funcAtivoLinha");
+    if (linhaAtivo) linhaAtivo.style.display = f ? "flex" : "none";
+    document.getElementById("funcAtivoInput").checked = f ? f.ativo : true;
+    let erroEl = document.getElementById("funcErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalFuncionario").style.display = "flex";
+}
+
+function fecharModalFuncionario() {
+    document.getElementById("modalFuncionario").style.display = "none";
+    funcionarioEmEdicaoId = null;
+}
+
+async function salvarFuncionario() {
+    let erroEl = document.getElementById("funcErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let nome = document.getElementById("funcNomeInput").value.trim();
+        let cargo = document.getElementById("funcCargoInput").value.trim();
+        let salario = parseFloat(document.getElementById("funcSalarioInput").value.replace(",", "."));
+        let diaPagamento = parseInt(document.getElementById("funcDiaPagamentoInput").value, 10);
+        let dataAdmissaoISO = document.getElementById("funcDataAdmissaoInput").value;
+        let observacoes = document.getElementById("funcObservacoesInput").value.trim();
+
+        if (!nome) { mostrarErro("Informe o nome."); return; }
+        if (!Number.isFinite(salario) || salario <= 0) { mostrarErro("Informe um salário válido."); return; }
+        if (!Number.isInteger(diaPagamento) || diaPagamento < 1 || diaPagamento > 31) { mostrarErro("Dia de pagamento inválido (1 a 31)."); return; }
+
+        let corpo = {
+            nome, cargo: cargo || null, salario, diaPagamento,
+            dataAdmissao: dataAdmissaoISO ? formatarDataBR(dataAdmissaoISO) : null,
+            observacoes: observacoes || null
+        };
+
+        let resp;
+        if (funcionarioEmEdicaoId) {
+            corpo.ativo = document.getElementById("funcAtivoInput").checked;
+            resp = await fetch(`${API_URL}/api/funcionarios/${funcionarioEmEdicaoId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify(corpo)
+            });
+        } else {
+            resp = await fetch(`${API_URL}/api/funcionarios`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify(corpo)
+            });
+        }
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        fecharModalFuncionario();
+        await abrirTelaFuncionarios();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirFuncionario(id, nome) {
+    if (!confirm(`Excluir o funcionário "${nome}"? Só é possível se ele nunca teve folha ou adiantamento lançado — considere desativá-lo em vez de excluir.`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/funcionarios/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await abrirTelaFuncionarios();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ---------- Folha de Pagamento ----------
+
+async function abrirTelaFolhaPagamento() {
+    let input = document.getElementById("folhaCompetenciaInput");
+    if (input && !input.value) input.value = competenciaAtualPadrao();
+    await Promise.all([carregarFuncionariosAdmin(), carregarAdiantamentosAdmin(), carregarContasPagarAdmin()]);
+    mostrarFolhaPagamento();
+}
+
+function mostrarFolhaPagamento() {
+    let corpo = document.getElementById("corpoTabelaFolhaPagamento");
+    if (!corpo) return;
+    let input = document.getElementById("folhaCompetenciaInput");
+    let competencia = input ? input.value : "";
+    if (!competencia) {
+        corpo.innerHTML = `<tr><td colspan="7">Selecione uma competência.</td></tr>`;
+        return;
+    }
+
+    let ativos = funcionariosCacheAdmin.filter(f => f.ativo);
+    if (ativos.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="7">Nenhum funcionário ativo cadastrado.</td></tr>`;
+        return;
+    }
+
+    corpo.innerHTML = ativos.map(f => {
+        let contaGerada = contasPagarCacheAdmin.find(c => c.funcionarioId === f.id && c.competencia === competencia);
+        let adiantamentosFunc = adiantamentosCacheAdmin.filter(a => a.funcionarioId === f.id && a.competencia === competencia);
+        let totalAdiantamentos = adiantamentosFunc.reduce((s, a) => s + a.valor, 0);
+
+        if (contaGerada) {
+            let parcela = contaGerada.parcelas[0];
+            let status = statusParcela(parcela);
+            let acoes = status.chave === "paga"
+                ? `<button onclick='estornarPagamentoParcela(${JSON.stringify(parcela.id)})'>↩️ Estornar</button>`
+                : `<button onclick='abrirModalPagarParcela(${JSON.stringify(parcela.id)})'>💰 Pagar</button><button onclick='abrirModalEditarParcela(${JSON.stringify(parcela.id)})'>✏️</button>`;
+            return `
+                <tr>
+                    <td>${f.nome}</td>
+                    <td>R$ ${formatarMoeda(f.salario)}</td>
+                    <td>R$ ${formatarMoeda(totalAdiantamentos)}</td>
+                    <td>R$ ${formatarMoeda(contaGerada.valorTotal)}</td>
+                    <td>${parcela.dataVencimento ? parcela.dataVencimento.split(",")[0] : "—"}</td>
+                    <td style="color:${status.cor}">${status.texto}</td>
+                    <td class="acoesUsuario">${acoes}</td>
+                </tr>
+            `;
+        }
+
+        let valorLiquidoProjetado = f.salario - totalAdiantamentos;
+        return `
+            <tr style="opacity:0.75">
+                <td>${f.nome}</td>
+                <td>R$ ${formatarMoeda(f.salario)}</td>
+                <td>R$ ${formatarMoeda(totalAdiantamentos)}</td>
+                <td>R$ ${formatarMoeda(valorLiquidoProjetado)}</td>
+                <td>—</td>
+                <td style="color:#7c869e">Folha não gerada</td>
+                <td class="acoesUsuario">—</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function gerarFolhaPagamento() {
+    let input = document.getElementById("folhaCompetenciaInput");
+    let competencia = input ? input.value : "";
+    if (!competencia) { alert("Selecione a competência antes de gerar a folha."); return; }
+    if (!confirm(`Gerar a folha de pagamento da competência ${competencia} para os funcionários ativos que ainda não têm folha gerada nesse mês?`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/folha-pagamento/gerar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ competencia })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao gerar folha (HTTP ${resp.status}).`); return; }
+
+        let msg = `Folha gerada para ${dados.geradas.length} funcionário(s).`;
+        if (dados.puladas.length > 0) msg += ` Pulados (já tinham folha gerada nesse mês, ou valor líquido zerado/negativo): ${dados.puladas.join(", ")}.`;
+        alert(msg);
+
+        await carregarContasPagarAdmin();
+        mostrarFolhaPagamento();
+        mostrarResumoSalarios();
+    } catch (e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// ---------- Adiantamentos ----------
+
+async function abrirTelaAdiantamentos() {
+    await Promise.all([carregarFuncionariosAdmin(), carregarAdiantamentosAdmin()]);
+    mostrarAdiantamentos();
+}
+
+function mostrarAdiantamentos() {
+    let corpo = document.getElementById("corpoTabelaAdiantamentos");
+    if (!corpo) return;
+    if (adiantamentosCacheAdmin.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="6">Nenhum adiantamento registrado.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = adiantamentosCacheAdmin.map(a => `
+        <tr>
+            <td>${a.data ? a.data.split(",")[0] : "—"}</td>
+            <td>${nomeFuncionario(a.funcionarioId)}</td>
+            <td>${a.competencia}</td>
+            <td>R$ ${formatarMoeda(a.valor)}</td>
+            <td>${a.observacoes || "—"}</td>
+            <td class="acoesUsuario"><button onclick='excluirAdiantamento(${JSON.stringify(a.id)}, ${JSON.stringify(nomeFuncionario(a.funcionarioId))})'>🗑️</button></td>
+        </tr>
+    `).join("");
+}
+
+async function abrirModalAdiantamento() {
+    await carregarFuncionariosAdmin();
+    let select = document.getElementById("adiFuncionarioInput");
+    select.innerHTML = `<option value="">Selecione o funcionário</option>` +
+        funcionariosCacheAdmin.filter(f => f.ativo).map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
+    document.getElementById("adiValorInput").value = "";
+    document.getElementById("adiDataInput").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("adiCompetenciaInput").value = competenciaAtualPadrao();
+    document.getElementById("adiObservacoesInput").value = "";
+    let erroEl = document.getElementById("adiErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalAdiantamento").style.display = "flex";
+}
+
+function fecharModalAdiantamento() {
+    document.getElementById("modalAdiantamento").style.display = "none";
+}
+
+async function salvarAdiantamento() {
+    let erroEl = document.getElementById("adiErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let funcionarioId = document.getElementById("adiFuncionarioInput").value;
+        let valor = parseFloat(document.getElementById("adiValorInput").value.replace(",", "."));
+        let dataISO = document.getElementById("adiDataInput").value;
+        let competencia = document.getElementById("adiCompetenciaInput").value;
+        let observacoes = document.getElementById("adiObservacoesInput").value.trim();
+
+        if (!funcionarioId) { mostrarErro("Selecione o funcionário."); return; }
+        if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
+        if (!dataISO) { mostrarErro("Informe a data."); return; }
+        if (!competencia) { mostrarErro("Informe a competência."); return; }
+
+        let resp = await fetch(`${API_URL}/api/adiantamentos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({
+                funcionarioId, valor, data: formatarDataBR(dataISO), competencia,
+                observacoes: observacoes || null
+            })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+
+        fecharModalAdiantamento();
+        await abrirTelaAdiantamentos();
+        atualizarRelatoriosFinanceirosAposMudanca();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirAdiantamento(id, nomeFunc) {
+    if (!confirm(`Excluir o adiantamento de ${nomeFunc}? O lançamento correspondente no Fluxo de Caixa também será removido.`)) return;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/adiantamentos/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await abrirTelaAdiantamentos();
+        atualizarRelatoriosFinanceirosAposMudanca();
     } catch (e) {
         alert("Erro de conexão: " + e.message);
     }
