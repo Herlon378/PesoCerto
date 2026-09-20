@@ -1647,6 +1647,20 @@ async function mostrarResultadoMensal() {
         return porMes[chave];
     }
 
+    // garante que TODO mês com algum movimento apareça na tabela -- mesmo
+    // um mês só de compra (sem venda nenhuma ainda), que do contrário
+    // "sumia" da lista e parecia dado faltando. O resultado desse mês fica
+    // zero mesmo (não é prejuízo nem lucro, só não vendeu nada ainda) --
+    // ver formatarResultado() abaixo pra como isso é mostrado.
+    function marcarMesComAtividade(dataStr) {
+        let dm = extrairMesAnoDaData(dataStr);
+        if (dm) grupoDoMes(dm.ano, dm.mes);
+    }
+    relatorios.forEach(r => marcarMesComAtividade(r.data));
+    caixaLancamentosCacheAdmin.forEach(l => marcarMesComAtividade(l.data));
+    estoqueSaidasCacheAdmin.forEach(s => marcarMesComAtividade(s.data));
+    transferenciasLotesCacheAdmin.forEach(t => marcarMesComAtividade(t.data));
+
     relatorios.forEach(r => {
         if ((r.tipo || "venda") !== "venda") return;
         let dm = extrairMesAnoDaData(r.data);
@@ -1673,7 +1687,11 @@ async function mostrarResultadoMensal() {
         return;
     }
 
-    function formatarResultado(valor) {
+    function formatarResultado(valor, semMovimentoDeResultado) {
+        // mês que só teve compra/insumo/transferência (nenhuma venda, nenhuma
+        // despesa geral) não é "lucro zero" -- é "ainda não vendeu nada" --
+        // mostra neutro em vez do ▲ verde, que ia parecer lucro de verdade
+        if (semMovimentoDeResultado) return `<span style="color:#999">— (sem vendas neste mês)</span>`;
         let positivo = valor >= 0;
         return `<span style="color:${positivo ? '#0ca30c' : '#d03b3b'}">${positivo ? '▲' : '▼'} R$ ${formatarMoeda(Math.abs(valor))}</span>`;
     }
@@ -1681,13 +1699,14 @@ async function mostrarResultadoMensal() {
     corpo.innerHTML = chaves.map(chave => {
         let g = porMes[chave];
         let resultado = g.receitaVendas - g.custoGadoVendido - g.despesasGerais;
+        let semMovimentoDeResultado = g.receitaVendas === 0 && g.custoGadoVendido === 0 && g.despesasGerais === 0;
         return `
             <tr>
                 <td>${NOMES_MESES_RESULTADO[g.mes]}/${g.ano}</td>
                 <td>R$ ${formatarMoeda(g.receitaVendas)}</td>
                 <td>R$ ${formatarMoeda(g.custoGadoVendido)}</td>
                 <td>R$ ${formatarMoeda(g.despesasGerais)}</td>
-                <td>${formatarResultado(resultado)}</td>
+                <td>${formatarResultado(resultado, semMovimentoDeResultado)}</td>
             </tr>
         `;
     }).join("");
