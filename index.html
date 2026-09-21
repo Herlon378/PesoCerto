@@ -22,27 +22,104 @@
 </div>
 
 <div id="telaMenu" class="tela">
-    <h2>🐂 PesoCerto</h2>
-    <div class="barraSync">
-        <span id="statusSync">⚠️ Sincronização não configurada</span>
-        <button id="btnLoginLogout" onclick="sair()">🚪 Sair</button>
-        <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
+    <div class="menuHeader">
+        <span class="menuLogo">🐂</span>
+        <div>
+            <h1 class="menuTitulo">Peso<span class="menuTituloDestaque">Certo</span></h1>
+            <p class="menuSubtitulo">Mais controle, melhores resultados</p>
+        </div>
     </div>
-    <button class="btnGrande btnMenu btnMenuVerde" onclick="trocarTela('telaInicial')">
-        <span class="btnMenuIcone">➕</span><span class="btnMenuTexto">Nova Pesagem</span>
+
+    <div class="barraSync">
+        <span id="statusSync" class="pillSync">⚠️ Sincronização não configurada</span>
+        <button class="pillSino" id="btnSino" onclick="trocarTela('telaMensagens'); abrirTelaMensagensMobile();">
+            🔔<span class="badgeSino" id="badgeMensagens" style="display:none">0</span>
+        </button>
+        <button class="pillAcao" onclick="sincronizarAgora()">🔄</button>
+        <button class="pillPerfil" id="btnLoginLogout" onclick="sair()">🚪</button>
+    </div>
+
+    <button class="cardMenuHero" onclick="trocarTela('telaInicial')">
+        <span class="cardMenuHeroIcone">➕</span>
+        <span class="cardMenuHeroTextos">
+            <strong>Nova Pesagem</strong>
+            <small>Registre uma nova pesagem de forma rápida e fácil.</small>
+        </span>
+        <span class="cardMenuSeta">›</span>
     </button>
-    <button class="btnGrande btnMenu btnMenuAzul" onclick="abrirRelatorios()">
-        <span class="btnMenuIcone">📋</span><span class="btnMenuTexto">Relatórios</span>
-    </button>
-    <button class="btnGrande btnMenu btnMenuRoxo" onclick="abrirDashboard()">
-        <span class="btnMenuIcone">📊</span><span class="btnMenuTexto">Dashboard</span>
-    </button>
-    <button class="btnGrande btnMenu btnMenuTeal" id="btnMenuAlmoxarifado" style="display:none" onclick="trocarTela('telaSaidaAlmoxarifado'); abrirTelaSaidaAlmoxarifadoMobile();">
-        <span class="btnMenuIcone">📦</span><span class="btnMenuTexto">Saída de Produtos</span>
-    </button>
-    <button class="btnGrande btnMenu btnMenuMarrom" id="btnMenuVacasMatriz" style="display:none" onclick="trocarTela('telaVacasMatrizMobile'); abrirTelaVacasMatrizMobile();">
-        <span class="btnMenuIcone">🐄</span><span class="btnMenuTexto">Vacas Matriz</span>
-    </button>
+
+    <div class="menuGrade2x2">
+        <button class="cardMenu cardMenuAzul" onclick="abrirRelatorios()">
+            <span class="cardMenuIcone">📋</span>
+            <strong>Relatórios</strong>
+            <small>Visualize e gerencie seus relatórios.</small>
+            <span class="cardMenuSeta">›</span>
+        </button>
+        <button class="cardMenu cardMenuRoxo" onclick="abrirDashboard()">
+            <span class="cardMenuIcone">📊</span>
+            <strong>Dashboard</strong>
+            <small>Acompanhe seus indicadores em tempo real.</small>
+            <span class="cardMenuSeta">›</span>
+        </button>
+        <button class="cardMenu cardMenuVerde" id="btnMenuAlmoxarifado" style="display:none" onclick="trocarTela('telaSaidaAlmoxarifado'); abrirTelaSaidaAlmoxarifadoMobile();">
+            <span class="cardMenuIcone">📦</span>
+            <strong>Saída de Produtos</strong>
+            <small>Registre a saída de produtos do seu estoque.</small>
+            <span class="cardMenuSeta">›</span>
+        </button>
+        <button class="cardMenu cardMenuLaranja" id="btnMenuVacasMatriz" style="display:none" onclick="trocarTela('telaVacasMatrizMobile'); abrirTelaVacasMatrizMobile();">
+            <span class="cardMenuIcone">🐄</span>
+            <strong>Vacas Matriz</strong>
+            <small>Gerencie suas vacas matrizes.</small>
+            <span class="cardMenuSeta">›</span>
+        </button>
+    </div>
+
+    <div class="cardHoje">
+        <div class="cardHojeTopo">
+            <span class="cardMenuIcone">📅</span>
+            <span class="cardHojeTextos">
+                <strong>Hoje</strong>
+                <small>Resumo das atividades do dia</small>
+            </span>
+        </div>
+        <div class="hojeGrade">
+            <div class="hojeStat">
+                <span class="hojeStatIcone">⚖️</span>
+                <span class="hojeStatLabel">Pesagens</span>
+                <span class="hojeStatValor" id="hojePesagens">0</span>
+                <span class="hojeStatTendencia" id="hojePesagensTendencia">— 0</span>
+            </div>
+            <div class="hojeStat">
+                <span class="hojeStatIcone">💰</span>
+                <span class="hojeStatLabel">Vendas</span>
+                <span class="hojeStatValor" id="hojeVendas">0</span>
+                <span class="hojeStatTendencia" id="hojeVendasTendencia">— 0</span>
+            </div>
+            <div class="hojeStat">
+                <span class="hojeStatIcone">📦</span>
+                <span class="hojeStatLabel">Saídas</span>
+                <span class="hojeStatValor" id="hojeSaidas">0</span>
+                <span class="hojeStatTendencia" id="hojeSaidasTendencia">— 0</span>
+            </div>
+            <div class="hojeStat" id="hojeBlocoVacas" style="display:none">
+                <span class="hojeStatIcone">🐄</span>
+                <span class="hojeStatLabel">Vacas Matriz</span>
+                <span class="hojeStatValor" id="hojeVacasTotal">0</span>
+                <span class="hojeStatTendencia" id="hojeVacasTendencia">— 0</span>
+            </div>
+        </div>
+    </div>
+
+    <p class="menuRodape">PESO CERTO • PRODUTIVIDADE REAL</p>
+</div>
+
+<div id="telaMensagens" class="tela">
+    <h2>🔔 Mensagens</h2>
+    <div class="botoesRelatorio">
+        <button style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+    </div>
+    <div id="listaMensagensMobile"></div>
 </div>
 
 <div id="telaInicial" class="tela">

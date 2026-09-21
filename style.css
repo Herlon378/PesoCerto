@@ -74,14 +74,334 @@ body {
     color: var(--ink);
 }
 
-#telaMenu h2 {
-    font-size: 24px;
-    letter-spacing: -0.01em;
+#telaMensagens {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+/* CABEÇALHO */
+.menuHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 4px;
 }
 
+.menuLogo {
+    font-size: 32px;
+}
+
+.menuTitulo {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.menuTituloDestaque {
+    color: #f5a623;
+}
+
+.menuSubtitulo {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.menuRodape {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin-top: 18px;
+    padding-bottom: 8px;
+}
+
+/* SININHO DE MENSAGENS */
+.pillSino {
+    position: relative;
+    border: none;
+    border-radius: 999px;
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.12);
+    color: var(--ink);
+    font-size: 16px;
+    flex: 0 0 auto;
+    padding: 0;
+}
+
+.badgeSino {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #e53935;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 2px solid var(--navy-900);
+}
+
+.pillAcao, .pillPerfil {
+    border: none;
+    border-radius: 999px;
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.12);
+    color: var(--ink);
+    font-size: 16px;
+    flex: 0 0 auto;
+    padding: 0;
+}
+
+/* CARTÃO GRANDE (HERO) -- Nova Pesagem */
+.cardMenuHero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    text-align: left;
+    padding: 22px 20px;
+    margin-top: 14px;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #2e9c4f, #1b6e33);
+    color: white;
+    box-shadow: var(--shadow-lg);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cardMenuHeroIcone {
+    font-size: 26px;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cardMenuHeroTextos {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cardMenuHeroTextos strong {
+    font-size: 20px;
+}
+
+.cardMenuHeroTextos small {
+    font-size: 13px;
+    opacity: 0.85;
+    line-height: 1.3;
+}
+
+.cardMenuSeta {
+    margin-left: auto;
+    font-size: 24px;
+    opacity: 0.8;
+}
+
+/* GRADE 2x2 DE CARTÕES */
+.menuGrade2x2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.cardMenu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    text-align: left;
+    padding: 18px 16px;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-md);
+    border-bottom: 3px solid transparent;
+    position: relative;
+    min-height: 128px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cardMenu strong {
+    font-size: 16px;
+}
+
+.cardMenu small {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.3;
+}
+
+.cardMenu .cardMenuIcone {
+    font-size: 22px;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cardMenu .cardMenuSeta {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    margin-left: 0;
+    font-size: 18px;
+    color: var(--ink-muted);
+}
+
+.cardMenuAzul { border-bottom-color: var(--blue-500); }
+.cardMenuAzul .cardMenuIcone { background: rgba(57,135,229,0.18); color: #6aaef2; }
+
+.cardMenuRoxo { border-bottom-color: #7c5ce0; }
+.cardMenuRoxo .cardMenuIcone { background: rgba(124,92,224,0.18); color: #a794f0; }
+
+.cardMenuVerde { border-bottom-color: #2e9c4f; }
+.cardMenuVerde .cardMenuIcone { background: rgba(46,156,79,0.18); color: #5fc484; }
+
+.cardMenuLaranja { border-bottom-color: #d9822b; }
+.cardMenuLaranja .cardMenuIcone { background: rgba(217,130,43,0.18); color: #e8a866; }
+
+/* CARTÃO "HOJE" */
+.cardHoje {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-top: 12px;
+    box-shadow: var(--shadow-md);
+}
+
+.cardHojeTopo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cardHojeTopo .cardMenuIcone {
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: rgba(46,156,79,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cardHojeTextos {
+    display: flex;
+    flex-direction: column;
+}
+
+.cardHojeTextos strong {
+    font-size: 16px;
+    color: var(--ink);
+}
+
+.cardHojeTextos small {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.hojeGrade {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.hojeStat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-md);
+    padding: 10px 4px;
+}
+
+.hojeStatIcone {
+    font-size: 16px;
+}
+
+.hojeStatLabel {
+    font-size: 10px;
+    color: var(--ink-muted);
+    line-height: 1.2;
+}
+
+.hojeStatValor {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+}
+
+.hojeStatTendencia {
+    font-size: 10px;
+    color: var(--ink-muted);
+}
+
+.hojeStatTendencia.subiu {
+    color: #5fc484;
+}
+
+/* MENSAGENS (sininho do menu) */
+.itemMensagem {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm, 0 2px 6px rgba(0,0,0,0.2));
+    border-left: 3px solid transparent;
+}
+
+.itemMensagemNaoLida {
+    border-left-color: var(--blue-500);
+}
+
+.itemMensagemTopo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.itemMensagemTopo strong {
+    font-size: 13px;
+    color: var(--ink);
+}
+
+.itemMensagemTopo span {
+    font-size: 11px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+}
+
+.itemMensagem p {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.4;
+}
+
 /* INPUTS */
-input, select {
+input, select, textarea {
     width: 100%;
     padding: 15px;
     margin: 8px 0;
@@ -89,6 +409,11 @@ input, select {
     border-radius: 10px;
     border: 1px solid #ccc;
     background: white;
+}
+
+textarea {
+    font-family: inherit;
+    resize: vertical;
 }
 
 /* BOTÕES GRANDES */
@@ -414,30 +739,28 @@ input, select {
 }
 
 /* BARRA DE SINCRONIZAÇÃO */
+/* no menu novo os botões (sino/sincronizar/sair) já têm classe própria
+   (.pillSino/.pillAcao/.pillPerfil, círculos) -- não sobra nenhum <button>
+   "genérico" dentro de .barraSync pra precisar de uma regra catch-all
+   aqui (que inclusive tinha especificidade maior que as classes .pill* e
+   ia sobrescrever o formato circular delas). */
 .barraSync {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 10px 12px;
     margin: 10px 0 18px;
     font-size: 12px;
     color: var(--ink-muted);
 }
 
-#statusSync {
+.pillSync {
     flex: 1;
-}
-
-.barraSync button {
-    border: none;
-    border-radius: 8px;
-    padding: 7px 10px;
-    background: rgba(255,255,255,0.12);
-    color: var(--ink);
-    font-size: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

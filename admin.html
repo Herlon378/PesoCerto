@@ -278,6 +278,7 @@
     <h2>Usuários</h2>
     <div class="botoesRelatorio">
         <button onclick="abrirModalUsuario()" style="background:#2e7d32">➕ Novo Usuário</button>
+        <button onclick="abrirModalMensagem()" style="background:#1c5aa8">📢 Enviar Mensagem</button>
     </div>
     <table class="tabelaUsuarios">
         <thead>
@@ -754,7 +755,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
 <script src="app.js?v=3"></script>
-<script src="admin.js?v=9"></script>
+<script src="admin.js?v=10"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
@@ -1121,6 +1122,23 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalSaldoInicial()">Cancelar</button>
             <button class="btn-sim" onclick="salvarSaldoInicial()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalMensagem" class="modal">
+    <div class="modal-box">
+        <h2>📢 Enviar Mensagem</h2>
+        <textarea id="msgTextoInput" placeholder="Escreva o aviso para o(s) operador(es)..." rows="4"></textarea>
+        <select id="msgDestinatarioTipoInput" onchange="alternarListaDestinatariosMensagem()">
+            <option value="todos">Todos os usuários</option>
+            <option value="especifico">Usuários específicos</option>
+        </select>
+        <div id="msgListaUsuariosBox" class="listaDepartamentosModal" style="display:none"></div>
+        <p id="msgErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalMensagem()">Cancelar</button>
+            <button class="btn-sim" onclick="enviarMensagemAdmin()">Enviar</button>
         </div>
     </div>
 </div>

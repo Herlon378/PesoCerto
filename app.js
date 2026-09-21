@@ -56,6 +56,13 @@ function trocarTela(id){
     if(telaAlvo) {
         telaAlvo.classList.add("ativa");
     }
+    // atualiza o resumo "Hoje" e a bolinha de mensagens toda vez que o
+    // usuário chega no menu principal do celular, não só no login --
+    // várias telas voltam direto pra cá com um simples trocarTela('telaMenu')
+    if(id === "telaMenu"){
+        if(typeof atualizarResumoHojeMenu === "function") atualizarResumoHojeMenu();
+        if(typeof atualizarBadgeMensagens === "function") atualizarBadgeMensagens();
+    }
 }
 
 function abrirRelatorios(){
@@ -1258,11 +1265,15 @@ function atualizarBotaoLogin(){
     let btn = document.getElementById("btnLoginLogout");
     let nome = obterUsuarioLogado();
     if(btn){
+        // no menu novo do celular esse botão virou um círculo pequeno
+        // (.pillPerfil) sem espaço pra texto -- só no gerenciamento
+        // (desktop) que ele mostra "Sair (Nome)" por extenso.
+        let ehMenuMobile = !!document.getElementById("telaMenu");
         if(nome){
-            btn.innerText = "🚪 Sair (" + nome + ")";
+            btn.innerText = ehMenuMobile ? "🚪" : "🚪 Sair (" + nome + ")";
             btn.onclick = sair;
         } else {
-            btn.innerText = "👤 Entrar";
+            btn.innerText = ehMenuMobile ? "👤" : "👤 Entrar";
             btn.onclick = mostrarTelaLogin;
         }
     }
@@ -1304,6 +1315,149 @@ function atualizarBotaoLogin(){
     if(btnVacasMenu){
         let podeVacasMatriz = logado && (obterPapelLogado() === "admin" || obterPermVacasMatriz());
         btnVacasMenu.style.display = podeVacasMatriz ? "flex" : "none";
+    }
+}
+
+// ========================================
+// RESUMO "HOJE" DO MENU (celular)
+// ========================================
+// conta quantos itens de uma lista têm a data (campo "dd/mm/yyyy, hh:mm:ss")
+// igual à data de hoje -- mesmo formato usado em todo o sistema.
+function contarHojeBR(lista, campoData){
+    let hojeBR = new Date().toLocaleDateString("pt-BR");
+    return (lista || []).filter(item => {
+        let d = String(item[campoData] || "").split(",")[0].trim();
+        return d === hojeBR;
+    }).length;
+}
+
+function formatarTendenciaHoje(qtd){
+    return qtd > 0 ? `↑ +${qtd}` : "— 0";
+}
+
+// Pesagens/Vendas vêm do array `relatorios` (já carregado pelo sync).
+// Saídas de Produtos vêm do localStorage, mesma fonte que a tela de Saída
+// de Produtos usa antes de sincronizar. Vacas Matriz é a única que precisa
+// de uma busca no servidor (não fica em cache local no celular) -- e só
+// roda se o usuário tiver permissão, mesma regra que já esconde/mostra o
+// botão do menu, pra não gastar uma chamada de rede à toa.
+async function atualizarResumoHojeMenu(){
+    let pesagensHoje = contarHojeBR(relatorios, "data");
+    let elPesagens = document.getElementById("hojePesagens");
+    if(elPesagens) elPesagens.innerText = String(pesagensHoje);
+
+    let hojeBR = new Date().toLocaleDateString("pt-BR");
+    let vendasHoje = (relatorios || []).filter(r => {
+        let d = String(r.data || "").split(",")[0].trim();
+        return d === hojeBR && (r.tipo || "venda") === "venda";
+    }).length;
+    let elVendas = document.getElementById("hojeVendas");
+    if(elVendas) elVendas.innerText = String(vendasHoje);
+
+    let saidas = JSON.parse(localStorage.getItem("estoqueSaidas") || "[]");
+    let saidasHoje = contarHojeBR(saidas, "data");
+    let elSaidas = document.getElementById("hojeSaidas");
+    if(elSaidas) elSaidas.innerText = String(saidasHoje);
+
+    let podeVacas = !!obterToken() && (obterPapelLogado() === "admin" || obterPermVacasMatriz());
+    let blocoVacas = document.getElementById("hojeBlocoVacas");
+    if(blocoVacas) blocoVacas.style.display = podeVacas ? "flex" : "none";
+    if(!podeVacas) return;
+
+    try{
+        let token = obterToken();
+        let headers = { "Authorization": "Bearer " + token };
+        let [respVacas, respNasc] = await Promise.all([
+            fetch(`${API_URL}/api/vacas-matriz`, { headers }),
+            fetch(`${API_URL}/api/nascimentos`, { headers })
+        ]);
+        if(respVacas.ok){
+            let vacas = await respVacas.json();
+            let ativas = vacas.filter(v => v.status === "ativa").length;
+            let elVacasTotal = document.getElementById("hojeVacasTotal");
+            if(elVacasTotal) elVacasTotal.innerText = String(ativas);
+        }
+        if(respNasc.ok){
+            let nascimentos = await respNasc.json();
+            let nascidosHoje = contarHojeBR(nascimentos, "dataNascimento");
+            let elTendencia = document.getElementById("hojeVacasTendencia");
+            if(elTendencia){
+                elTendencia.innerText = formatarTendenciaHoje(nascidosHoje);
+                elTendencia.classList.toggle("subiu", nascidosHoje > 0);
+            }
+        }
+    } catch(e){
+        // resumo é só informativo -- se a rede falhar, o menu continua
+        // funcionando normalmente, só sem esse cartão atualizado
+    }
+}
+
+// ========================================
+// MENSAGENS (sininho do menu, celular)
+// ========================================
+let mensagensCacheMobile = [];
+
+async function carregarMensagensMobile(){
+    let token = obterToken();
+    if(!token) return [];
+    try{
+        let resp = await fetch(`${API_URL}/api/mensagens`, { headers: { "Authorization": "Bearer " + token } });
+        if(!resp.ok) return [];
+        mensagensCacheMobile = await resp.json();
+        return mensagensCacheMobile;
+    } catch(e){
+        return [];
+    }
+}
+
+async function atualizarBadgeMensagens(){
+    await carregarMensagensMobile();
+    let badge = document.getElementById("badgeMensagens");
+    if(!badge) return;
+    let naoLidas = mensagensCacheMobile.filter(m => !m.lida).length;
+    if(naoLidas > 0){
+        badge.innerText = naoLidas > 9 ? "9+" : String(naoLidas);
+        badge.style.display = "flex";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
+async function abrirTelaMensagensMobile(){
+    await carregarMensagensMobile();
+    mostrarMensagensMobile();
+}
+
+function mostrarMensagensMobile(){
+    let corpo = document.getElementById("listaMensagensMobile");
+    if(!corpo) return;
+    if(mensagensCacheMobile.length === 0){
+        corpo.innerHTML = `<p class="loginSubtitulo">Nenhuma mensagem recebida ainda.</p>`;
+        return;
+    }
+    corpo.innerHTML = mensagensCacheMobile.map(m => `
+        <div class="itemMensagem${m.lida ? "" : " itemMensagemNaoLida"}" onclick="marcarMensagemLidaMobile('${m.id}')">
+            <div class="itemMensagemTopo">
+                <strong>${m.criadoPor || "Administração"}</strong>
+                <span>${m.criadoEm ? new Date(m.criadoEm).toLocaleString("pt-BR") : ""}</span>
+            </div>
+            <p>${m.texto}</p>
+        </div>
+    `).join("");
+}
+
+async function marcarMensagemLidaMobile(id){
+    let msg = mensagensCacheMobile.find(m => m.id === id);
+    if(!msg || msg.lida) return;
+    msg.lida = true;
+    mostrarMensagensMobile();
+    atualizarBadgeMensagens();
+    try{
+        let token = obterToken();
+        await fetch(`${API_URL}/api/mensagens/${id}/marcar-lida`, { method: "POST", headers: { "Authorization": "Bearer " + token } });
+    } catch(e){
+        // já marcou visualmente -- se a chamada falhar, na próxima
+        // sincronização/abertura da tela o servidor corrige sozinho
     }
 }
 

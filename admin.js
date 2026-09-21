@@ -256,6 +256,88 @@ async function excluirUsuario(id, nome) {
 }
 
 // ========================================
+// MENSAGENS (aviso pro app do celular -- pra todos os usuários ativos ou
+// só pra quem for marcado; vira uma bolinha de não-lida no sininho do
+// menu mobile, sem push real -- ver [[project-pesocerto-mobile]])
+// ========================================
+function abrirModalMensagem() {
+    document.getElementById("msgTextoInput").value = "";
+    document.getElementById("msgDestinatarioTipoInput").value = "todos";
+    let box = document.getElementById("msgListaUsuariosBox");
+    box.style.display = "none";
+    box.innerHTML = "";
+    let erroEl = document.getElementById("msgErro");
+    if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    document.getElementById("modalMensagem").style.display = "flex";
+}
+
+function fecharModalMensagem() {
+    document.getElementById("modalMensagem").style.display = "none";
+}
+
+async function alternarListaDestinatariosMensagem() {
+    let tipo = document.getElementById("msgDestinatarioTipoInput").value;
+    let box = document.getElementById("msgListaUsuariosBox");
+    if (tipo !== "especifico") {
+        box.style.display = "none";
+        return;
+    }
+    box.style.display = "block";
+    box.innerHTML = `<p style="padding:8px 0">Carregando usuários...</p>`;
+    try {
+        let token = obterToken();
+        let resp = await fetch(`${API_URL}/api/usuarios`, { headers: { "Authorization": "Bearer " + token } });
+        let usuarios = await resp.json();
+        let ativos = usuarios.filter(u => u.ativo);
+        if (ativos.length === 0) {
+            box.innerHTML = `<p style="padding:8px 0">Nenhum usuário ativo.</p>`;
+            return;
+        }
+        box.innerHTML = ativos.map(u => `
+            <label class="linhaCheckboxCiente" style="margin-top:0">
+                <input type="checkbox" value="${u.id}" class="msgDestinatarioCheckbox">
+                <span>${u.nome} (${u.usuario})</span>
+            </label>
+        `).join("");
+    } catch (e) {
+        box.innerHTML = `<p style="padding:8px 0">Erro ao carregar usuários.</p>`;
+    }
+}
+
+async function enviarMensagemAdmin() {
+    let erroEl = document.getElementById("msgErro");
+    function mostrarErro(msg) { if (erroEl) { erroEl.innerText = msg; erroEl.style.display = "block"; } }
+
+    try {
+        let token = obterToken();
+        if (!token) { mostrarErro("Sua sessão expirou."); return; }
+
+        let texto = document.getElementById("msgTextoInput").value.trim();
+        let tipo = document.getElementById("msgDestinatarioTipoInput").value;
+        if (!texto) { mostrarErro("Escreva o texto da mensagem."); return; }
+
+        let usuarioIds = [];
+        if (tipo === "especifico") {
+            usuarioIds = Array.from(document.querySelectorAll(".msgDestinatarioCheckbox:checked")).map(c => c.value);
+            if (usuarioIds.length === 0) { mostrarErro("Selecione ao menos um destinatário."); return; }
+        }
+
+        let resp = await fetch(`${API_URL}/api/mensagens`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ texto, destinatarioTipo: tipo, usuarioIds })
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao enviar (HTTP ${resp.status}).`); return; }
+
+        fecharModalMensagem();
+        await alertarModerno(`Mensagem enviada para ${dados.totalDestinatarios} usuário(s).`, { titulo: "✅ Enviado" });
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+// ========================================
 // GERENCIAMENTO DE LOTES
 // ========================================
 let loteEditandoId = null;
