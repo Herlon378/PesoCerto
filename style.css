@@ -440,6 +440,11 @@ input, select, textarea {
     border-radius: 10px;
     border: 1px solid #ccc;
     background: white;
+    /* texto sempre escuro, nunca herdado -- em telas escuras como
+       #telaPesagem (color:var(--ink), quase branco) um campo continua
+       com fundo branco de propósito, e sem isso o texto digitado ficava
+       branco em cima de fundo branco, ilegível */
+    color: #222;
 }
 
 textarea {
@@ -512,6 +517,7 @@ textarea {
 
 .statCard {
     background: white;
+    color: #444;
     padding: 8px 4px;
     border-radius: 10px;
     text-align: center;
@@ -522,6 +528,7 @@ textarea {
 .statCard span {
     font-size: 18px;
     font-weight: bold;
+    color: #1a1a1a;
 }
 
 /* PESO ATUAL (display em destaque) */
@@ -863,6 +870,7 @@ textarea {
     justify-content: space-between;
     padding: 8px 12px;
     font-size: 15px;
+    color: #222;
     border-bottom: 1px solid #eee;
 }
 
