@@ -74,6 +74,76 @@ body {
     color: var(--ink);
 }
 
+#telaInicial {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+#telaInicial h2 {
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+/* CAMPOS EM CARTÃO (rótulo pequeno em cima, valor grande embaixo) --
+   substitui o <select>/<input> "cru" por um cartão no mesmo estilo dos
+   outros cartões escuros do app, ao invés de reskinar cada input isolado */
+.campoCartao {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 48px 14px 20px;
+    margin: 12px 0;
+}
+
+.campoCartaoLabel {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-bottom: 3px;
+}
+
+.campoCartao select,
+.campoCartao input {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--ink);
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.campoCartao select {
+    cursor: pointer;
+}
+
+.campoCartao input::placeholder {
+    color: var(--ink-muted);
+    font-weight: 400;
+}
+
+.campoCartaoSeta,
+.campoCartaoIcone {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-muted);
+    pointer-events: none;
+    display: flex;
+}
+
+.campoCartaoSeta svg,
+.campoCartaoIcone svg {
+    width: 22px;
+    height: 22px;
+}
+
 #telaMensagens {
     background: var(--navy-900);
     color: var(--ink);
@@ -454,6 +524,10 @@ textarea {
 
 /* BOTÕES GRANDES */
 .btnGrande {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
     padding: 18px;
     margin-top: 10px;

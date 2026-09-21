@@ -135,7 +135,10 @@ function alternarTipoPesagem(){
     let tipo = tipoPesagemEl.value;
     let ehArroba = tipo === "arroba";
     let ehValorAnimal = tipo === "valor_animal";
-    rendEl.style.display = ehArroba ? "block" : "none";
+    // esconde o CARTÃO inteiro (rótulo + campo), não só o input -- senão
+    // sobrava um cartão com o rótulo "% de Rendimento" flutuando vazio
+    let campoRendEl = document.getElementById("campoRendimentoArroba") || rendEl;
+    campoRendEl.style.display = ehArroba ? "block" : "none";
     if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
 }
 

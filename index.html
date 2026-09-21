@@ -141,22 +141,54 @@
 
 <div id="telaInicial" class="tela">
     <h2>Nova Pesagem</h2>
-    <select id="tipoOperacao">
-        <option value="venda">Venda</option>
-        <option value="compra">Compra</option>
-    </select>
-    <input id="nomeVendedor" placeholder="Nome do vendedor">
-    <select id="tipoPesagem" onchange="alternarTipoPesagem()">
-        <option value="vivo">Peso Vivo (Kg)</option>
-        <option value="arroba">Arroba (@)</option>
-        <option value="valor_animal">Valor Fixo por Animal</option>
-    </select>
-    <input id="rendimentoArroba" placeholder="% de Rendimento (ex: 50)" inputmode="decimal" style="display:none">
-    <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
-    <select id="descricao">
-        <option value="">Sem lote</option>
-    </select>
-    <button class="btnGrande" onclick="iniciarPesagem()">Iniciar Pesagem</button>
+
+    <div class="campoCartao">
+        <label class="campoCartaoLabel" for="tipoOperacao">Operação</label>
+        <select id="tipoOperacao">
+            <option value="venda">Venda</option>
+            <option value="compra">Compra</option>
+        </select>
+        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <div class="campoCartao">
+        <label class="campoCartaoLabel" for="nomeVendedor">Nome do vendedor</label>
+        <input id="nomeVendedor" placeholder="Nome do vendedor">
+        <span class="campoCartaoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+    </div>
+
+    <div class="campoCartao">
+        <label class="campoCartaoLabel" for="tipoPesagem">Tipo de Pesagem</label>
+        <select id="tipoPesagem" onchange="alternarTipoPesagem()">
+            <option value="vivo">Peso Vivo (Kg)</option>
+            <option value="arroba">Arroba (@)</option>
+            <option value="valor_animal">Valor Fixo por Animal</option>
+        </select>
+        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <div class="campoCartao" id="campoRendimentoArroba" style="display:none">
+        <label class="campoCartaoLabel" for="rendimentoArroba">% de Rendimento</label>
+        <input id="rendimentoArroba" placeholder="Ex: 50" inputmode="decimal">
+    </div>
+
+    <div class="campoCartao">
+        <label class="campoCartaoLabel" for="valorKg">Valor</label>
+        <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
+    </div>
+
+    <div class="campoCartao">
+        <label class="campoCartaoLabel" for="descricao">Lote</label>
+        <select id="descricao">
+            <option value="">Sem lote</option>
+        </select>
+        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <button class="btnGrande" onclick="iniciarPesagem()">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:20px;height:20px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Iniciar Pesagem
+    </button>
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
