@@ -348,26 +348,29 @@
         <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
-    <div class="pesoAtualCard">
-        <span class="pesoAtualLabel" id="pesoAtualLabel">PESO ATUAL</span>
-        <button id="btnLogBalanca" class="btnLogBalanca" onclick="alternarLogBalanca()" style="display:none">🔍</button>
-        <input id="displayPeso" readonly placeholder="0">
-        <span class="pesoAtualUnidade">kg</span>
-    </div>
-    <div id="logBalancaBox" class="logBalancaBox" style="display:none"></div>
-    <input id="obs" placeholder="Observação">
-    <div class="teclado">
-        <button onclick="digitar(1)">1</button><button onclick="digitar(2)">2</button><button onclick="digitar(3)">3</button>
-        <button onclick="digitar(4)">4</button><button onclick="digitar(5)">5</button><button onclick="digitar(6)">6</button>
-        <button onclick="digitar(7)">7</button><button onclick="digitar(8)">8</button><button onclick="digitar(9)">9</button>
-        <button onclick="digitar(0)">0</button><button class="btnMeio" onclick="digitarMeio()">,5</button><button onclick="apagar()">←</button>
-    </div>
-    <button class="btnLancar" onclick="lancarPeso()">✓ Lançar Peso</button>
-    <div class="sliderConfirm">
-        <div class="sliderTrack" id="sliderTrack">
-            <span class="sliderLabelEsquerda">✕ Cancelar</span>
-            <span class="sliderLabelDireita">Finalizar ✓</span>
-            <div class="sliderHandle" id="sliderHandle">↔</div>
+
+    <div class="painelControlePesagem">
+        <div class="pesoAtualCard">
+            <span class="pesoAtualLabel" id="pesoAtualLabel">PESO ATUAL</span>
+            <button id="btnLogBalanca" class="btnLogBalanca" onclick="alternarLogBalanca()" style="display:none">🔍</button>
+            <input id="displayPeso" readonly placeholder="0">
+            <span class="pesoAtualUnidade">kg</span>
+        </div>
+        <div id="logBalancaBox" class="logBalancaBox" style="display:none"></div>
+        <input id="obs" placeholder="Observação">
+        <div class="teclado">
+            <button onclick="digitar(1)">1</button><button onclick="digitar(2)">2</button><button onclick="digitar(3)">3</button>
+            <button onclick="digitar(4)">4</button><button onclick="digitar(5)">5</button><button onclick="digitar(6)">6</button>
+            <button onclick="digitar(7)">7</button><button onclick="digitar(8)">8</button><button onclick="digitar(9)">9</button>
+            <button onclick="digitar(0)">0</button><button class="btnMeio" onclick="digitarMeio()">,5</button><button onclick="apagar()">←</button>
+        </div>
+        <button class="btnLancar" onclick="lancarPeso()">✓ Lançar Peso</button>
+        <div class="sliderConfirm">
+            <div class="sliderTrack" id="sliderTrack">
+                <span class="sliderLabelEsquerda">✕ Cancelar</span>
+                <span class="sliderLabelDireita">Finalizar ✓</span>
+                <div class="sliderHandle" id="sliderHandle">↔</div>
+            </div>
         </div>
     </div>
 </div>

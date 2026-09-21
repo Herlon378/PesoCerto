@@ -65,6 +65,19 @@ body {
     color: var(--ink);
 }
 
+/* Painel único (peso atual + observação + teclado + ações) em vez de
+   vários elementos soltos direto no fundo escuro -- dá acabamento (borda,
+   sombra, cantos arredondados) ao grupo inteiro que o operador realmente
+   usa o tempo todo, no lugar de "cores sólidas" flutuando sem moldura. */
+.painelControlePesagem {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-top: 10px;
+    box-shadow: var(--shadow-lg);
+}
+
 /* Menu principal -- fundo escuro igual o painel desktop; os cartões
    (stats/lista/peso atual/teclado) continuam claros de propósito, é o
    que mais lê bem no sol forte do curral -- só o "moldura" ao redor
@@ -581,39 +594,42 @@ textarea {
     box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
-/* CARDS DE STATUS */
+/* CARDS DE STATUS -- cartões escuros (em vez de branco chapado), no
+   mesmo tom da paleta do resto do app, com o número em destaque */
 .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin-bottom: 6px;
+    gap: 8px;
+    margin-bottom: 10px;
 }
 
 .statCard {
-    background: white;
-    color: #444;
-    padding: 8px 4px;
-    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+    padding: 12px 4px;
+    border-radius: var(--radius-md);
     text-align: center;
     font-size: 12px;
     line-height: 1.3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .statCard span {
-    font-size: 18px;
-    font-weight: bold;
-    color: #1a1a1a;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
 }
 
 /* PESO ATUAL (display em destaque) */
 .pesoAtualCard {
     position: relative;
-    background: white;
+    background: linear-gradient(180deg, #ffffff, #f2f6fc);
     border-radius: 16px;
     padding: 10px 16px 12px;
     text-align: center;
     box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-    margin: 6px 0;
+    margin: 0 0 6px;
 }
 
 .btnLogBalanca {
@@ -737,7 +753,7 @@ textarea {
     font-size: 30px;
     border: none;
     border-radius: var(--radius-md);
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff, #eef2f9);
     color: #1976d2;
     font-weight: bold;
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
@@ -752,12 +768,12 @@ textarea {
 }
 
 .teclado .btnMeio {
-    background: #1976d2;
+    background: linear-gradient(135deg, #3987e5, #1c5aa8);
     color: white;
 }
 
 .teclado .btnMeio:active {
-    background: #125aa3;
+    background: #164a8c;
 }
 
 /* BOTÃO LANÇAR */
@@ -768,7 +784,7 @@ textarea {
     font-size: 23px;
     border: none;
     border-radius: 14px;
-    background: #ff9800;
+    background: linear-gradient(135deg, #ffa94d, #e8850e);
     color: white;
     font-weight: bold;
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
@@ -790,7 +806,7 @@ textarea {
     position: relative;
     height: 68px;
     border-radius: 34px;
-    background: linear-gradient(to right, #e53935, #d9d9d9 42%, #d9d9d9 58%, #2e7d32);
+    background: linear-gradient(to right, #e53935, #c62828 16%, var(--surface-sunken) 42%, var(--surface-sunken) 58%, #2e9c4f 84%, #1b6e33);
     overflow: hidden;
     touch-action: pan-y;
     -webkit-tap-highlight-color: transparent;
