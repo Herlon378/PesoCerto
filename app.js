@@ -1295,7 +1295,7 @@ function atualizarBotaoLogin(){
     let btnAlmoxMenu = document.getElementById("btnMenuAlmoxarifado");
     if(btnAlmoxMenu){
         let podeAlmoxarifado = logado && (obterPapelLogado() === "admin" || obterPermAlmoxarifado());
-        btnAlmoxMenu.style.display = podeAlmoxarifado ? "inline-block" : "none";
+        btnAlmoxMenu.style.display = podeAlmoxarifado ? "flex" : "none";
     }
 
     // Botão de Vacas Matriz no menu do celular: mesma lógica — admin ou
@@ -1303,7 +1303,7 @@ function atualizarBotaoLogin(){
     let btnVacasMenu = document.getElementById("btnMenuVacasMatriz");
     if(btnVacasMenu){
         let podeVacasMatriz = logado && (obterPapelLogado() === "admin" || obterPermVacasMatriz());
-        btnVacasMenu.style.display = podeVacasMatriz ? "inline-block" : "none";
+        btnVacasMenu.style.display = podeVacasMatriz ? "flex" : "none";
     }
 }
 

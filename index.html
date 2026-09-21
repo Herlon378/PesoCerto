@@ -28,11 +28,21 @@
         <button id="btnLoginLogout" onclick="sair()">🚪 Sair</button>
         <button onclick="sincronizarAgora()">🔄 Sincronizar</button>
     </div>
-    <button class="btnGrande" onclick="trocarTela('telaInicial')">➕ Nova Pesagem</button>
-    <button class="btnGrande" onclick="abrirRelatorios()">📋 Relatórios</button>
-    <button class="btnGrande" style="background:#5e35b1" onclick="abrirDashboard()">📊 Dashboard</button>
-    <button class="btnGrande" id="btnMenuAlmoxarifado" style="background:#00695c; display:none" onclick="trocarTela('telaSaidaAlmoxarifado'); abrirTelaSaidaAlmoxarifadoMobile();">📦 Saída de Produtos</button>
-    <button class="btnGrande" id="btnMenuVacasMatriz" style="background:#6d4c41; display:none" onclick="trocarTela('telaVacasMatrizMobile'); abrirTelaVacasMatrizMobile();">🐄 Vacas Matriz</button>
+    <button class="btnGrande btnMenu btnMenuVerde" onclick="trocarTela('telaInicial')">
+        <span class="btnMenuIcone">➕</span><span class="btnMenuTexto">Nova Pesagem</span>
+    </button>
+    <button class="btnGrande btnMenu btnMenuAzul" onclick="abrirRelatorios()">
+        <span class="btnMenuIcone">📋</span><span class="btnMenuTexto">Relatórios</span>
+    </button>
+    <button class="btnGrande btnMenu btnMenuRoxo" onclick="abrirDashboard()">
+        <span class="btnMenuIcone">📊</span><span class="btnMenuTexto">Dashboard</span>
+    </button>
+    <button class="btnGrande btnMenu btnMenuTeal" id="btnMenuAlmoxarifado" style="display:none" onclick="trocarTela('telaSaidaAlmoxarifado'); abrirTelaSaidaAlmoxarifadoMobile();">
+        <span class="btnMenuIcone">📦</span><span class="btnMenuTexto">Saída de Produtos</span>
+    </button>
+    <button class="btnGrande btnMenu btnMenuMarrom" id="btnMenuVacasMatriz" style="display:none" onclick="trocarTela('telaVacasMatrizMobile'); abrirTelaVacasMatrizMobile();">
+        <span class="btnMenuIcone">🐄</span><span class="btnMenuTexto">Vacas Matriz</span>
+    </button>
 </div>
 
 <div id="telaInicial" class="tela">

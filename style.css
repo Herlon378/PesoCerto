@@ -6,6 +6,25 @@
     font-family: Arial, sans-serif;
 }
 
+/* Paleta de referência (mesmos tokens do painel desktop escuro, admin.css
+   :root) -- reaproveitada aqui pra deixar Menu/Pesagem no celular com a
+   mesma linguagem visual do gerenciamento, sem duplicar o CSS do zero. */
+:root {
+    --navy-900: #0f1729;
+    --navy-800: #161f36;
+    --surface: #16203a;
+    --surface-sunken: #101a30;
+    --ink: #eef2fb;
+    --ink-muted: #a6b0c6;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --blue-500: #3987e5;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-md: 0 6px 18px rgba(0,0,0,0.28);
+    --shadow-lg: 0 10px 28px rgba(0,0,0,0.32);
+}
+
 /* BODY */
 html, body {
     overscroll-behavior-y: contain;
@@ -42,7 +61,23 @@ body {
 #telaPesagem {
     flex-direction: column;
     height: 100%;
-    background: #181818;
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+/* Menu principal -- fundo escuro igual o painel desktop; os cartões
+   (stats/lista/peso atual/teclado) continuam claros de propósito, é o
+   que mais lê bem no sol forte do curral -- só o "moldura" ao redor
+   fica escura/moderna. */
+#telaMenu {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+#telaMenu h2 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
 }
 
 /* INPUTS */
@@ -63,14 +98,48 @@ input, select {
     margin-top: 10px;
     font-size: 20px;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: #2e7d32;
     color: white;
     font-weight: bold;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
     transition: transform 0.08s ease, box-shadow 0.08s ease;
     -webkit-tap-highlight-color: transparent;
 }
+
+/* Botões do menu principal -- maiores, com um "chip" de ícone à esquerda
+   e fundo em degradê, pensados pra toque fácil no curral (luva, sol
+   forte, uma mão só) mantendo o mesmo visual moderno do computador. */
+.btnMenu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    padding: 20px 18px;
+    margin-top: 12px;
+}
+
+.btnMenuIcone {
+    font-size: 26px;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.btnMenuTexto {
+    font-size: 19px;
+}
+
+.btnMenuVerde { background: linear-gradient(135deg, #2e9c4f, #1b6e33); }
+.btnMenuAzul { background: linear-gradient(135deg, #2f7fe0, #1c5aa8); }
+.btnMenuRoxo { background: linear-gradient(135deg, #7c5ce0, #5433a6); }
+.btnMenuTeal { background: linear-gradient(135deg, #14958a, #0d675f); }
+.btnMenuMarrom { background: linear-gradient(135deg, #8a5a3a, #603d27); }
 
 .btnGrande:active {
     transform: scale(0.98);
@@ -209,21 +278,25 @@ input, select {
 }
 
 /* TECLADO */
+/* "flex:1; align-content:center" fazia o teclado crescer pra ocupar todo
+   o espaço sobrando na tela e depois centralizar os botões dentro desse
+   vão -- resultado: um buraco vazio em cima E embaixo do teclado. Agora
+   ele fica com altura natural (quem cresce é a lista acima), grudado perto
+   dos botões de ação -- e os botões ficam maiores, pra toque fácil com
+   luva/sol forte no curral. */
 .teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 4px;
-    flex: 1; /* ocupa espaço restante */
-    align-content: center;
+    gap: 10px;
+    margin-top: 8px;
 }
 
 .teclado button {
     width: 100%;
-    height: 50px;
-    font-size: 20px;
+    height: 64px;
+    font-size: 24px;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: #ffffff;
     color: #1976d2;
     font-weight: bold;
@@ -339,13 +412,14 @@ input, select {
 .barraSync {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: white;
-    border-radius: 10px;
-    padding: 8px 10px;
-    margin: 6px 0;
+    gap: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    margin: 10px 0 18px;
     font-size: 12px;
-    color: #555;
+    color: var(--ink-muted);
 }
 
 #statusSync {
@@ -355,8 +429,9 @@ input, select {
 .barraSync button {
     border: none;
     border-radius: 8px;
-    padding: 6px 8px;
-    background: #eee;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.12);
+    color: var(--ink);
     font-size: 12px;
     white-space: nowrap;
 }
@@ -373,8 +448,13 @@ input, select {
    Removido pra deixar #telaResultado ser o único alvo de rolagem real. */
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
+/* era height:220px fixo; agora cresce (flex:1) pra absorver o espaço
+   sobrando na tela, empurrando teclado/botões pra perto do fundo -- ao
+   alcance do polegar -- em vez de deixar um vão vazio no meio (era isso
+   que causava o "buraco preto" entre o teclado e os botões). */
 .listaPesosAtual {
-    height: 220px;
+    flex: 1;
+    min-height: 90px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
