@@ -177,6 +177,11 @@ input, select {
     text-align: center;
     box-shadow: 0 3px 8px rgba(0,0,0,0.12);
     margin: 4px 0;
+    /* empurra peso atual + observação + teclado + botões pro fundo da
+       tela (com poucos itens na lista acima, o espaço sobrando fica como
+       vão de fundo escuro por trás da lista, não uma caixa branca vazia
+       esticada -- ver .listaPesosAtual) */
+    margin-top: auto;
 }
 
 .btnLogBalanca {
@@ -448,13 +453,16 @@ input, select {
    Removido pra deixar #telaResultado ser o único alvo de rolagem real. */
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
-/* era height:220px fixo; agora cresce (flex:1) pra absorver o espaço
-   sobrando na tela, empurrando teclado/botões pra perto do fundo -- ao
-   alcance do polegar -- em vez de deixar um vão vazio no meio (era isso
-   que causava o "buraco preto" entre o teclado e os botões). */
+/* era height:220px fixo, depois virou flex:1 (pra empurrar o teclado pro
+   fundo) -- mas flex:1 força a CAIXA a crescer até preencher o espaço
+   sobrando mesmo com só 1-2 itens dentro, virando um retângulo branco
+   vazio gigante (o bug do print). Agora ela cresce só até o tamanho do
+   próprio conteúdo (min/max-height, sem flex:1) -- quem empurra o teclado
+   pro fundo é .pesoAtualCard (margin-top:auto), e o espaço sobrando fica
+   como vão neutro (fundo escuro) por trás da lista, não uma caixa branca. */
 .listaPesosAtual {
-    flex: 1;
-    min-height: 90px;
+    min-height: 70px;
+    max-height: 240px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
@@ -484,7 +492,10 @@ input, select {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    /* era height:100% -- não funciona de forma confiável agora que o pai
+       (.listaPesosAtual) não tem mais uma altura fixa/height:auto real,
+       fica sem efeito; um padding fixo resolve sem depender disso */
+    padding: 22px 0;
     color: #999;
     font-size: 13px;
 }
