@@ -83,16 +83,16 @@ body {
 .menuHeader {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin: 6px 0 10px;
+    gap: 16px;
+    margin: 8px 0 14px;
 }
 
 .menuLogo {
-    font-size: 46px;
+    font-size: 56px;
 }
 
 .menuTitulo {
-    font-size: 34px;
+    font-size: 40px;
     font-weight: 800;
     letter-spacing: -0.01em;
 }
@@ -102,7 +102,7 @@ body {
 }
 
 .menuSubtitulo {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--ink-muted);
 }
 
@@ -120,27 +120,27 @@ body {
 }
 
 .hojeStatIcone svg {
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
 }
 
 .cardMenuSeta svg {
+    width: 26px;
+    height: 26px;
+}
+
+.cardMenu .cardMenuSeta svg {
     width: 22px;
     height: 22px;
 }
 
-.cardMenu .cardMenuSeta svg {
-    width: 18px;
-    height: 18px;
-}
-
 .menuRodape {
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 0.08em;
     color: var(--ink-muted);
-    margin-top: 26px;
-    padding-bottom: 10px;
+    margin-top: 30px;
+    padding-bottom: 12px;
 }
 
 /* SININHO DE MENSAGENS */
@@ -148,8 +148,8 @@ body {
     position: relative;
     border: none;
     border-radius: 999px;
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     background: rgba(255,255,255,0.12);
     color: var(--ink);
     display: flex;
@@ -165,23 +165,23 @@ body {
     right: -4px;
     background: #e53935;
     color: white;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
-    min-width: 18px;
-    height: 18px;
+    min-width: 20px;
+    height: 20px;
     border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 3px;
+    padding: 0 4px;
     border: 2px solid var(--navy-900);
 }
 
 .pillAcao, .pillPerfil {
     border: none;
     border-radius: 999px;
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     background: rgba(255,255,255,0.12);
     color: var(--ink);
     display: flex;
@@ -195,11 +195,11 @@ body {
 .cardMenuHero {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 20px;
     width: 100%;
     text-align: left;
-    padding: 38px 26px;
-    margin-top: 22px;
+    padding: 48px 32px;
+    margin-top: 26px;
     border: none;
     border-radius: var(--radius-lg);
     background: linear-gradient(135deg, #2e9c4f, #1b6e33);
@@ -209,8 +209,8 @@ body {
 }
 
 .cardMenuHeroIcone {
-    width: 78px;
-    height: 78px;
+    width: 96px;
+    height: 96px;
     border-radius: var(--radius-md);
     background: rgba(255,255,255,0.22);
     display: flex;
@@ -222,11 +222,11 @@ body {
 .cardMenuHeroTextos {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .cardMenuHeroTextos strong {
-    font-size: 27px;
+    font-size: 33px;
 }
 
 .cardMenuHeroTextos small {
@@ -245,17 +245,17 @@ body {
 .menuGrade2x2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 16px;
+    gap: 16px;
+    margin-top: 18px;
 }
 
 .cardMenu {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
+    gap: 16px;
     text-align: left;
-    padding: 26px 22px;
+    padding: 32px 24px;
     border: none;
     border-radius: var(--radius-lg);
     background: var(--surface);
@@ -263,23 +263,23 @@ body {
     box-shadow: var(--shadow-md);
     border-bottom: 3px solid transparent;
     position: relative;
-    min-height: 190px;
+    min-height: 220px;
     -webkit-tap-highlight-color: transparent;
 }
 
 .cardMenu strong {
-    font-size: 21px;
+    font-size: 25px;
 }
 
 .cardMenu small {
-    font-size: 14.5px;
+    font-size: 16px;
     color: var(--ink-muted);
     line-height: 1.35;
 }
 
 .cardMenu .cardMenuIcone {
-    width: 58px;
-    height: 58px;
+    width: 68px;
+    height: 68px;
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
@@ -288,8 +288,8 @@ body {
 
 .cardMenu .cardMenuSeta {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 22px;
+    right: 22px;
     margin-left: 0;
     color: var(--ink-muted);
     display: flex;
@@ -311,21 +311,21 @@ body {
 .cardHoje {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: 26px 22px;
-    margin-top: 18px;
+    padding: 32px 26px;
+    margin-top: 20px;
     box-shadow: var(--shadow-md);
 }
 
 .cardHojeTopo {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .cardHojeTopo .cardMenuIcone {
-    width: 54px;
-    height: 54px;
+    width: 62px;
+    height: 62px;
     border-radius: var(--radius-md);
     background: rgba(46,156,79,0.18);
     color: #5fc484;
@@ -337,34 +337,34 @@ body {
 .cardHojeTextos {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
 
 .cardHojeTextos strong {
-    font-size: 20px;
+    font-size: 23px;
     color: var(--ink);
 }
 
 .cardHojeTextos small {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-muted);
 }
 
 .hojeGrade {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 14px;
 }
 
 .hojeStat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     text-align: center;
     background: var(--surface-sunken);
     border-radius: var(--radius-md);
-    padding: 20px 8px;
+    padding: 26px 10px;
 }
 
 .hojeStatIcone {
@@ -372,19 +372,19 @@ body {
 }
 
 .hojeStatLabel {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink-muted);
     line-height: 1.2;
 }
 
 .hojeStatValor {
-    font-size: 30px;
+    font-size: 36px;
     font-weight: 800;
     color: var(--ink);
 }
 
 .hojeStatTendencia {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink-muted);
 }
 
