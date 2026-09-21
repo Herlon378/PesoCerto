@@ -88,11 +88,11 @@ body {
 }
 
 .menuLogo {
-    font-size: 42px;
+    font-size: 46px;
 }
 
 .menuTitulo {
-    font-size: 30px;
+    font-size: 34px;
     font-weight: 800;
     letter-spacing: -0.01em;
 }
@@ -102,8 +102,36 @@ body {
 }
 
 .menuSubtitulo {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink-muted);
+}
+
+/* ícones modernos em SVG (ficam dentro dos "chips" coloridos), no lugar
+   dos emojis antigos -- herdam a cor do texto (stroke="currentColor" no
+   SVG) e são dimensionados aqui, um tamanho por contexto. */
+.cardMenuHeroIcone svg,
+.cardMenu .cardMenuIcone svg,
+.cardHojeTopo .cardMenuIcone svg,
+.pillSino svg,
+.pillAcao svg,
+.pillPerfil svg {
+    width: 58%;
+    height: 58%;
+}
+
+.hojeStatIcone svg {
+    width: 24px;
+    height: 24px;
+}
+
+.cardMenuSeta svg {
+    width: 22px;
+    height: 22px;
+}
+
+.cardMenu .cardMenuSeta svg {
+    width: 18px;
+    height: 18px;
 }
 
 .menuRodape {
@@ -120,11 +148,13 @@ body {
     position: relative;
     border: none;
     border-radius: 999px;
-    width: 46px;
-    height: 46px;
+    width: 52px;
+    height: 52px;
     background: rgba(255,255,255,0.12);
     color: var(--ink);
-    font-size: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
     padding: 0;
 }
@@ -150,11 +180,13 @@ body {
 .pillAcao, .pillPerfil {
     border: none;
     border-radius: 999px;
-    width: 46px;
-    height: 46px;
+    width: 52px;
+    height: 52px;
     background: rgba(255,255,255,0.12);
     color: var(--ink);
-    font-size: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
     padding: 0;
 }
@@ -166,8 +198,8 @@ body {
     gap: 18px;
     width: 100%;
     text-align: left;
-    padding: 32px 24px;
-    margin-top: 20px;
+    padding: 38px 26px;
+    margin-top: 22px;
     border: none;
     border-radius: var(--radius-lg);
     background: linear-gradient(135deg, #2e9c4f, #1b6e33);
@@ -177,9 +209,8 @@ body {
 }
 
 .cardMenuHeroIcone {
-    font-size: 34px;
-    width: 68px;
-    height: 68px;
+    width: 78px;
+    height: 78px;
     border-radius: var(--radius-md);
     background: rgba(255,255,255,0.22);
     display: flex;
@@ -195,19 +226,19 @@ body {
 }
 
 .cardMenuHeroTextos strong {
-    font-size: 24px;
+    font-size: 27px;
 }
 
 .cardMenuHeroTextos small {
-    font-size: 15px;
+    font-size: 16px;
     opacity: 0.85;
     line-height: 1.35;
 }
 
 .cardMenuSeta {
     margin-left: auto;
-    font-size: 30px;
     opacity: 0.8;
+    display: flex;
 }
 
 /* GRADE 2x2 DE CARTÕES */
@@ -222,9 +253,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 14px;
     text-align: left;
-    padding: 24px 20px;
+    padding: 26px 22px;
     border: none;
     border-radius: var(--radius-lg);
     background: var(--surface);
@@ -232,24 +263,23 @@ body {
     box-shadow: var(--shadow-md);
     border-bottom: 3px solid transparent;
     position: relative;
-    min-height: 172px;
+    min-height: 190px;
     -webkit-tap-highlight-color: transparent;
 }
 
 .cardMenu strong {
-    font-size: 19px;
+    font-size: 21px;
 }
 
 .cardMenu small {
-    font-size: 13.5px;
+    font-size: 14.5px;
     color: var(--ink-muted);
     line-height: 1.35;
 }
 
 .cardMenu .cardMenuIcone {
-    font-size: 27px;
-    width: 52px;
-    height: 52px;
+    width: 58px;
+    height: 58px;
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
@@ -258,11 +288,11 @@ body {
 
 .cardMenu .cardMenuSeta {
     position: absolute;
-    top: 18px;
-    right: 18px;
+    top: 20px;
+    right: 20px;
     margin-left: 0;
-    font-size: 20px;
     color: var(--ink-muted);
+    display: flex;
 }
 
 .cardMenuAzul { border-bottom-color: var(--blue-500); }
@@ -281,8 +311,8 @@ body {
 .cardHoje {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: 22px 20px;
-    margin-top: 16px;
+    padding: 26px 22px;
+    margin-top: 18px;
     box-shadow: var(--shadow-md);
 }
 
@@ -290,15 +320,15 @@ body {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
 .cardHojeTopo .cardMenuIcone {
-    font-size: 24px;
-    width: 48px;
-    height: 48px;
+    width: 54px;
+    height: 54px;
     border-radius: var(--radius-md);
     background: rgba(46,156,79,0.18);
+    color: #5fc484;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -311,50 +341,50 @@ body {
 }
 
 .cardHojeTextos strong {
-    font-size: 18px;
+    font-size: 20px;
     color: var(--ink);
 }
 
 .cardHojeTextos small {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink-muted);
 }
 
 .hojeGrade {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 12px;
 }
 
 .hojeStat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     text-align: center;
     background: var(--surface-sunken);
     border-radius: var(--radius-md);
-    padding: 16px 8px;
+    padding: 20px 8px;
 }
 
 .hojeStatIcone {
-    font-size: 22px;
+    color: var(--ink-muted);
 }
 
 .hojeStatLabel {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ink-muted);
     line-height: 1.2;
 }
 
 .hojeStatValor {
-    font-size: 26px;
+    font-size: 30px;
     font-weight: 800;
     color: var(--ink);
 }
 
 .hojeStatTendencia {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ink-muted);
 }
 
