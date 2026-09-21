@@ -83,16 +83,16 @@ body {
 .menuHeader {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 4px;
+    gap: 14px;
+    margin: 6px 0 10px;
 }
 
 .menuLogo {
-    font-size: 32px;
+    font-size: 42px;
 }
 
 .menuTitulo {
-    font-size: 24px;
+    font-size: 30px;
     font-weight: 800;
     letter-spacing: -0.01em;
 }
@@ -102,17 +102,17 @@ body {
 }
 
 .menuSubtitulo {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ink-muted);
 }
 
 .menuRodape {
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     color: var(--ink-muted);
-    margin-top: 18px;
-    padding-bottom: 8px;
+    margin-top: 26px;
+    padding-bottom: 10px;
 }
 
 /* SININHO DE MENSAGENS */
@@ -120,11 +120,11 @@ body {
     position: relative;
     border: none;
     border-radius: 999px;
-    width: 38px;
-    height: 38px;
+    width: 46px;
+    height: 46px;
     background: rgba(255,255,255,0.12);
     color: var(--ink);
-    font-size: 16px;
+    font-size: 19px;
     flex: 0 0 auto;
     padding: 0;
 }
@@ -135,10 +135,10 @@ body {
     right: -4px;
     background: #e53935;
     color: white;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: bold;
-    min-width: 16px;
-    height: 16px;
+    min-width: 18px;
+    height: 18px;
     border-radius: 999px;
     display: flex;
     align-items: center;
@@ -150,11 +150,11 @@ body {
 .pillAcao, .pillPerfil {
     border: none;
     border-radius: 999px;
-    width: 38px;
-    height: 38px;
+    width: 46px;
+    height: 46px;
     background: rgba(255,255,255,0.12);
     color: var(--ink);
-    font-size: 16px;
+    font-size: 19px;
     flex: 0 0 auto;
     padding: 0;
 }
@@ -163,11 +163,11 @@ body {
 .cardMenuHero {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 18px;
     width: 100%;
     text-align: left;
-    padding: 22px 20px;
-    margin-top: 14px;
+    padding: 32px 24px;
+    margin-top: 20px;
     border: none;
     border-radius: var(--radius-lg);
     background: linear-gradient(135deg, #2e9c4f, #1b6e33);
@@ -177,9 +177,9 @@ body {
 }
 
 .cardMenuHeroIcone {
-    font-size: 26px;
-    width: 52px;
-    height: 52px;
+    font-size: 34px;
+    width: 68px;
+    height: 68px;
     border-radius: var(--radius-md);
     background: rgba(255,255,255,0.22);
     display: flex;
@@ -191,22 +191,22 @@ body {
 .cardMenuHeroTextos {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .cardMenuHeroTextos strong {
-    font-size: 20px;
+    font-size: 24px;
 }
 
 .cardMenuHeroTextos small {
-    font-size: 13px;
+    font-size: 15px;
     opacity: 0.85;
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .cardMenuSeta {
     margin-left: auto;
-    font-size: 24px;
+    font-size: 30px;
     opacity: 0.8;
 }
 
@@ -214,17 +214,17 @@ body {
 .menuGrade2x2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 12px;
+    gap: 14px;
+    margin-top: 16px;
 }
 
 .cardMenu {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
     text-align: left;
-    padding: 18px 16px;
+    padding: 24px 20px;
     border: none;
     border-radius: var(--radius-lg);
     background: var(--surface);
@@ -232,24 +232,24 @@ body {
     box-shadow: var(--shadow-md);
     border-bottom: 3px solid transparent;
     position: relative;
-    min-height: 128px;
+    min-height: 172px;
     -webkit-tap-highlight-color: transparent;
 }
 
 .cardMenu strong {
-    font-size: 16px;
+    font-size: 19px;
 }
 
 .cardMenu small {
-    font-size: 12px;
+    font-size: 13.5px;
     color: var(--ink-muted);
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .cardMenu .cardMenuIcone {
-    font-size: 22px;
-    width: 42px;
-    height: 42px;
+    font-size: 27px;
+    width: 52px;
+    height: 52px;
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
@@ -258,10 +258,10 @@ body {
 
 .cardMenu .cardMenuSeta {
     position: absolute;
-    top: 14px;
-    right: 14px;
+    top: 18px;
+    right: 18px;
     margin-left: 0;
-    font-size: 18px;
+    font-size: 20px;
     color: var(--ink-muted);
 }
 
@@ -281,22 +281,22 @@ body {
 .cardHoje {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: 16px;
-    margin-top: 12px;
+    padding: 22px 20px;
+    margin-top: 16px;
     box-shadow: var(--shadow-md);
 }
 
 .cardHojeTopo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 14px;
+    margin-bottom: 18px;
 }
 
 .cardHojeTopo .cardMenuIcone {
-    font-size: 20px;
-    width: 40px;
-    height: 40px;
+    font-size: 24px;
+    width: 48px;
+    height: 48px;
     border-radius: var(--radius-md);
     background: rgba(46,156,79,0.18);
     display: flex;
@@ -307,53 +307,54 @@ body {
 .cardHojeTextos {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .cardHojeTextos strong {
-    font-size: 16px;
+    font-size: 18px;
     color: var(--ink);
 }
 
 .cardHojeTextos small {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ink-muted);
 }
 
 .hojeGrade {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
 }
 
 .hojeStat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     text-align: center;
     background: var(--surface-sunken);
     border-radius: var(--radius-md);
-    padding: 10px 4px;
+    padding: 16px 8px;
 }
 
 .hojeStatIcone {
-    font-size: 16px;
+    font-size: 22px;
 }
 
 .hojeStatLabel {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--ink-muted);
     line-height: 1.2;
 }
 
 .hojeStatValor {
-    font-size: 18px;
+    font-size: 26px;
     font-weight: 800;
     color: var(--ink);
 }
 
 .hojeStatTendencia {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--ink-muted);
 }
 
