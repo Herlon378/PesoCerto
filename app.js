@@ -215,10 +215,7 @@ function resetarPesagemAtual() {
     alternarTipoPesagem("");
     // desfaz os critérios extras (2 e 3), se tinham sido abertos numa
     // pesagem anterior -- volta pro estado "só Critério 1" de uma sessão nova
-    if(typeof removerCriterioExtra === "function"){
-        removerCriterioExtra(3);
-        removerCriterioExtra(2);
-    }
+    if(typeof fecharCriteriosExtras === "function") fecharCriteriosExtras();
     aplicarRestricoesUsuario();
 
     localStorage.removeItem("pesagemAtual");
@@ -373,6 +370,10 @@ function finalizarPesagem(){
     criteriosPesagem = [];
     criterioAtivoIndex = 0;
     pesos = [];
+    // sem isso, um Critério 2/3 aberto nessa sessão continuava aparecendo
+    // aberto (e contando como critério de verdade) em TODAS as próximas
+    // pesagens, mesmo sem o operador pedir de novo -- era o bug reportado
+    if(typeof fecharCriteriosExtras === "function") fecharCriteriosExtras();
     desconectarBalancaBluetooth();
     resetarEstadoCapturaBalanca();
     let labelPeso = document.getElementById("pesoAtualLabel");
@@ -619,6 +620,17 @@ function removerCriterioExtra(n){
     }
     let botaoAdicionar = document.getElementById("btnAdicionarCriterio" + n);
     if(botaoAdicionar) botaoAdicionar.style.display = "block";
+}
+
+// fecha os blocos de Critério 2/3 se tiverem ficado abertos de uma pesagem
+// anterior -- sem isso, uma vez que o operador abrisse o Critério 2 numa
+// pesagem, ele continuava aparecendo aberto (e contando como um critério
+// de verdade em montarCriteriosPesagem) em TODAS as pesagens seguintes,
+// mesmo sem o operador pedir. Chamado ao entrar em Nova Pesagem e depois
+// de cancelar/finalizar, pra garantir sempre um estado limpo.
+function fecharCriteriosExtras(){
+    removerCriterioExtra(3);
+    removerCriterioExtra(2);
 }
 
 function mostrarRelatorios(){
