@@ -19,7 +19,13 @@ function salvarPesagem(){
         rendimento: rendEl ? rendEl.value : "",
         pesos: pesos,
         data: new Date().toLocaleString("pt-BR"),
-        sincronizado: false
+        sincronizado: false,
+        // presente só quando essa pesagem foi salva junto com outra(s) na
+        // mesma sessão (mais de 1 critério usado de uma vez) -- deixa o
+        // relatório/WhatsApp juntarem essas pesagens num recibo só, sem
+        // mudar em nada como elas são tratadas em Custo por Lote/Dashboard/
+        // Resultado Mensal (que nem sabem que esse campo existe)
+        sessaoId: (typeof sessaoPesagemIdAtual !== "undefined" && sessaoPesagemIdAtual) ? sessaoPesagemIdAtual : null
     };
 
     let lista = JSON.parse(localStorage.getItem("pesagens") || "[]");

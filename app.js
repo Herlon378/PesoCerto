@@ -347,11 +347,18 @@ function finalizarPesagem(){
     // garante que o array do critério ativo está com o `pesos` mais recente
     // antes de checar/salvar (já é a mesma referência, isso é só defensivo)
     if(criteriosPesagem[criterioAtivoIndex]) criteriosPesagem[criterioAtivoIndex].pesos = pesos;
-    let totalPesosLancados = criteriosPesagem.reduce((soma, c) => soma + c.pesos.length, 0);
-    if(totalPesosLancados === 0){
+    let criteriosUsados = criteriosPesagem.filter(c => c.pesos.length > 0);
+    if(criteriosUsados.length === 0){
         alert("Nenhum peso lançado!");
         return;
     }
+
+    // se mais de 1 critério foi usado, marca todas as pesagens dessa
+    // finalização com o mesmo sessaoId -- é o que deixa o relatório de
+    // impressão/WhatsApp juntar tudo num recibo só depois (ver
+    // obterRegistrosDaSessao). Com só 1 critério (o caso comum) fica null,
+    // sem efeito nenhum -- continua exatamente como sempre foi.
+    sessaoPesagemIdAtual = criteriosUsados.length > 1 ? crypto.randomUUID() : null;
 
     // cada critério com pelo menos 1 peso vira uma pesagem salva separada
     // (mesmo formato de sempre) -- salvarPesagem() não muda, só roda uma
@@ -361,6 +368,7 @@ function finalizarPesagem(){
         trocarCriterioAtivo(i);
         if(typeof salvarPesagem === "function") salvarPesagem();
     });
+    sessaoPesagemIdAtual = null;
 
     criteriosPesagem = [];
     criterioAtivoIndex = 0;
@@ -505,6 +513,9 @@ function atualizarStats(){
 // ========================================
 let criteriosPesagem = [];
 let criterioAtivoIndex = 0;
+// setado só durante finalizarPesagem() enquanto salva várias pesagens da
+// mesma sessão (ver db.js salvarPesagem()) -- fora disso é sempre null
+let sessaoPesagemIdAtual = null;
 
 function montarCriteriosPesagem(){
     // preserva pesos já lançados (ex: restaurados de uma queda do app antes
@@ -833,9 +844,9 @@ function formatarValorKg(input) {
 async function gerarPDF() {
     try {
         let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
-        if (!sel) { 
-            alert("Selecione um relatório primeiro!"); 
-            return; 
+        if (!sel) {
+            alert("Selecione um relatório primeiro!");
+            return;
         }
 
         let indiceReal = parseInt(sel.value);
@@ -845,7 +856,12 @@ async function gerarPDF() {
             return;
         }
 
-        let d = calcularDadosCompletos(r);
+        // se essa pesagem foi salva junto com outra(s) na mesma sessão
+        // (mais de 1 critério usado), junta tudo num recibo só -- o
+        // vendedor recebe UM pagamento mesmo sendo 2-3 lotes diferentes
+        let registros = obterRegistrosDaSessao(r);
+        let multiplos = registros.length > 1;
+        let totalGeral = 0;
 
         const { jsPDF } = window.jspdf;
         let pdf = new jsPDF();
@@ -862,58 +878,93 @@ async function gerarPDF() {
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(11);
         let y = 35;
-
         pdf.text(`Vendedor: ${r.vendedor || 'Geral'}`, 10, y);
-        pdf.text(`Data/Hora: ${d.dataHora}`, 110, y);
-        
-        y += 7;
-        pdf.text(`Lote/Desc: ${r.descricao || 'Sem Descrição'}`, 10, y);
-        pdf.text(`${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
-        
-        y += 7;
-        pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 10, y);
-        pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 110, y);
-        
-        y += 7;
-        pdf.text(`Faturamento Lote: R$ ${formatarMoeda(d.totalRS)}`, 10, y);
-        pdf.text(`Média por Animal: ${d.mediaKg.toFixed(2).replace(".", ",")} kg`, 110, y);
-
-        if(d.ehArroba){
-            y += 7;
-            pdf.text(`Total em Arrobas: ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rend. ${d.rendimentoNum}%)`, 10, y);
-        }
-
+        pdf.text(`Data/Hora: ${calcularDadosCompletos(r).dataHora}`, 110, y);
         y += 10;
-        pdf.setFont("helvetica", "bold");
-        pdf.text(`3 Mais Leves: ${d.leves}`, 10, y);
-        y += 7;
-        pdf.text(`3 Mais Pesados: ${d.pesados}`, 10, y);
-        
-        y += 12;
-        pdf.line(10, y - 5, 200, y - 5);
-        pdf.text("Nº", 10, y);
-        pdf.text("Peso (kg)", 40, y);
-        pdf.text("Valor Individual", 90, y);
-        pdf.text("Observação", 150, y);
-        pdf.line(10, y + 2, 200, y + 2);
-        
-        pdf.setFont("helvetica", "normal");
-        y += 8;
 
-        r.pesos.forEach((p, i) => {
-            if (y > 270) {
-                pdf.addPage();
-                y = 20;
+        registros.forEach((registro, indiceLote) => {
+            let d = calcularDadosCompletos(registro);
+            totalGeral += d.totalRS;
+
+            if(y > 250){ pdf.addPage(); y = 20; }
+
+            if(multiplos){
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(13);
+                pdf.text(`Lote ${indiceLote + 1}: ${registro.descricao || "Sem Descrição"}`, 10, y);
+                y += 8;
+                pdf.setFontSize(11);
+            } else {
+                pdf.text(`Lote/Desc: ${registro.descricao || 'Sem Descrição'}`, 10, y);
+                pdf.text(`${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
+                y += 7;
             }
-            
-            let pAtual = p.peso || 0;
-            let valorInd = d.valorDoItem(pAtual);
-            pdf.text(String(i + 1), 10, y);
-            pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
-            pdf.text(`R$ ${formatarMoeda(valorInd)}`, 90, y);
-            pdf.text(p.obs || "-", 150, y);
+
+            pdf.setFont("helvetica", "normal");
+            if(multiplos){
+                pdf.text(`${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 10, y);
+                pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 110, y);
+                y += 7;
+                pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 10, y);
+                pdf.text(`Subtotal deste lote: R$ ${formatarMoeda(d.totalRS)}`, 110, y);
+                y += 7;
+            } else {
+                pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 10, y);
+                pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 110, y);
+                y += 7;
+                pdf.text(`Faturamento Lote: R$ ${formatarMoeda(d.totalRS)}`, 10, y);
+                pdf.text(`Média por Animal: ${d.mediaKg.toFixed(2).replace(".", ",")} kg`, 110, y);
+                y += 7;
+            }
+
+            if(d.ehArroba){
+                pdf.text(`Total em Arrobas: ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rend. ${d.rendimentoNum}%)`, 10, y);
+                y += 7;
+            }
+
+            y += 3;
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`3 Mais Leves: ${d.leves}`, 10, y);
             y += 7;
+            pdf.text(`3 Mais Pesados: ${d.pesados}`, 10, y);
+
+            y += 12;
+            pdf.line(10, y - 5, 200, y - 5);
+            pdf.text("Nº", 10, y);
+            pdf.text("Peso (kg)", 40, y);
+            pdf.text("Valor Individual", 90, y);
+            pdf.text("Observação", 150, y);
+            pdf.line(10, y + 2, 200, y + 2);
+
+            pdf.setFont("helvetica", "normal");
+            y += 8;
+
+            registro.pesos.forEach((p, i) => {
+                if (y > 270) {
+                    pdf.addPage();
+                    y = 20;
+                }
+
+                let pAtual = p.peso || 0;
+                let valorInd = d.valorDoItem(pAtual);
+                pdf.text(String(i + 1), 10, y);
+                pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
+                pdf.text(`R$ ${formatarMoeda(valorInd)}`, 90, y);
+                pdf.text(p.obs || "-", 150, y);
+                y += 7;
+            });
+
+            y += 6;
         });
+
+        if(multiplos){
+            if(y > 260){ pdf.addPage(); y = 20; }
+            pdf.line(10, y, 200, y);
+            y += 10;
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(15);
+            pdf.text(`TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}`, 105, y, { align: "center" });
+        }
 
         let pluginsNativos = window.Capacitor ? window.Capacitor.Plugins : null;
         if (!pluginsNativos || !pluginsNativos.Filesystem || !pluginsNativos.Share) {
@@ -950,6 +1001,19 @@ function nomeArquivoPesagem(r, extensao){
     let prefixo = r.numero ? `Pesagem_${r.numero}` : "Pesagem";
     let vendedor = (r.vendedor || "lote").replace(/\s+/g, "_");
     return `${prefixo}_${vendedor}.${extensao}`;
+}
+
+// Dado um relatório selecionado, retorna todos os registros que foram
+// salvos JUNTOS na mesma finalização (mesmo sessaoId) -- normalmente é só
+// [r] mesmo (a grande maioria das pesagens usa 1 critério só); quando o
+// operador usou 2-3 critérios na mesma sessão, isso deixa o relatório de
+// impressão/PDF/WhatsApp juntar tudo num recibo só (mesmo vendedor, valor
+// total a pagar numa tacada), SEM mudar como cada pesagem é tratada em
+// Custo por Lote/Dashboard/Resultado Mensal -- lá continuam sendo
+// registros 100% independentes, isso aqui é só pra exibição/recibo.
+function obterRegistrosDaSessao(r){
+    if(!r || !r.sessaoId) return [r];
+    return relatorios.filter(item => item.sessaoId === r.sessaoId);
 }
 
 function calcularDadosCompletos(r) {
@@ -1001,34 +1065,54 @@ function calcularDadosCompletos(r) {
 function prepararImpressao(){
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     if(!sel){ alert("Selecione um relatório"); return; }
-    
+
     let r = relatorios[sel.value];
-    let d = calcularDadosCompletos(r);
-    
+
+    // mesma pesagem, mais de um critério na mesma sessão? junta num recibo
+    // só (ver obterRegistrosDaSessao) -- um único valor a pagar no fim
+    let registros = obterRegistrosDaSessao(r);
+    let multiplos = registros.length > 1;
+    let totalGeral = 0;
+
     let html = `
         <h2>Pesagem Estância Reis ${r.numero ? "— Nº " + r.numero : ""}</h2>
         <hr>
-        <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${d.dataHora}</p>
-        <p><b>Descrição:</b> ${r.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>${d.ehValorAnimal ? "Valor por Animal" : "Valor por Kg"}:</b> R$ ${formatarMoeda(d.valorKgNum)}</p>
-        <p><b>Total Animais:</b> ${d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>Média Lote:</b> ${d.mediaKg.toFixed(2).replace(".", ",")} kg</p>
-        <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>Faturamento Total:</b> R$ ${formatarMoeda(d.totalRS)}</p>
-        ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
-        <br>
-        <table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
-            <thead>
-                <tr style="background:#eee"><th>Nº</th><th>Peso</th><th>Valor Individual</th><th>Observação</th></tr>
-            </thead>
-            <tbody>
+        <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${calcularDadosCompletos(r).dataHora}</p>
     `;
-    
-    r.pesos.forEach((p, i) => {
-        let pAtual = p.peso || 0;
-        let vInd = d.valorDoItem(pAtual);
-        html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${p.obs || "-"}</td></tr>`;
+
+    registros.forEach((registro, indiceLote) => {
+        let d = calcularDadosCompletos(registro);
+        totalGeral += d.totalRS;
+
+        html += multiplos
+            ? `<h3 style="margin-top:16px">Lote ${indiceLote + 1}: ${registro.descricao || "Sem Descrição"}</h3>`
+            : `<p><b>Descrição:</b> ${registro.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>${d.ehValorAnimal ? "Valor por Animal" : "Valor por Kg"}:</b> R$ ${formatarMoeda(d.valorKgNum)}</p>`;
+
+        html += `
+            <p><b>${multiplos ? (d.ehValorAnimal ? "Valor por Animal" : "Valor por Kg") + ":" : "Total Animais:"}</b> ${multiplos ? "R$ " + formatarMoeda(d.valorKgNum) : d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>${multiplos ? "Total Animais:" : "Média Lote:"}</b> ${multiplos ? d.totalAnimais : d.mediaKg.toFixed(2).replace(".", ",") + " kg"}</p>
+            <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>${multiplos ? "Subtotal deste lote:" : "Faturamento Total:"}</b> R$ ${formatarMoeda(d.totalRS)}</p>
+            ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
+            <br>
+            <table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
+                <thead>
+                    <tr style="background:#eee"><th>Nº</th><th>Peso</th><th>Valor Individual</th><th>Observação</th></tr>
+                </thead>
+                <tbody>
+        `;
+
+        registro.pesos.forEach((p, i) => {
+            let pAtual = p.peso || 0;
+            let vInd = d.valorDoItem(pAtual);
+            html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${p.obs || "-"}</td></tr>`;
+        });
+
+        html += `</tbody></table>`;
     });
-    
-    html += `</tbody></table>`;
-    
+
+    if(multiplos){
+        html += `<h2 style="margin-top:20px; text-align:right">TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}</h2>`;
+    }
+
     let folha = document.getElementById("folhaRelatorio");
     if(folha) folha.innerHTML = html;
     trocarTela("telaImpressao");
@@ -1072,50 +1156,74 @@ function exportarExcel(){
 // ========================================
 // COMPARTILHAR NO WHATSAPP
 // ========================================
-function montarMensagemWhatsApp(r, d){
-    let valorMedio = d.totalAnimais ? d.totalRS / d.totalAnimais : 0;
+// registros: 1 a 3 pesagens da MESMA sessão (ver obterRegistrosDaSessao) --
+// com só 1 registro, a mensagem sai idêntica a como sempre foi; com mais
+// de 1 (operador usou vários critérios na mesma entrega), cada lote ganha
+// seu próprio bloco de resumo+pesagens e a mensagem fecha com um total
+// geral só, pra facilitar um pagamento único ao vendedor.
+function montarMensagemWhatsApp(registros){
+    let r = registros[0];
+    let multiplos = registros.length > 1;
+    let totalGeral = 0;
 
     let linhas = [];
     linhas.push("📋 *RELATÓRIO DE PESAGEM*" + (r.numero ? " — Nº " + r.numero : ""));
     linhas.push("");
     linhas.push("*Tipo:* " + ((r.tipo || "venda") === "compra" ? "Compra" : "Venda"));
     linhas.push("*Vendedor:* " + (r.vendedor || "Não informado"));
-    linhas.push("*Lote/Descrição:* " + (r.descricao || "Sem descrição"));
-    linhas.push("*Data:* " + d.dataHora);
-    linhas.push("*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehValorAnimal ? " por animal" : (d.ehArroba ? " por @" : " por kg")));
-    linhas.push("");
-    linhas.push("*RESUMO*");
-    linhas.push("Total de animais: " + d.totalAnimais);
-    linhas.push("Peso total: " + formatarPeso(d.totalKg) + " kg");
-    linhas.push("Peso médio: " + d.mediaKg.toFixed(2).replace(".", ",") + " kg");
-    if(d.ehArroba){
-        linhas.push("Total em arrobas: " + d.totalArroba.toFixed(2).replace(".", ",") + " @ (Rend. " + d.rendimentoNum + "%)");
+    linhas.push("*Data:* " + calcularDadosCompletos(r).dataHora);
+    if(!multiplos){
+        linhas.push("*Lote/Descrição:* " + (r.descricao || "Sem descrição"));
     }
-    if(d.ehValorAnimal){
-        linhas.push("R$/kg médio (implícito no preço fixo): R$ " + formatarMoeda(d.kgImplicitoMedio));
-    }
-    linhas.push("Valor médio por animal: R$ " + formatarMoeda(valorMedio));
-    linhas.push("3 mais pesados: " + d.pesados);
-    linhas.push("3 mais leves: " + d.leves);
-    linhas.push("*Faturamento total: R$ " + formatarMoeda(d.totalRS) + "*");
-    linhas.push("");
-    linhas.push("*PESAGENS*");
-    (r.pesos || []).forEach((p, i) => {
-        let pesoKg = p.peso || 0;
-        let valorInd = d.valorDoItem(pesoKg);
-        let linha = (i + 1) + " - " + formatarPeso(pesoKg) + "kg";
+
+    registros.forEach((registro, indiceLote) => {
+        let d = calcularDadosCompletos(registro);
+        totalGeral += d.totalRS;
+        let valorMedio = d.totalAnimais ? d.totalRS / d.totalAnimais : 0;
+
+        linhas.push("");
+        if(multiplos){
+            linhas.push("━━━━━━━━━━━━━━━");
+            linhas.push("📦 *LOTE " + (indiceLote + 1) + ": " + (registro.descricao || "Sem descrição") + "*");
+        } else {
+            linhas.push("*RESUMO*");
+        }
+        linhas.push("*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehValorAnimal ? " por animal" : (d.ehArroba ? " por @" : " por kg")));
+        linhas.push("Total de animais: " + d.totalAnimais);
+        linhas.push("Peso total: " + formatarPeso(d.totalKg) + " kg");
+        linhas.push("Peso médio: " + d.mediaKg.toFixed(2).replace(".", ",") + " kg");
         if(d.ehArroba){
-            linha += " (" + d.arrobaDe(pesoKg).toFixed(2).replace(".", ",") + " @)";
+            linhas.push("Total em arrobas: " + d.totalArroba.toFixed(2).replace(".", ",") + " @ (Rend. " + d.rendimentoNum + "%)");
         }
-        if(d.ehValorAnimal && pesoKg > 0){
-            linha += " (R$ " + formatarMoeda(d.valorKgNum / pesoKg) + "/kg)";
+        if(d.ehValorAnimal){
+            linhas.push("R$/kg médio (implícito no preço fixo): R$ " + formatarMoeda(d.kgImplicitoMedio));
         }
-        linha += " - R$ " + formatarMoeda(valorInd);
-        if(p.obs) linha += " [" + p.obs + "]";
-        linhas.push(linha);
+        linhas.push("Valor médio por animal: R$ " + formatarMoeda(valorMedio));
+        linhas.push("3 mais pesados: " + d.pesados);
+        linhas.push("3 mais leves: " + d.leves);
+        linhas.push((multiplos ? "*Subtotal deste lote: R$ " : "*Faturamento total: R$ ") + formatarMoeda(d.totalRS) + "*");
+        linhas.push("");
+        linhas.push("*PESAGENS*");
+        (registro.pesos || []).forEach((p, i) => {
+            let pesoKg = p.peso || 0;
+            let valorInd = d.valorDoItem(pesoKg);
+            let linha = (i + 1) + " - " + formatarPeso(pesoKg) + "kg";
+            if(d.ehArroba){
+                linha += " (" + d.arrobaDe(pesoKg).toFixed(2).replace(".", ",") + " @)";
+            }
+            if(d.ehValorAnimal && pesoKg > 0){
+                linha += " (R$ " + formatarMoeda(d.valorKgNum / pesoKg) + "/kg)";
+            }
+            linha += " - R$ " + formatarMoeda(valorInd);
+            if(p.obs) linha += " [" + p.obs + "]";
+            linhas.push(linha);
+        });
     });
+
     linhas.push("");
-    linhas.push("💰 *Total: R$ " + formatarMoeda(d.totalRS) + "*");
+    linhas.push(multiplos
+        ? "💰 *TOTAL GERAL A PAGAR: R$ " + formatarMoeda(totalGeral) + "*"
+        : "💰 *Total: R$ " + formatarMoeda(totalGeral) + "*");
     return linhas.join("\n");
 }
 
@@ -1127,8 +1235,8 @@ function compartilharWhatsApp(){
     let r = relatorios[indiceReal];
     if(!r || !r.pesos){ alert("Erro ao ler os dados do relatório selecionado."); return; }
 
-    let d = calcularDadosCompletos(r);
-    let mensagem = montarMensagemWhatsApp(r, d);
+    let registros = obterRegistrosDaSessao(r);
+    let mensagem = montarMensagemWhatsApp(registros);
     window.open("https://wa.me/?text=" + encodeURIComponent(mensagem), "_blank");
 }
 
