@@ -919,14 +919,14 @@ textarea {
    pro fundo é .pesoAtualCard (margin-top:auto), e o espaço sobrando fica
    como vão neutro (fundo escuro) por trás da lista, não uma caixa branca. */
 .listaPesosAtual {
-    /* NEM flex:1 nem um teto alto -- as duas coisas já foram tentadas e
-       as duas deixavam uma caixa branca vazia enorme quando tinha só
-       2-3 itens (era exatamente o problema reportado). Agora ela cresce
-       só até caber o que tem dentro, com um teto baixo o bastante pra
-       nunca sobrar espaço à toa -- com muitos itens ela rola por dentro
-       em vez de esticar. */
-    min-height: 90px;
-    max-height: 220px;
+    /* Altura FIXA de propósito -- nem flex:1, nem min/max-height que
+       cresce com o conteúdo. Antes ela mudava de tamanho conforme
+       lançava peso, empurrando o resto da tela pra baixo/cima junto --
+       ficava com espaço sobrando embaixo e a tela "pulava" a cada
+       lançamento. Com altura fixa, o resto da tela (peso atual, teclado,
+       botões) fica sempre na MESMA posição, e a lista rola por dentro
+       quando tem mais itens do que cabe. */
+    height: 260px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
@@ -956,19 +956,19 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* .listaPesosAtual não tem altura fixa (cresce só com o conteúdo),
-       então height:100% não teria efeito aqui -- um padding fixo resolve
-       sem depender disso */
-    padding: 26px 0;
+    /* .listaPesosAtual agora tem altura fixa (260px), então height:100%
+       funciona de novo e centraliza o texto no meio da caixa toda */
+    height: 100%;
     color: #999;
-    font-size: 16px;
+    font-size: 17px;
 }
 
 .itemPesagem {
     display: flex;
     justify-content: space-between;
-    padding: 12px 14px;
-    font-size: 18px;
+    align-items: center;
+    padding: 14px 16px;
+    font-size: 21px;
     font-weight: 600;
     color: #222;
     border-bottom: 1px solid #eee;
@@ -993,7 +993,7 @@ textarea {
 .btnExcluirItem {
     background: none;
     border: none;
-    font-size: 17px;
+    font-size: 21px;
     padding: 4px 6px;
     cursor: pointer;
 }
