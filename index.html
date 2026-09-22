@@ -335,6 +335,14 @@
 </div>
 
 <div id="telaPesagem" class="tela">
+    <div class="sliderConfirm sliderConfirmTopo">
+        <div class="sliderTrack" id="sliderTrack">
+            <span class="sliderLabelEsquerda">✕ Cancelar</span>
+            <span class="sliderLabelDireita">Finalizar ✓</span>
+            <div class="sliderHandle" id="sliderHandle">↔</div>
+        </div>
+    </div>
+
     <div class="stats">
         <div class="statCard">Animais<br><span id="qtd">0</span></div>
         <div class="statCard">Média<br><span id="media">0</span></div>
@@ -349,6 +357,21 @@
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
 
+    <div class="criteriosPesagem">
+        <button class="criterioBtn" onclick="abrirModalCriterio('tipo')">
+            <span class="criterioBtnLabel">Tipo</span>
+            <span class="criterioBtnValor" id="criterioValorTipo">Peso Vivo</span>
+        </button>
+        <button class="criterioBtn" onclick="abrirModalCriterio('valor')">
+            <span class="criterioBtnLabel">Valor</span>
+            <span class="criterioBtnValor" id="criterioValorValor">R$ 0,00</span>
+        </button>
+        <button class="criterioBtn" onclick="abrirModalCriterio('lote')">
+            <span class="criterioBtnLabel">Lote</span>
+            <span class="criterioBtnValor" id="criterioValorLote">Sem lote</span>
+        </button>
+    </div>
+
     <div class="painelControlePesagem">
         <div class="pesoAtualCard">
             <span class="pesoAtualLabel" id="pesoAtualLabel">PESO ATUAL</span>
@@ -357,7 +380,7 @@
             <span class="pesoAtualUnidade">kg</span>
         </div>
         <div id="logBalancaBox" class="logBalancaBox" style="display:none"></div>
-        <input id="obs" placeholder="Observação">
+        <input id="obs" placeholder="Observação" maxlength="15">
         <div class="teclado">
             <button onclick="digitar(1)">1</button><button onclick="digitar(2)">2</button><button onclick="digitar(3)">3</button>
             <button onclick="digitar(4)">4</button><button onclick="digitar(5)">5</button><button onclick="digitar(6)">6</button>
@@ -365,12 +388,31 @@
             <button onclick="digitar(0)">0</button><button class="btnMeio" onclick="digitarMeio()">,5</button><button onclick="apagar()">←</button>
         </div>
         <button class="btnLancar" onclick="lancarPeso()">✓ Lançar Peso</button>
-        <div class="sliderConfirm">
-            <div class="sliderTrack" id="sliderTrack">
-                <span class="sliderLabelEsquerda">✕ Cancelar</span>
-                <span class="sliderLabelDireita">Finalizar ✓</span>
-                <div class="sliderHandle" id="sliderHandle">↔</div>
-            </div>
+    </div>
+</div>
+
+<div id="modalCriterioPesagem" class="modal">
+    <div class="modal-box">
+        <h2 id="criterioModalTitulo">Editar critério</h2>
+        <div id="criterioModalCampoTipo" style="display:none">
+            <select id="criterioInputTipo">
+                <option value="vivo">Peso Vivo (Kg)</option>
+                <option value="arroba">Arroba (@)</option>
+                <option value="valor_animal">Valor Fixo por Animal</option>
+            </select>
+        </div>
+        <div id="criterioModalCampoValor" style="display:none">
+            <input id="criterioInputValor" placeholder="Valor" inputmode="decimal">
+        </div>
+        <div id="criterioModalCampoLote" style="display:none">
+            <select id="criterioInputLote">
+                <option value="">Sem lote</option>
+            </select>
+        </div>
+        <p class="loginSubtitulo" style="text-align:left">Isso muda o critério pra toda a pesagem atual, incluindo os animais já lançados nesta sessão.</p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalCriterioPesagem()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarCriterioPesagem()">Salvar</button>
         </div>
     </div>
 </div>

@@ -78,6 +78,47 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
+/* CRITÉRIOS DE PESAGEM -- atalho pra corrigir tipo/valor/lote sem sair da
+   tela de pesagem (mesmos campos de telaInicial, só espelhados aqui) */
+.criteriosPesagem {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.criterioBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.criterioBtn:active {
+    transform: scale(0.97);
+}
+
+.criterioBtnLabel {
+    font-size: 12px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.criterioBtnValor {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--blue-500);
+    text-align: center;
+    overflow-wrap: break-word;
+}
+
 /* Menu principal -- fundo escuro igual o painel desktop; os cartões
    (stats/lista/peso atual/teclado) continuam claros de propósito, é o
    que mais lê bem no sol forte do curral -- só o "moldura" ao redor
@@ -596,31 +637,34 @@ textarea {
 
 /* CARDS DE STATUS -- cartões escuros (em vez de branco chapado), no
    mesmo tom da paleta do resto do app, com o número em destaque */
+/* 2 colunas em vez de 3 -- cartão mais largo dá espaço pra letra maior
+   sem estourar em valores compridos tipo "R$ 179.621,96" */
 .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
 .statCard {
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--ink-muted);
-    padding: 16px 6px;
+    padding: 18px 10px;
     border-radius: var(--radius-md);
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.4;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .statCard span {
     display: block;
-    margin-top: 2px;
-    font-size: 25px;
+    margin-top: 4px;
+    font-size: 32px;
     font-weight: 800;
     color: var(--ink);
+    overflow-wrap: break-word;
 }
 
 /* PESO ATUAL (display em destaque) -- moldura com degradê azul + brilho
@@ -630,11 +674,11 @@ textarea {
     position: relative;
     background: linear-gradient(160deg, #eaf2ff, #ffffff 45%, #ffffff);
     border: 2px solid #cfe1fb;
-    border-radius: 22px;
-    padding: 18px 16px 20px;
+    border-radius: 26px;
+    padding: 26px 20px 28px;
     text-align: center;
     box-shadow: 0 8px 24px rgba(25,118,210,0.22);
-    margin: 0 0 10px;
+    margin: 0 0 12px;
 }
 
 .btnLogBalanca {
@@ -667,7 +711,7 @@ textarea {
 
 .pesoAtualLabel {
     display: block;
-    font-size: 15px;
+    font-size: 20px;
     font-weight: bold;
     color: #7a8aa8;
     letter-spacing: 2px;
@@ -675,10 +719,10 @@ textarea {
 
 .pesoAtualUnidade {
     display: block;
-    font-size: 19px;
+    font-size: 24px;
     font-weight: 600;
     color: #7a8aa8;
-    margin-top: -14px;
+    margin-top: -16px;
 }
 
 /* BALANÇA BLUETOOTH */
@@ -715,7 +759,7 @@ textarea {
 
 /* DISPLAY PESO */
 #displayPeso {
-    font-size: 78px;
+    font-size: 108px;
     height: auto;
     text-align: center;
     font-weight: 800;
@@ -734,9 +778,9 @@ textarea {
 /* aproxima a Observação do teclado, deixando mais espaço pra lista de
    pesos crescer acima */
 #obs {
-    margin: 8px 0 6px;
-    padding: 18px;
-    font-size: 19px;
+    margin: 10px 0 8px;
+    padding: 22px;
+    font-size: 26px;
 }
 
 /* TECLADO */
@@ -750,17 +794,17 @@ textarea {
 .teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-top: 14px;
+    gap: 16px;
+    margin-top: 16px;
 }
 
 .teclado button {
     width: 100%;
-    height: 104px;
-    font-size: 40px;
+    height: 132px;
+    font-size: 50px;
     border: none;
     border-bottom: 3px solid rgba(25,118,210,0.15);
-    border-radius: 20px;
+    border-radius: 22px;
     background: linear-gradient(180deg, #ffffff, #e7edf7);
     color: #1976d2;
     font-weight: bold;
@@ -775,15 +819,9 @@ textarea {
     background: #e3f2fd;
 }
 
-.teclado .btnMeio {
-    background: linear-gradient(135deg, #3987e5, #1c5aa8);
-    border-bottom-color: rgba(0,0,0,0.25);
-    color: white;
-}
-
-.teclado .btnMeio:active {
-    background: #164a8c;
-}
+/* ,5 não precisa de cor diferente das outras teclas -- é só mais um
+   dígito, não uma ação especial (Herlon pediu explicitamente pra tirar
+   o destaque) */
 
 /* BOTÃO LANÇAR */
 .btnLancar {
@@ -809,6 +847,14 @@ textarea {
 /* SLIDER CANCELAR / FINALIZAR */
 .sliderConfirm {
     margin-top: 12px;
+}
+
+/* agora fica no topo da tela de Pesagem (acima dos cartões de status),
+   não mais depois do teclado -- Cancelar/Finalizar sempre visível e ao
+   alcance, sem precisar rolar até o fim */
+.sliderConfirmTopo {
+    margin-top: 0;
+    margin-bottom: 10px;
 }
 
 .sliderTrack {
@@ -926,11 +972,11 @@ textarea {
        lançamento. Com altura fixa, o resto da tela (peso atual, teclado,
        botões) fica sempre na MESMA posição, e a lista rola por dentro
        quando tem mais itens do que cabe. */
-    height: 260px;
+    height: 520px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
-    border-radius: 10px;
+    border-radius: 14px;
     margin-bottom: 6px;
     /* barrinha de rolagem fina e discreta, só pra dar a dica visual de que
        dá pra rolar -- Firefox/Android via scrollbar-width, Chrome/iOS via
@@ -965,10 +1011,12 @@ textarea {
 
 .itemPesagem {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 16px;
-    font-size: 21px;
+    gap: 6px 12px;
+    padding: 18px 18px;
+    font-size: 25px;
     font-weight: 600;
     color: #222;
     border-bottom: 1px solid #eee;
@@ -993,8 +1041,8 @@ textarea {
 .btnExcluirItem {
     background: none;
     border: none;
-    font-size: 21px;
-    padding: 4px 6px;
+    font-size: 26px;
+    padding: 4px 8px;
     cursor: pointer;
 }
 

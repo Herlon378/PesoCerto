@@ -422,6 +422,99 @@ function atualizarStats(){
 
     let containerLista = document.getElementById("listaPesosAtual");
     if(containerLista) containerLista.innerHTML = listaHTML;
+
+    if(typeof atualizarBotoesCriteriosPesagem === "function") atualizarBotoesCriteriosPesagem();
+}
+
+// ========================================
+// CRITÉRIOS DE PESAGEM (atalho na tela de Pesagem pra corrigir/ajustar
+// tipo, valor ou lote sem precisar voltar pra Nova Pesagem) -- os 3
+// botões só espelham os mesmos campos #tipoPesagem/#valorKg/#descricao já
+// usados em telaInicial, então mudar aqui já reflete automaticamente em
+// atualizarStats() e no que é salvo, sem duplicar nenhuma lógica de
+// cálculo. Vale pra toda a pesagem atual (não é por animal individual).
+// ========================================
+let criterioPesagemAtual = null;
+
+function atualizarBotoesCriteriosPesagem(){
+    let tipoEl = document.getElementById("tipoPesagem");
+    let valorEl = document.getElementById("valorKg");
+    let loteEl = document.getElementById("descricao");
+
+    let elTipo = document.getElementById("criterioValorTipo");
+    if(elTipo && tipoEl){
+        let opt = tipoEl.options[tipoEl.selectedIndex];
+        elTipo.innerText = opt ? opt.text : "Peso Vivo (Kg)";
+    }
+    let elValor = document.getElementById("criterioValorValor");
+    if(elValor && valorEl) elValor.innerText = valorEl.value ? valorEl.value : "Não definido";
+    let elLote = document.getElementById("criterioValorLote");
+    if(elLote && loteEl){
+        let opt = loteEl.options[loteEl.selectedIndex];
+        elLote.innerText = opt ? opt.text : "Sem lote";
+    }
+}
+
+function abrirModalCriterio(qual){
+    criterioPesagemAtual = qual;
+    let campoTipo = document.getElementById("criterioModalCampoTipo");
+    let campoValor = document.getElementById("criterioModalCampoValor");
+    let campoLote = document.getElementById("criterioModalCampoLote");
+    if(campoTipo) campoTipo.style.display = qual === "tipo" ? "block" : "none";
+    if(campoValor) campoValor.style.display = qual === "valor" ? "block" : "none";
+    if(campoLote) campoLote.style.display = qual === "lote" ? "block" : "none";
+
+    let titulos = { tipo: "Tipo de Pesagem", valor: "Valor", lote: "Lote" };
+    let tituloEl = document.getElementById("criterioModalTitulo");
+    if(tituloEl) tituloEl.innerText = titulos[qual] || "Editar critério";
+
+    if(qual === "tipo"){
+        let origem = document.getElementById("tipoPesagem");
+        let destino = document.getElementById("criterioInputTipo");
+        if(origem && destino) destino.value = origem.value;
+    } else if(qual === "valor"){
+        let origem = document.getElementById("valorKg");
+        let destino = document.getElementById("criterioInputValor");
+        if(origem && destino) destino.value = origem.value;
+    } else if(qual === "lote"){
+        // repopula as opções do select do modal a partir do select original
+        // (mesma lista já carregada por carregarLotesSelect() em telaInicial)
+        let origem = document.getElementById("descricao");
+        let destino = document.getElementById("criterioInputLote");
+        if(origem && destino){
+            destino.innerHTML = origem.innerHTML;
+            destino.value = origem.value;
+        }
+    }
+    let modal = document.getElementById("modalCriterioPesagem");
+    if(modal) modal.style.display = "flex";
+}
+
+function fecharModalCriterioPesagem(){
+    let modal = document.getElementById("modalCriterioPesagem");
+    if(modal) modal.style.display = "none";
+    criterioPesagemAtual = null;
+}
+
+function salvarCriterioPesagem(){
+    if(criterioPesagemAtual === "tipo"){
+        let origem = document.getElementById("tipoPesagem");
+        let novo = document.getElementById("criterioInputTipo");
+        if(origem && novo){
+            origem.value = novo.value;
+            if(typeof alternarTipoPesagem === "function") alternarTipoPesagem();
+        }
+    } else if(criterioPesagemAtual === "valor"){
+        let origem = document.getElementById("valorKg");
+        let novo = document.getElementById("criterioInputValor");
+        if(origem && novo) origem.value = novo.value;
+    } else if(criterioPesagemAtual === "lote"){
+        let origem = document.getElementById("descricao");
+        let novo = document.getElementById("criterioInputLote");
+        if(origem && novo) origem.value = novo.value;
+    }
+    fecharModalCriterioPesagem();
+    if(typeof atualizarStats === "function") atualizarStats();
 }
 
 function mostrarRelatorios(){
