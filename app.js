@@ -641,29 +641,55 @@ function mostrarRelatorios(){
         return;
     }
 
+    // agrupa por sessaoId -- pesagens da mesma sessão (2-3 critérios
+    // lançados de uma vez) aparecem como UM cartão só na lista, não um por
+    // lote. O rádio desse cartão aponta pro primeiro registro do grupo;
+    // gerarPDF()/prepararImpressao()/compartilharWhatsApp() já expandem
+    // pra sessão inteira sozinhos via obterRegistrosDaSessao(). Registros
+    // sem sessaoId (a maioria) formam grupo de 1 cada, igual sempre foi.
+    let grupos = [];
+    let porChave = new Map();
+    itens.forEach(item => {
+        let chave = item.r.sessaoId || ("solo-" + item.originalIndex);
+        if(porChave.has(chave)){
+            porChave.get(chave).push(item);
+        } else {
+            let grupo = [item];
+            porChave.set(chave, grupo);
+            grupos.push(grupo);
+        }
+    });
+
     let html = "";
-    [...itens].reverse().forEach(item => {
-        let r = item.r;
-        let originalIndex = item.originalIndex;
-        let totalKg = r.pesos ? r.pesos.reduce((a, b) => a + (b.peso || 0), 0) : 0;
-        let tipo = r.tipo || "venda";
+    [...grupos].reverse().forEach(grupo => {
+        let primeiro = grupo[0].r;
+        let originalIndex = grupo[0].originalIndex;
+        let multiplos = grupo.length > 1;
+
+        let totalAnimais = grupo.reduce((s, item) => s + (item.r.pesos ? item.r.pesos.length : 0), 0);
+        let totalKgGrupo = grupo.reduce((s, item) => s + (item.r.pesos ? item.r.pesos.reduce((a, b) => a + (b.peso || 0), 0) : 0), 0);
+        let tipo = primeiro.tipo || "venda";
         let tagTipo = tipo === "compra"
             ? `<span class="tagTipo tagTipoCompra">COMPRA</span>`
             : `<span class="tagTipo tagTipoVenda">VENDA</span>`;
 
-        let numeroTexto = r.numero ? ("Nº " + r.numero) : "Pendente";
+        let numeroTexto = primeiro.numero ? ("Nº " + primeiro.numero) : "Pendente";
+        let tagLotes = multiplos ? `<span class="tagTipo" style="background:#5e35b1">${grupo.length} LOTES</span>` : "";
+        let lotesTexto = multiplos
+            ? grupo.map(item => item.r.descricao || "Sem descrição").join(", ")
+            : (primeiro.descricao || "Sem descrição");
 
         html += `
             <div class="cardRelatorio">
                 <label>
                     <input type="radio" name="relatorioSelecionado" value="${originalIndex}">
                     <div class="infoRelatorio">
-                        ${tagTipo} <span class="numeroRelatorio">${numeroTexto}</span><br>
-                        <b>Vendedor:</b> ${r.vendedor || "Não informado"}<br>
-                        <b>Lote/Descrição:</b> ${r.descricao || "Sem descrição"}<br>
-                        <b>Data:</b> ${r.data || "Sem data"}<br>
-                        ${r.criadoPor ? `<b>Lançado por:</b> ${r.criadoPor}<br>` : ""}
-                        <b>Animais:</b> ${r.pesos ? r.pesos.length : 0} | <b>Total:</b> ${formatarPeso(totalKg)} kg
+                        ${tagTipo} <span class="numeroRelatorio">${numeroTexto}</span> ${tagLotes}<br>
+                        <b>Vendedor:</b> ${primeiro.vendedor || "Não informado"}<br>
+                        <b>${multiplos ? "Lotes" : "Lote/Descrição"}:</b> ${lotesTexto}<br>
+                        <b>Data:</b> ${primeiro.data || "Sem data"}<br>
+                        ${primeiro.criadoPor ? `<b>Lançado por:</b> ${primeiro.criadoPor}<br>` : ""}
+                        <b>Animais:</b> ${totalAnimais} | <b>Total:</b> ${formatarPeso(totalKgGrupo)} kg
                     </div>
                 </label>
             </div>
@@ -1132,21 +1158,30 @@ function exportarExcel(){
     if(!sel){ alert("Selecione um relatório"); return; }
 
     let r = relatorios[sel.value];
-    let d = calcularDadosCompletos(r);
+    // mesma sessão com vários critérios? junta todos os lotes numa
+    // planilha só, com uma coluna "Lote" pra diferenciar as linhas --
+    // senão a exportação ficava incompleta em relação ao cartão agrupado
+    // que o operador vê na lista
+    let registros = typeof obterRegistrosDaSessao === "function" ? obterRegistrosDaSessao(r) : [r];
+    let multiplos = registros.length > 1;
     let dataExcel = [];
+    let ordemGeral = 0;
 
-    r.pesos.forEach((p, i) => {
-        let linha = {
-            "Ordem": i + 1,
-            "Peso (kg)": p.peso || 0
-        };
-        if(d.ehArroba){
-            linha["Arrobas (@)"] = Number(d.arrobaDe(p.peso || 0).toFixed(2));
-        }
-        linha["Anotação"] = p.obs || "";
-        dataExcel.push(linha);
+    registros.forEach(registro => {
+        let d = calcularDadosCompletos(registro);
+        (registro.pesos || []).forEach((p) => {
+            ordemGeral++;
+            let linha = { "Ordem": ordemGeral };
+            if(multiplos) linha["Lote"] = registro.descricao || "Sem descrição";
+            linha["Peso (kg)"] = p.peso || 0;
+            if(d.ehArroba){
+                linha["Arrobas (@)"] = Number(d.arrobaDe(p.peso || 0).toFixed(2));
+            }
+            linha["Anotação"] = p.obs || "";
+            dataExcel.push(linha);
+        });
     });
-    
+
     let worksheet = XLSX.utils.json_to_sheet(dataExcel);
     let workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Pesagem");
@@ -1293,15 +1328,27 @@ function importarBackup(event){
 function excluirSelecionado(){
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     if(!sel){ alert("Selecione um relatório"); return; }
-    if(!confirm("Deseja excluir este relatório permanentemente?")) return;
 
-    let removido = relatorios[sel.value];
-    relatorios.splice(sel.value, 1);
+    // se o cartão selecionado representa uma sessão com vários critérios
+    // (agrupados na lista, ver mostrarRelatorios), excluir precisa apagar
+    // TODOS os lotes daquela sessão -- senão sobra lote órfão escondido
+    let registro = relatorios[sel.value];
+    let registros = typeof obterRegistrosDaSessao === "function" ? obterRegistrosDaSessao(registro) : [registro];
+    let multiplos = registros.length > 1;
+
+    let confirmado = multiplos
+        ? confirm(`Essa pesagem tem ${registros.length} lotes lançados na mesma sessão. Deseja excluir TODOS eles permanentemente?`)
+        : confirm("Deseja excluir este relatório permanentemente?");
+    if(!confirmado) return;
+
+    let idsParaRemover = new Set(registros.filter(r => r && r.id).map(r => r.id));
+    relatorios.forEach(r => {
+        if(r && idsParaRemover.has(r.id) && typeof registrarExclusaoPendente === "function"){
+            registrarExclusaoPendente(r.id);
+        }
+    });
+    relatorios = relatorios.filter(r => !r || !idsParaRemover.has(r.id));
     localStorage.setItem("pesagens", JSON.stringify(relatorios));
-
-    if(removido && removido.id && typeof registrarExclusaoPendente === "function"){
-        registrarExclusaoPendente(removido.id);
-    }
 
     mostrarRelatorios();
 }
