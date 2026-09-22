@@ -80,6 +80,24 @@ function abrirDashboard(){
     if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
 }
 
+// o limite de compra é definido por kg/arroba -- não faz sentido comparar
+// direto com um valor fixo por animal (unidades diferentes), então esse
+// controle não se aplica no modo "valor fixo por animal". Parametrizado por
+// sufixo pra valer também nos Critérios 2/3, não só no 1.
+function validarLimiteCompraCriterio(sufixo, tipoOperacaoEl){
+    let tipoPesagemEl = document.getElementById("tipoPesagem" + sufixo);
+    let vKgEl = document.getElementById("valorKg" + sufixo);
+    let ehValorAnimal = tipoPesagemEl && tipoPesagemEl.value === "valor_animal";
+    if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin" && !ehValorAnimal){
+        let limite = obterValorMaximoCompra();
+        if(limite !== null && vKgEl){
+            let valorDigitado = parseFloat(vKgEl.value.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
+            if(valorDigitado > limite) return false;
+        }
+    }
+    return true;
+}
+
 function iniciarPesagem(){
     let nv = document.getElementById("nomeVendedor");
     let vKg = document.getElementById("valorKg");
@@ -99,21 +117,39 @@ function iniciarPesagem(){
         return;
     }
 
-    let tipoOperacaoEl = document.getElementById("tipoOperacao");
-    // o limite de compra é definido por kg/arroba -- não faz sentido comparar
-    // direto com um valor fixo por animal (unidades diferentes), então esse
-    // controle não se aplica no modo "valor fixo por animal".
-    let ehValorAnimalInicio = tipoPesagemEl && tipoPesagemEl.value === "valor_animal";
-    if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin" && !ehValorAnimalInicio){
-        let limite = obterValorMaximoCompra();
-        if(limite !== null){
-            let valorDigitado = parseFloat(vKg.value.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
-            if(valorDigitado > limite){
-                alert("Valor de compra não autorizado, consulte o administrador.");
-                return;
-            }
+    // mesma validação (valor + rendimento) pros Critérios 2/3, só se
+    // o operador tiver aberto esses blocos
+    for(let n of [2, 3]){
+        let bloco = document.getElementById("blocoCriterio" + n);
+        if(!bloco || bloco.style.display === "none") continue;
+        let vKgN = document.getElementById("valorKg" + n);
+        let tipoN = document.getElementById("tipoPesagem" + n);
+        let rendN = document.getElementById("rendimentoArroba" + n);
+        if(!vKgN || !vKgN.value.trim()){
+            alert(`Preencha o valor do Critério ${n}!`);
+            return;
+        }
+        if(tipoN && tipoN.value === "arroba" && (!rendN || !rendN.value.trim())){
+            alert(`Preencha o % de rendimento da arroba do Critério ${n}!`);
+            return;
         }
     }
+
+    let tipoOperacaoEl = document.getElementById("tipoOperacao");
+    for(let n of ["", "2", "3"]){
+        if(n !== ""){
+            let bloco = document.getElementById("blocoCriterio" + n);
+            if(!bloco || bloco.style.display === "none") continue;
+        }
+        if(!validarLimiteCompraCriterio(n, tipoOperacaoEl)){
+            alert("Valor de compra não autorizado, consulte o administrador.");
+            return;
+        }
+    }
+
+    montarCriteriosPesagem();
+    criterioAtivoIndex = 0;
+    pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
 
     if(balancaBluetoothDisponivel()){
         atualizarStatusConexaoBalanca("Balança não conectada", "");
@@ -126,10 +162,13 @@ function iniciarPesagem(){
     }
 }
 
-function alternarTipoPesagem(){
-    let tipoPesagemEl = document.getElementById("tipoPesagem");
-    let rendEl = document.getElementById("rendimentoArroba");
-    let vKgEl = document.getElementById("valorKg");
+// sufixo "" | "2" | "3" -- qual dos até 3 conjuntos de campos de critério
+// (ver CRITÉRIOS DE PESAGEM mais abaixo)
+function alternarTipoPesagem(sufixo){
+    sufixo = sufixo || "";
+    let tipoPesagemEl = document.getElementById("tipoPesagem" + sufixo);
+    let rendEl = document.getElementById("rendimentoArroba" + sufixo);
+    let vKgEl = document.getElementById("valorKg" + sufixo);
     if(!tipoPesagemEl || !rendEl) return;
 
     let tipo = tipoPesagemEl.value;
@@ -137,12 +176,15 @@ function alternarTipoPesagem(){
     let ehValorAnimal = tipo === "valor_animal";
     // esconde o CARTÃO inteiro (rótulo + campo), não só o input -- senão
     // sobrava um cartão com o rótulo "% de Rendimento" flutuando vazio
-    let campoRendEl = document.getElementById("campoRendimentoArroba") || rendEl;
+    let campoRendEl = document.getElementById("campoRendimentoArroba" + sufixo) || rendEl;
     campoRendEl.style.display = ehArroba ? "block" : "none";
     if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
 }
 
 function resetarPesagemAtual() {
+    // cancela a sessão INTEIRA -- todos os critérios, não só o ativo
+    criteriosPesagem = [];
+    criterioAtivoIndex = 0;
     pesos = [];
     desconectarBalancaBluetooth();
     resetarEstadoCapturaBalanca();
@@ -170,7 +212,13 @@ function resetarPesagemAtual() {
     if(tipoEl) tipoEl.value = "venda";
     if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
     if(rendEl) rendEl.value = "";
-    alternarTipoPesagem();
+    alternarTipoPesagem("");
+    // desfaz os critérios extras (2 e 3), se tinham sido abertos numa
+    // pesagem anterior -- volta pro estado "só Critério 1" de uma sessão nova
+    if(typeof removerCriterioExtra === "function"){
+        removerCriterioExtra(3);
+        removerCriterioExtra(2);
+    }
     aplicarRestricoesUsuario();
 
     localStorage.removeItem("pesagemAtual");
@@ -296,14 +344,26 @@ function fecharConfirmacao(confirmado){
 }
 
 function finalizarPesagem(){
-    if(pesos.length === 0){
+    // garante que o array do critério ativo está com o `pesos` mais recente
+    // antes de checar/salvar (já é a mesma referência, isso é só defensivo)
+    if(criteriosPesagem[criterioAtivoIndex]) criteriosPesagem[criterioAtivoIndex].pesos = pesos;
+    let totalPesosLancados = criteriosPesagem.reduce((soma, c) => soma + c.pesos.length, 0);
+    if(totalPesosLancados === 0){
         alert("Nenhum peso lançado!");
         return;
     }
 
-    if(typeof salvarPesagem === "function") {
-        salvarPesagem();
-    }
+    // cada critério com pelo menos 1 peso vira uma pesagem salva separada
+    // (mesmo formato de sempre) -- salvarPesagem() não muda, só roda uma
+    // vez por critério que tiver algo lançado
+    criteriosPesagem.forEach((c, i) => {
+        if(c.pesos.length === 0) return;
+        trocarCriterioAtivo(i);
+        if(typeof salvarPesagem === "function") salvarPesagem();
+    });
+
+    criteriosPesagem = [];
+    criterioAtivoIndex = 0;
     pesos = [];
     desconectarBalancaBluetooth();
     resetarEstadoCapturaBalanca();
@@ -427,94 +487,127 @@ function atualizarStats(){
 }
 
 // ========================================
-// CRITÉRIOS DE PESAGEM (atalho na tela de Pesagem pra corrigir/ajustar
-// tipo, valor ou lote sem precisar voltar pra Nova Pesagem) -- os 3
-// botões só espelham os mesmos campos #tipoPesagem/#valorKg/#descricao já
-// usados em telaInicial, então mudar aqui já reflete automaticamente em
-// atualizarStats() e no que é salvo, sem duplicar nenhuma lógica de
-// cálculo. Vale pra toda a pesagem atual (não é por animal individual).
+// CRITÉRIOS DE PESAGEM -- até 3 conjuntos de tipo/valor/rendimento/lote
+// configurados em telaInicial (pro caso de um mesmo vendedor entregar
+// grupos de animais diferentes, ex: 10 bezerros Nelore + 5 comuns, cada
+// grupo com preço/lote próprio). Na tela de Pesagem, os 3 botões trocam
+// qual critério está ATIVO -- cada peso lançado vai pro array daquele
+// critério, e trocar de critério NÃO mexe nos pesos já lançados nos
+// outros. Ao finalizar, cada critério com pelo menos 1 peso vira uma
+// pesagem salva separada (mesmo formato de sempre -- ver finalizarPesagem
+// em app.js e salvarPesagem em db.js), então nenhuma função de relatório/
+// PDF/WhatsApp/Custo por Lote precisa saber que isso existe.
+//
+// O truque: `pesos` é sempre uma REFERÊNCIA a criteriosPesagem[i].pesos --
+// trocar de critério só troca pra qual array `pesos` aponta, então
+// adicionarPeso()/atualizarStats()/digitar() etc. continuam funcionando
+// exatamente como já funcionavam, sem precisar saber que critérios existem.
 // ========================================
-let criterioPesagemAtual = null;
+let criteriosPesagem = [];
+let criterioAtivoIndex = 0;
+
+function montarCriteriosPesagem(){
+    // preserva pesos já lançados (ex: restaurados de uma queda do app antes
+    // do operador apertar "Iniciar Pesagem" de novo) -- sem isso, reabrir a
+    // pesagem depois de restaurar um rascunho apagaria tudo que já tinha
+    let anteriores = criteriosPesagem;
+    criteriosPesagem = [];
+    let indice = 0;
+    for(let n of ["", "2", "3"]){
+        let tipoEl = document.getElementById("tipoPesagem" + n);
+        let valorEl = document.getElementById("valorKg" + n);
+        if(!tipoEl || !valorEl) continue;
+        // Critério 1 sempre entra; 2/3 só se o bloco estiver visível (foi aberto)
+        if(n !== ""){
+            let bloco = document.getElementById("blocoCriterio" + n);
+            if(!bloco || bloco.style.display === "none") continue;
+        }
+        let rendEl = document.getElementById("rendimentoArroba" + n);
+        let loteEl = document.getElementById("descricao" + n);
+        let pesosExistentes = (anteriores[indice] && anteriores[indice].pesos) || [];
+        criteriosPesagem.push({
+            tipoPesagem: tipoEl.value,
+            valorKg: valorEl.value,
+            rendimento: rendEl ? rendEl.value : "",
+            descricao: loteEl ? loteEl.value : "",
+            pesos: pesosExistentes
+        });
+        indice++;
+    }
+}
+
+function rotuloCriterio(criterio, indice){
+    if(criterio.descricao) return criterio.descricao;
+    return "Critério " + (indice + 1);
+}
 
 function atualizarBotoesCriteriosPesagem(){
+    let linha = document.getElementById("criteriosPesagemLinha");
+    if(!linha) return;
+    if(criteriosPesagem.length <= 1){
+        linha.style.display = "none";
+        return;
+    }
+    linha.style.display = "grid";
+    linha.innerHTML = criteriosPesagem.map((c, i) => `
+        <button class="criterioBtn${i === criterioAtivoIndex ? " criterioBtnAtivo" : ""}" onclick="trocarCriterioAtivo(${i})">
+            <span class="criterioBtnLabel">Critério ${i + 1}</span>
+            <span class="criterioBtnValor">${rotuloCriterio(c, i)}</span>
+        </button>
+    `).join("");
+}
+
+// troca qual critério está ativo -- grava o que estiver no `pesos` atual de
+// volta no critério que está saindo (por segurança, embora já seja a mesma
+// referência), troca `pesos` pra apontar pro array do novo critério ativo,
+// e escreve os campos desse critério de volta em #tipoPesagem/#valorKg/
+// #rendimentoArroba/#descricao -- é de lá que atualizarStats() já lê hoje.
+function trocarCriterioAtivo(indice){
+    if(!criteriosPesagem[indice]) return;
+    criteriosPesagem[criterioAtivoIndex].pesos = pesos;
+    criterioAtivoIndex = indice;
+    let c = criteriosPesagem[indice];
+    pesos = c.pesos;
+
     let tipoEl = document.getElementById("tipoPesagem");
     let valorEl = document.getElementById("valorKg");
+    let rendEl = document.getElementById("rendimentoArroba");
     let loteEl = document.getElementById("descricao");
+    if(tipoEl) tipoEl.value = c.tipoPesagem;
+    if(valorEl) valorEl.value = c.valorKg;
+    if(rendEl) rendEl.value = c.rendimento;
+    if(loteEl) loteEl.value = c.descricao;
 
-    let elTipo = document.getElementById("criterioValorTipo");
-    if(elTipo && tipoEl){
-        let opt = tipoEl.options[tipoEl.selectedIndex];
-        elTipo.innerText = opt ? opt.text : "Peso Vivo (Kg)";
-    }
-    let elValor = document.getElementById("criterioValorValor");
-    if(elValor && valorEl) elValor.innerText = valorEl.value ? valorEl.value : "Não definido";
-    let elLote = document.getElementById("criterioValorLote");
-    if(elLote && loteEl){
-        let opt = loteEl.options[loteEl.selectedIndex];
-        elLote.innerText = opt ? opt.text : "Sem lote";
-    }
-}
-
-function abrirModalCriterio(qual){
-    criterioPesagemAtual = qual;
-    let campoTipo = document.getElementById("criterioModalCampoTipo");
-    let campoValor = document.getElementById("criterioModalCampoValor");
-    let campoLote = document.getElementById("criterioModalCampoLote");
-    if(campoTipo) campoTipo.style.display = qual === "tipo" ? "block" : "none";
-    if(campoValor) campoValor.style.display = qual === "valor" ? "block" : "none";
-    if(campoLote) campoLote.style.display = qual === "lote" ? "block" : "none";
-
-    let titulos = { tipo: "Tipo de Pesagem", valor: "Valor", lote: "Lote" };
-    let tituloEl = document.getElementById("criterioModalTitulo");
-    if(tituloEl) tituloEl.innerText = titulos[qual] || "Editar critério";
-
-    if(qual === "tipo"){
-        let origem = document.getElementById("tipoPesagem");
-        let destino = document.getElementById("criterioInputTipo");
-        if(origem && destino) destino.value = origem.value;
-    } else if(qual === "valor"){
-        let origem = document.getElementById("valorKg");
-        let destino = document.getElementById("criterioInputValor");
-        if(origem && destino) destino.value = origem.value;
-    } else if(qual === "lote"){
-        // repopula as opções do select do modal a partir do select original
-        // (mesma lista já carregada por carregarLotesSelect() em telaInicial)
-        let origem = document.getElementById("descricao");
-        let destino = document.getElementById("criterioInputLote");
-        if(origem && destino){
-            destino.innerHTML = origem.innerHTML;
-            destino.value = origem.value;
-        }
-    }
-    let modal = document.getElementById("modalCriterioPesagem");
-    if(modal) modal.style.display = "flex";
-}
-
-function fecharModalCriterioPesagem(){
-    let modal = document.getElementById("modalCriterioPesagem");
-    if(modal) modal.style.display = "none";
-    criterioPesagemAtual = null;
-}
-
-function salvarCriterioPesagem(){
-    if(criterioPesagemAtual === "tipo"){
-        let origem = document.getElementById("tipoPesagem");
-        let novo = document.getElementById("criterioInputTipo");
-        if(origem && novo){
-            origem.value = novo.value;
-            if(typeof alternarTipoPesagem === "function") alternarTipoPesagem();
-        }
-    } else if(criterioPesagemAtual === "valor"){
-        let origem = document.getElementById("valorKg");
-        let novo = document.getElementById("criterioInputValor");
-        if(origem && novo) origem.value = novo.value;
-    } else if(criterioPesagemAtual === "lote"){
-        let origem = document.getElementById("descricao");
-        let novo = document.getElementById("criterioInputLote");
-        if(origem && novo) origem.value = novo.value;
-    }
-    fecharModalCriterioPesagem();
+    if(typeof alternarTipoPesagem === "function") alternarTipoPesagem("");
     if(typeof atualizarStats === "function") atualizarStats();
+}
+
+function mostrarCriterioExtra(n){
+    let bloco = document.getElementById("blocoCriterio" + n);
+    let botao = document.getElementById("btnAdicionarCriterio" + n);
+    if(bloco) bloco.style.display = "block";
+    if(botao) botao.style.display = "none";
+    carregarLotesSelect();
+}
+
+function removerCriterioExtra(n){
+    let bloco = document.getElementById("blocoCriterio" + n);
+    if(bloco) bloco.style.display = "none";
+    ["tipoPesagem", "rendimentoArroba", "valorKg", "descricao"].forEach(base => {
+        let el = document.getElementById(base + n);
+        if(el) el.value = base === "tipoPesagem" ? "vivo" : "";
+    });
+    let campoRend = document.getElementById("campoRendimentoArroba" + n);
+    if(campoRend) campoRend.style.display = "none";
+    // Critério 3 mora dentro do bloco do Critério 2 -- remover o 2 leva o 3 junto
+    if(n === 2){
+        let bloco3 = document.getElementById("blocoCriterio3");
+        if(bloco3) bloco3.style.display = "none";
+        let btn3 = document.getElementById("btnAdicionarCriterio3");
+        if(btn3) btn3.style.display = "none";
+    }
+    let botaoAdicionar = document.getElementById("btnAdicionarCriterio" + n);
+    if(botaoAdicionar) botaoAdicionar.style.display = "block";
 }
 
 function mostrarRelatorios(){
@@ -1558,13 +1651,18 @@ async function marcarMensagemLidaMobile(id){
 }
 
 function carregarLotesSelect(){
-    let select = document.getElementById("descricao");
-    if(!select) return;
     let lotes = JSON.parse(localStorage.getItem("lotesCache") || "[]");
-    let valorAtual = select.value;
-    select.innerHTML = `<option value="">Sem lote</option>` +
+    let opcoes = `<option value="">Sem lote</option>` +
         lotes.map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
-    select.value = valorAtual;
+    // preenche o select do Critério 1 e também os dos Critérios 2/3 (só
+    // existem no DOM se o operador tiver aberto esses blocos extras)
+    ["descricao", "descricao2", "descricao3"].forEach(id => {
+        let select = document.getElementById(id);
+        if(!select) return;
+        let valorAtual = select.value;
+        select.innerHTML = opcoes;
+        select.value = valorAtual;
+    });
 }
 
 function carregarLotesSelectSaida(){

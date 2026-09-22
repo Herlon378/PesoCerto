@@ -157,9 +157,10 @@
         <span class="campoCartaoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
     </div>
 
+    <p class="criterioTitulo">Critério 1</p>
     <div class="campoCartao">
         <label class="campoCartaoLabel" for="tipoPesagem">Tipo de Pesagem</label>
-        <select id="tipoPesagem" onchange="alternarTipoPesagem()">
+        <select id="tipoPesagem" onchange="alternarTipoPesagem('')">
             <option value="vivo">Peso Vivo (Kg)</option>
             <option value="arroba">Arroba (@)</option>
             <option value="valor_animal">Valor Fixo por Animal</option>
@@ -183,6 +184,65 @@
             <option value="">Sem lote</option>
         </select>
         <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <button class="btnAdicionarCriterio" id="btnAdicionarCriterio2" onclick="mostrarCriterioExtra(2)">+ Adicionar Critério 2</button>
+
+    <div id="blocoCriterio2" style="display:none">
+        <p class="criterioTitulo">Critério 2 <button class="btnRemoverCriterio" onclick="removerCriterioExtra(2)">✕ Remover</button></p>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="tipoPesagem2">Tipo de Pesagem</label>
+            <select id="tipoPesagem2" onchange="alternarTipoPesagem('2')">
+                <option value="vivo">Peso Vivo (Kg)</option>
+                <option value="arroba">Arroba (@)</option>
+                <option value="valor_animal">Valor Fixo por Animal</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao" id="campoRendimentoArroba2" style="display:none">
+            <label class="campoCartaoLabel" for="rendimentoArroba2">% de Rendimento</label>
+            <input id="rendimentoArroba2" placeholder="Ex: 50" inputmode="decimal">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="valorKg2">Valor</label>
+            <input id="valorKg2" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="descricao2">Lote</label>
+            <select id="descricao2">
+                <option value="">Sem lote</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <button class="btnAdicionarCriterio" id="btnAdicionarCriterio3" onclick="mostrarCriterioExtra(3)">+ Adicionar Critério 3</button>
+    </div>
+
+    <div id="blocoCriterio3" style="display:none">
+        <p class="criterioTitulo">Critério 3 <button class="btnRemoverCriterio" onclick="removerCriterioExtra(3)">✕ Remover</button></p>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="tipoPesagem3">Tipo de Pesagem</label>
+            <select id="tipoPesagem3" onchange="alternarTipoPesagem('3')">
+                <option value="vivo">Peso Vivo (Kg)</option>
+                <option value="arroba">Arroba (@)</option>
+                <option value="valor_animal">Valor Fixo por Animal</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao" id="campoRendimentoArroba3" style="display:none">
+            <label class="campoCartaoLabel" for="rendimentoArroba3">% de Rendimento</label>
+            <input id="rendimentoArroba3" placeholder="Ex: 50" inputmode="decimal">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="valorKg3">Valor</label>
+            <input id="valorKg3" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="descricao3">Lote</label>
+            <select id="descricao3">
+                <option value="">Sem lote</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
     </div>
 
     <button class="btnGrande" onclick="iniciarPesagem()">
@@ -357,20 +417,9 @@
     </div>
     <div id="listaPesosAtual" class="listaPesosAtual"></div>
 
-    <div class="criteriosPesagem">
-        <button class="criterioBtn" onclick="abrirModalCriterio('tipo')">
-            <span class="criterioBtnLabel">Tipo</span>
-            <span class="criterioBtnValor" id="criterioValorTipo">Peso Vivo</span>
-        </button>
-        <button class="criterioBtn" onclick="abrirModalCriterio('valor')">
-            <span class="criterioBtnLabel">Valor</span>
-            <span class="criterioBtnValor" id="criterioValorValor">R$ 0,00</span>
-        </button>
-        <button class="criterioBtn" onclick="abrirModalCriterio('lote')">
-            <span class="criterioBtnLabel">Lote</span>
-            <span class="criterioBtnValor" id="criterioValorLote">Sem lote</span>
-        </button>
-    </div>
+    <!-- só aparece se o operador configurou mais de 1 critério em Nova
+         Pesagem -- conteúdo é montado por atualizarBotoesCriteriosPesagem() -->
+    <div class="criteriosPesagem" id="criteriosPesagemLinha" style="display:none"></div>
 
     <div class="painelControlePesagem">
         <div class="pesoAtualCard">
@@ -391,31 +440,6 @@
     </div>
 </div>
 
-<div id="modalCriterioPesagem" class="modal">
-    <div class="modal-box">
-        <h2 id="criterioModalTitulo">Editar critério</h2>
-        <div id="criterioModalCampoTipo" style="display:none">
-            <select id="criterioInputTipo">
-                <option value="vivo">Peso Vivo (Kg)</option>
-                <option value="arroba">Arroba (@)</option>
-                <option value="valor_animal">Valor Fixo por Animal</option>
-            </select>
-        </div>
-        <div id="criterioModalCampoValor" style="display:none">
-            <input id="criterioInputValor" placeholder="Valor" inputmode="decimal">
-        </div>
-        <div id="criterioModalCampoLote" style="display:none">
-            <select id="criterioInputLote">
-                <option value="">Sem lote</option>
-            </select>
-        </div>
-        <p class="loginSubtitulo" style="text-align:left">Isso muda o critério pra toda a pesagem atual, incluindo os animais já lançados nesta sessão.</p>
-        <div class="botoes">
-            <button class="btn-nao" onclick="fecharModalCriterioPesagem()">Cancelar</button>
-            <button class="btn-sim" onclick="salvarCriterioPesagem()">Salvar</button>
-        </div>
-    </div>
-</div>
 
 <div id="telaResultado" class="tela">
     <h2>Relatórios</h2>

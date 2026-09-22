@@ -80,9 +80,13 @@ body {
 
 /* CRITÉRIOS DE PESAGEM -- atalho pra corrigir tipo/valor/lote sem sair da
    tela de pesagem (mesmos campos de telaInicial, só espelhados aqui) */
+/* grid-auto-flow:column em vez de um número fixo de colunas -- a fileira
+   pode ter 2 ou 3 botões (Critério 2/3 são opcionais), sempre distribuídos
+   em largura igual */
 .criteriosPesagem {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
     gap: 10px;
     margin-top: 10px;
 }
@@ -93,7 +97,7 @@ body {
     align-items: center;
     gap: 4px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-md);
     padding: 12px 6px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -102,6 +106,16 @@ body {
 
 .criterioBtn:active {
     transform: scale(0.97);
+}
+
+/* critério em uso agora -- os pesos lançados a partir daqui vão pra ele */
+.criterioBtnAtivo {
+    border-color: var(--blue-500);
+    background: rgba(57,135,229,0.12);
+}
+
+.criterioBtnAtivo .criterioBtnValor {
+    color: var(--ink);
 }
 
 .criterioBtnLabel {
@@ -136,6 +150,43 @@ body {
 #telaInicial h2 {
     font-size: 38px;
     margin-bottom: 10px;
+}
+
+/* CRITÉRIOS 2/3 (opcionais) -- mesmo vendedor, grupos de animais diferentes
+   dentro da mesma sessão (tipo/valor/lote próprios pra cada grupo) */
+.criterioTitulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    margin: 18px 4px 4px;
+}
+
+.btnRemoverCriterio {
+    background: none;
+    border: none;
+    color: #e57373;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 4px 8px;
+}
+
+.btnAdicionarCriterio {
+    width: 100%;
+    background: transparent;
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    color: var(--ink-muted);
+    font-size: 17px;
+    font-weight: 700;
+    padding: 16px;
+    margin: 10px 0;
+}
+
+.btnAdicionarCriterio:active {
+    background: rgba(255,255,255,0.06);
 }
 
 /* CAMPOS EM CARTÃO (rótulo pequeno em cima, valor grande embaixo) --
