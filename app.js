@@ -1754,6 +1754,23 @@ async function atualizarResumoHojeMenu(){
     let elVendas = document.getElementById("hojeVendas");
     if(elVendas) elVendas.innerText = String(vendasHoje);
 
+    // "Pesagens"/"Vendas" contam REGISTROS (cada um pode ter vários animais
+    // dentro de pesos[]) -- essas duas somam a quantidade de ANIMAIS de
+    // fato, uma métrica diferente e complementar
+    let animaisPesadosHoje = (relatorios || []).filter(r => {
+        let d = String(r.data || "").split(",")[0].trim();
+        return d === hojeBR;
+    }).reduce((soma, r) => soma + (r.pesos ? r.pesos.length : 0), 0);
+    let elAnimaisPesados = document.getElementById("hojeAnimaisPesados");
+    if(elAnimaisPesados) elAnimaisPesados.innerText = String(animaisPesadosHoje);
+
+    let animaisVendidosHoje = (relatorios || []).filter(r => {
+        let d = String(r.data || "").split(",")[0].trim();
+        return d === hojeBR && (r.tipo || "venda") === "venda";
+    }).reduce((soma, r) => soma + (r.pesos ? r.pesos.length : 0), 0);
+    let elAnimaisVendidos = document.getElementById("hojeAnimaisVendidos");
+    if(elAnimaisVendidos) elAnimaisVendidos.innerText = String(animaisVendidosHoje);
+
     let saidas = JSON.parse(localStorage.getItem("estoqueSaidas") || "[]");
     let saidasHoje = contarHojeBR(saidas, "data");
     let elSaidas = document.getElementById("hojeSaidas");
@@ -1762,6 +1779,8 @@ async function atualizarResumoHojeMenu(){
     let podeVacas = !!obterToken() && (obterPapelLogado() === "admin" || obterPermVacasMatriz());
     let blocoVacas = document.getElementById("hojeBlocoVacas");
     if(blocoVacas) blocoVacas.style.display = podeVacas ? "flex" : "none";
+    let blocoNascimentos = document.getElementById("hojeBlocoNascimentos");
+    if(blocoNascimentos) blocoNascimentos.style.display = podeVacas ? "flex" : "none";
     if(!podeVacas) return;
 
     try{
@@ -1785,6 +1804,8 @@ async function atualizarResumoHojeMenu(){
                 elTendencia.innerText = formatarTendenciaHoje(nascidosHoje);
                 elTendencia.classList.toggle("subiu", nascidosHoje > 0);
             }
+            let elNascimentos = document.getElementById("hojeNascimentos");
+            if(elNascimentos) elNascimentos.innerText = String(nascidosHoje);
         }
     } catch(e){
         // resumo é só informativo -- se a rede falhar, o menu continua
