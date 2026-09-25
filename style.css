@@ -274,6 +274,31 @@ body {
     overscroll-behavior-y: contain;
 }
 
+/* mesmo padrão de cabeçalho travado + conteúdo rolável já usado em
+   Relatórios/Dashboard */
+#telaSaidaAlmoxarifado {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+#saidaConteudo {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+}
+
+/* texto informativo (preview de estoque/custo) -- classe nova de
+   propósito: .loginSubtitulo já é usada em telas CLARAS (Vacas Matriz,
+   leitor de código de barras) e sua cor cinza-escura ficaria invisível
+   no fundo escuro daqui */
+.textoAvisoTela {
+    color: var(--ink-muted);
+    font-size: 14px;
+    padding: 6px 4px;
+    line-height: 1.4;
+}
+
 /* CABEÇALHO */
 .menuHeader {
     display: flex;
