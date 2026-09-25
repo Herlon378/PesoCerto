@@ -832,6 +832,10 @@ function mostrarDashboard(){
     let animaisComprados = 0, animaisVendidos = 0;
     let kgCompra = 0, kgVenda = 0;
     let valorCompra = 0, valorVenda = 0;
+    // conta REGISTROS de compra (cada relatório é uma compra independente,
+    // não importa quantos animais tinha dentro) -- diferente de
+    // animaisComprados, que soma cabeças
+    let comprasFeitas = 0;
 
     let baseDashboard = relatorios;
     if(obterPapelLogado() !== "admin" && obterPermDashboard() === "proprio"){
@@ -864,6 +868,7 @@ function mostrarDashboard(){
         let d = calcularDadosCompletos(r);
 
         if(tipo === "compra"){
+            comprasFeitas++;
             animaisComprados += d.totalAnimais;
             kgCompra += d.totalKg;
             valorCompra += d.totalRS;
@@ -896,6 +901,7 @@ function mostrarDashboard(){
     set("dashKgVenda", formatarPeso(kgVenda));
     set("dashValorCompra", "R$ " + formatarMoeda(valorCompra));
     set("dashValorVenda", "R$ " + formatarMoeda(valorVenda));
+    set("dashComprasFeitas", comprasFeitas);
 
     // cartões extras e comparativo Compra x Venda (só existem na tela de gerenciamento)
     let elSaldo = document.getElementById("dashSaldo");
