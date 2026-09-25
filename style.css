@@ -73,8 +73,8 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 22px 18px;
-    margin-top: 12px;
+    padding: 14px 14px;
+    margin-top: 8px;
     box-shadow: var(--shadow-lg);
     flex-shrink: 0;
 }
@@ -695,27 +695,32 @@ textarea {
 .stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
     flex-shrink: 0;
 }
 
+/* Tamanhos reduzidos de propósito (2026-09-25) -- depois de várias rodadas
+   de "aumenta mais", a soma de tudo (stats + peso atual + teclado) passou a
+   ultrapassar de longe a altura de qualquer celular, forçando rolagem
+   mesmo com a lista de pesos no tamanho mínimo. Voltou pra um tamanho que
+   ainda lê bem de longe no sol, mas cabe a tela inteira sem rolar. */
 .statCard {
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--ink-muted);
-    padding: 18px 10px;
+    padding: 8px 8px;
     border-radius: var(--radius-md);
     text-align: center;
-    font-size: 15px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.25;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .statCard span {
     display: block;
-    margin-top: 4px;
-    font-size: 32px;
+    margin-top: 2px;
+    font-size: 19px;
     font-weight: 800;
     color: var(--ink);
     overflow-wrap: break-word;
@@ -728,11 +733,11 @@ textarea {
     position: relative;
     background: linear-gradient(160deg, #eaf2ff, #ffffff 45%, #ffffff);
     border: 2px solid #cfe1fb;
-    border-radius: 26px;
-    padding: 26px 20px 28px;
+    border-radius: 22px;
+    padding: 14px 16px 16px;
     text-align: center;
     box-shadow: 0 8px 24px rgba(25,118,210,0.22);
-    margin: 0 0 12px;
+    margin: 0 0 8px;
 }
 
 .btnLogBalanca {
@@ -765,7 +770,7 @@ textarea {
 
 .pesoAtualLabel {
     display: block;
-    font-size: 20px;
+    font-size: 13px;
     font-weight: bold;
     color: #7a8aa8;
     letter-spacing: 2px;
@@ -773,10 +778,10 @@ textarea {
 
 .pesoAtualUnidade {
     display: block;
-    font-size: 24px;
+    font-size: 15px;
     font-weight: 600;
     color: #7a8aa8;
-    margin-top: -16px;
+    margin-top: -8px;
 }
 
 /* BALANÇA BLUETOOTH */
@@ -813,7 +818,7 @@ textarea {
 
 /* DISPLAY PESO */
 #displayPeso {
-    font-size: 108px;
+    font-size: 60px;
     height: auto;
     text-align: center;
     font-weight: 800;
@@ -832,9 +837,9 @@ textarea {
 /* aproxima a Observação do teclado, deixando mais espaço pra lista de
    pesos crescer acima */
 #obs {
-    margin: 10px 0 8px;
-    padding: 22px;
-    font-size: 26px;
+    margin: 8px 0 6px;
+    padding: 12px 14px;
+    font-size: 17px;
 }
 
 /* TECLADO */
@@ -848,17 +853,17 @@ textarea {
 .teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-top: 16px;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .teclado button {
     width: 100%;
-    height: 132px;
-    font-size: 50px;
+    height: 52px;
+    font-size: 22px;
     border: none;
     border-bottom: 3px solid rgba(25,118,210,0.15);
-    border-radius: 22px;
+    border-radius: 16px;
     background: linear-gradient(180deg, #ffffff, #e7edf7);
     color: #1976d2;
     font-weight: bold;
@@ -880,11 +885,11 @@ textarea {
 /* BOTÃO LANÇAR */
 .btnLancar {
     width: 100%;
-    padding: 26px;
-    margin-top: 14px;
-    font-size: 27px;
+    padding: 15px;
+    margin-top: 8px;
+    font-size: 19px;
     border: none;
-    border-radius: 18px;
+    border-radius: 16px;
     background: linear-gradient(135deg, #ffa94d, #e8850e);
     color: white;
     font-weight: bold;
@@ -914,8 +919,8 @@ textarea {
 
 .sliderTrack {
     position: relative;
-    height: 78px;
-    border-radius: 39px;
+    height: 58px;
+    border-radius: 29px;
     background: linear-gradient(to right, #e53935, #c62828 16%, var(--surface-sunken) 42%, var(--surface-sunken) 58%, #2e9c4f 84%, #1b6e33);
     overflow: hidden;
     touch-action: pan-y;
@@ -941,9 +946,9 @@ textarea {
     position: absolute;
     left: 50%;
     top: 50%;
-    margin-top: -33px;
-    width: 66px;
-    height: 66px;
+    margin-top: -24px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: #ffffff;
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
@@ -1012,33 +1017,25 @@ textarea {
    Removido pra deixar #telaResultado ser o único alvo de rolagem real. */
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
-/* era height:220px fixo, depois virou flex:1 (pra empurrar o teclado pro
-   fundo) -- mas flex:1 força a CAIXA a crescer até preencher o espaço
-   sobrando mesmo com só 1-2 itens dentro, virando um retângulo branco
-   vazio gigante (o bug do print). Agora ela cresce só até o tamanho do
-   próprio conteúdo (min/max-height, sem flex:1) -- quem empurra o teclado
-   pro fundo é .pesoAtualCard (margin-top:auto), e o espaço sobrando fica
-   como vão neutro (fundo escuro) por trás da lista, não uma caixa branca. */
+/* Histórico: era height:220px fixo -> virou flex:1 puro (empurrava tudo pro
+   fundo, mas virava um retângulo branco vazio gigante com poucos itens) ->
+   virou height:520px fixo (sem flex, resolvia o vazio, mas depois das
+   rodadas de "aumentar tudo" no resto da tela, 520px fixos + tudo mais já
+   grande passou a ULTRAPASSAR a altura real da tela, e como esse elemento
+   tem overflow-y:auto o CSS trata o tamanho mínimo dele como 0 ao encolher
+   um flex item -- ele sozinho colapsava pra invisível pra abrir espaço pro
+   resto, que é fixo).
+   Solução final: flex:1 de novo, mas com min-height/max-height como
+   trava (não mais sem limite nenhum) -- ela cresce até o espaço que
+   sobrar na tela DEPOIS do resto (que é tudo flex-shrink:0, tamanho
+   fixo), nunca menos que o mínimo (sempre utilizável) nem mais que o
+   máximo (não vira uma caixa vazia gigante com poucos itens). Isso faz a
+   tela inteira caber sem precisar rolar em qualquer celular, com a lista
+   se ajustando ao espaço que realmente sobra em cada aparelho. */
 .listaPesosAtual {
-    /* Altura FIXA de propósito -- nem flex:1, nem min/max-height que
-       cresce com o conteúdo. Antes ela mudava de tamanho conforme
-       lançava peso, empurrando o resto da tela pra baixo/cima junto --
-       ficava com espaço sobrando embaixo e a tela "pulava" a cada
-       lançamento. Com altura fixa, o resto da tela (peso atual, teclado,
-       botões) fica sempre na MESMA posição, e a lista rola por dentro
-       quando tem mais itens do que cabe. */
-    height: 520px;
-    /* #telaPesagem é um flex container (column) e a soma dos filhos (stats +
-       essa lista + o painel de controle) passou a ser bem maior que a tela
-       depois das rodadas de "aumentar tudo" -- por padrão um item flex
-       ENCOLHE (flex-shrink:1) pra caber, e como esse elemento tem
-       overflow-y:auto, o tamanho mínimo automático dele vira 0 (regra do
-       próprio CSS flexbox), então ele era o único que sobrava pra absorver
-       todo o encolhimento -- colapsava pra praticamente invisível mesmo com
-       a altura fixa de 520px declarada acima. flex-shrink:0 trava essa
-       altura de verdade; quem sobra sem espaço agora é a TELA (.tela já
-       tem overflow-y:auto e rola normalmente). */
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-height: 90px;
+    max-height: 260px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
