@@ -726,18 +726,34 @@ textarea {
     overflow-wrap: break-word;
 }
 
-/* PESO ATUAL (display em destaque) -- moldura com degradê azul + brilho
-   por trás do número, pra não ficar "só um número preto num quadrado
-   branco" */
+/* PESO ATUAL (display em destaque) -- painel escuro "futurista" (fundo
+   quase preto/azul, borda e brilho azul-ciano) com o número em branco e
+   um ícone de mostrador (ponteiro) BEM apagado atrás do texto, como uma
+   marca d'água -- não é decorativo à toa, reforça a ideia de "leitura de
+   instrumento" (peso vindo da balança) */
 .pesoAtualCard {
     position: relative;
-    background: linear-gradient(160deg, #eaf2ff, #ffffff 45%, #ffffff);
-    border: 2px solid #cfe1fb;
+    z-index: 0;
+    overflow: hidden;
+    background: linear-gradient(160deg, #0c1626, #142238 55%, #0a1220);
+    border: 1px solid rgba(90,170,255,0.35);
     border-radius: 20px;
     padding: 8px 12px 10px;
     text-align: center;
-    box-shadow: 0 8px 24px rgba(25,118,210,0.22);
+    box-shadow: 0 0 0 1px rgba(90,170,255,0.08) inset, 0 0 26px rgba(40,120,220,0.28), 0 8px 24px rgba(0,0,0,0.35);
     margin: 0 0 6px;
+}
+
+.pesoAtualIconeFundo {
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 100px;
+    height: 100px;
+    color: rgba(110,185,255,0.4);
+    pointer-events: none;
 }
 
 .btnLogBalanca {
@@ -772,7 +788,7 @@ textarea {
     display: block;
     font-size: 13px;
     font-weight: bold;
-    color: #7a8aa8;
+    color: #6fa3d8;
     letter-spacing: 2px;
 }
 
@@ -780,7 +796,7 @@ textarea {
     display: block;
     font-size: 15px;
     font-weight: 600;
-    color: #7a8aa8;
+    color: #6fa3d8;
     margin-top: -8px;
 }
 
@@ -823,15 +839,15 @@ textarea {
     text-align: center;
     font-weight: 800;
     background: transparent;
-    color: #0d5bb8;
-    text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    color: #f0f7ff;
+    text-shadow: 0 0 16px rgba(110,190,255,0.55), 0 1px 0 rgba(0,0,0,0.35);
     border: none;
     margin: 0;
     padding: 0;
 }
 
 #displayPeso::placeholder {
-    color: #ccc;
+    color: rgba(240,247,255,0.3);
 }
 
 /* aproxima a Observação do teclado, deixando mais espaço pra lista de

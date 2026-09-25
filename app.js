@@ -227,6 +227,9 @@ function resetarPesagemAtual() {
 // MODAL CANCELAR / FINALIZAR PESAGEM (ARRASTE)
 // ========================================
 let acaoModalPendente = null;
+// peso digitado esperando confirmação por estar fora da faixa normal
+// (< 100kg ou > 999kg) -- ver adicionarPeso()/efetivarLancamentoPeso()
+let pesoPendenteConfirmacao = null;
 
 function solicitarCancelarPesagem(){
     if(pesos.length === 0){
@@ -252,6 +255,7 @@ function solicitarFinalizarPesagem(){
 function fecharModalAcao(){
     document.getElementById("modalConfirmarAcao").style.display = "none";
     acaoModalPendente = null;
+    pesoPendenteConfirmacao = null;
 }
 
 function confirmarModalAcao(){
@@ -268,6 +272,12 @@ function confirmarModalAcao(){
         document.getElementById("modalConfirmarAcao").style.display = "none";
         acaoModalPendente = null;
         finalizarPesagem();
+    } else if(acaoModalPendente === "peso_fora_padrao"){
+        document.getElementById("modalConfirmarAcao").style.display = "none";
+        acaoModalPendente = null;
+        let peso = pesoPendenteConfirmacao;
+        pesoPendenteConfirmacao = null;
+        if(peso) efetivarLancamentoPeso(peso);
     }
 }
 
@@ -276,9 +286,8 @@ function confirmarModalAcao(){
 // ========================================
 function adicionarPeso(){
     let inputPeso = document.getElementById("displayPeso");
-    let inputObs = document.getElementById("obs");
     if(!inputPeso) return;
-    
+
     let pesoNum = parseFloat(inputPeso.value.replace(",", "."));
 
     if(!pesoNum || pesoNum <= 0){
@@ -286,15 +295,36 @@ function adicionarPeso(){
         return;
     }
 
+    // faixa normal de um animal adulto -- fora dela é bem provável que
+    // tenha sido erro de digitação (ex: "45" faltando um dígito, ou "1250"
+    // com um a mais), então confirma antes de lançar em vez de bloquear
+    // (pode ser um peso real de bezerro/animal fora do padrão)
+    if(pesoNum < 100 || pesoNum > 999){
+        pesoPendenteConfirmacao = pesoNum;
+        acaoModalPendente = "peso_fora_padrao";
+        document.getElementById("modalAcaoTitulo").innerText = "⚠️ Peso fora do padrão";
+        document.getElementById("modalAcaoTexto").innerText = `Peso fora do padrão, continuar no lançamento? (${formatarPeso(pesoNum)} kg)`;
+        document.getElementById("linhaCheckboxCiente").style.display = "none";
+        document.getElementById("modalConfirmarAcao").style.display = "flex";
+        return;
+    }
+
+    efetivarLancamentoPeso(pesoNum);
+}
+
+function efetivarLancamentoPeso(pesoNum){
+    let inputPeso = document.getElementById("displayPeso");
+    let inputObs = document.getElementById("obs");
+
     pesos.push({
         peso: pesoNum,
         obs: inputObs ? inputObs.value.trim() : ""
     });
 
     bip();
-    inputPeso.value = "";
+    if(inputPeso) inputPeso.value = "";
     if(inputObs) inputObs.value = "";
-    
+
     if(typeof salvarPesagemAuto === "function") {
         salvarPesagemAuto();
     }
@@ -452,7 +482,10 @@ function atualizarStats(){
     if(qtdEl) qtdEl.innerText = qtd;
     if(medEl) medEl.innerText = media.toFixed(2).replace(".", ",");
     if(totEl) totEl.innerText = formatarPeso(total);
-    if(ultEl) ultEl.innerText = formatarPeso(ultimo);
+    // esse cartão (id cardUltimoKg) só aparece no critério "peso vivo (kg)"
+    // -- em vez do peso do último animal (já visível na lista logo abaixo),
+    // mostra o valor/kg configurado, pra lembrar o operador do preço em uso
+    if(ultEl) ultEl.innerText = "R$ " + formatarMoeda(valorKgNum);
     if(uValEl) uValEl.innerText = "R$ " + formatarMoeda(ultimoValor);
     if(tValEl) tValEl.innerText = "R$ " + formatarMoeda(totalValor);
 
