@@ -325,8 +325,8 @@ body {
     position: relative;
     border: 1px solid var(--border);
     border-radius: 999px;
-    width: 62px;
-    height: 62px;
+    width: 50px;
+    height: 50px;
     background: rgba(255,255,255,0.08);
     color: var(--ink);
     display: flex;
@@ -359,8 +359,8 @@ body {
 .pillAcao, .pillPerfil {
     border: 1px solid var(--border);
     border-radius: 999px;
-    width: 62px;
-    height: 62px;
+    width: 50px;
+    height: 50px;
     background: rgba(255,255,255,0.08);
     color: var(--ink);
     display: flex;
@@ -375,6 +375,18 @@ body {
 .pillSino:active, .pillAcao:active, .pillPerfil:active {
     transform: scale(0.92);
     background: rgba(255,255,255,0.16);
+}
+
+/* botão Sair (mobile) -- ícone moderno de "power" em vermelho, no lugar
+   do emoji de porta, pra deixar claro que é uma ação de sair/desligar */
+.pillPerfil.pillPerfilSair {
+    background: rgba(229,57,53,0.14);
+    border-color: rgba(229,57,53,0.35);
+    color: #e53935;
+}
+
+.pillPerfil.pillPerfilSair:active {
+    background: rgba(229,57,53,0.24);
 }
 
 /* CARTÃO GRANDE (HERO) -- Nova Pesagem. overflow:hidden + posição
@@ -622,6 +634,10 @@ body {
 .hojeStatVerde .hojeStatIcone { background: rgba(46,156,79,0.18); color: #5fc484; }
 .hojeStatLaranja .hojeStatIcone { background: rgba(217,130,43,0.18); color: #e8a866; }
 .hojeStatRoxo .hojeStatIcone { background: rgba(124,92,224,0.18); color: #a794f0; }
+/* vermelho reservado pra métrica de "pendência" (bezerros atrasados/
+   prontos pra apartar) -- é a única, entre as métricas de Hoje, que
+   pede uma ação do operador em vez de só informar um total do dia */
+.hojeStatVermelho .hojeStatIcone { background: rgba(229,57,53,0.18); color: #e57373; }
 
 .hojeStatLabel {
     font-size: 14px;

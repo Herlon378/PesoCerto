@@ -1670,10 +1670,20 @@ function atualizarBotaoLogin(){
         // (desktop) que ele mostra "Sair (Nome)" por extenso.
         let ehMenuMobile = !!document.getElementById("telaMenu");
         if(nome){
-            btn.innerText = ehMenuMobile ? "🚪" : "🚪 Sair (" + nome + ")";
+            if(ehMenuMobile){
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>';
+                btn.classList.add("pillPerfilSair");
+            } else {
+                btn.innerText = "🚪 Sair (" + nome + ")";
+            }
             btn.onclick = sair;
         } else {
-            btn.innerText = ehMenuMobile ? "👤" : "👤 Entrar";
+            if(ehMenuMobile){
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                btn.classList.remove("pillPerfilSair");
+            } else {
+                btn.innerText = "👤 Entrar";
+            }
             btn.onclick = mostrarTelaLogin;
         }
     }
@@ -1781,6 +1791,8 @@ async function atualizarResumoHojeMenu(){
     if(blocoVacas) blocoVacas.style.display = podeVacas ? "flex" : "none";
     let blocoNascimentos = document.getElementById("hojeBlocoNascimentos");
     if(blocoNascimentos) blocoNascimentos.style.display = podeVacas ? "flex" : "none";
+    let blocoApartar = document.getElementById("hojeBlocoApartar");
+    if(blocoApartar) blocoApartar.style.display = podeVacas ? "flex" : "none";
     if(!podeVacas) return;
 
     try{
@@ -1806,6 +1818,14 @@ async function atualizarResumoHojeMenu(){
             }
             let elNascimentos = document.getElementById("hojeNascimentos");
             if(elNascimentos) elNascimentos.innerText = String(nascidosHoje);
+
+            // reaproveita o mesmo aviso já usado na lista de Vacas Matriz
+            // (8-12 meses = "pronto", 12+ = "atrasado") -- aqui só conta
+            // quantos bezerros vivos estão em qualquer um dos dois casos,
+            // ou seja, já deveriam ter sido apartados até hoje e não foram
+            let bezerrosProntos = nascimentos.filter(n => avisoApartacaoNascimento(n) !== null).length;
+            let elApartar = document.getElementById("hojeBezerrosApartar");
+            if(elApartar) elApartar.innerText = String(bezerrosProntos);
         }
     } catch(e){
         // resumo é só informativo -- se a rede falhar, o menu continua
