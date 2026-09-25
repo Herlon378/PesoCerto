@@ -632,6 +632,17 @@ function mostrarCriterioExtra(n){
     let botao = document.getElementById("btnAdicionarCriterio" + n);
     if(bloco) bloco.style.display = "block";
     if(botao) botao.style.display = "none";
+    // abrir o Critério 2 tem que trazer de volta a opção de abrir o
+    // Critério 3 (que mora dentro do bloco do 2, mais abaixo) -- sem isso,
+    // depois que o Critério 2 tivesse sido removido/resetado uma vez (o que
+    // deixa o botão "+ Adicionar Critério 3" em display:none pra fechar o 3
+    // junto), reabrir o Critério 2 nunca devolvia esse botão, então só dava
+    // pra configurar 2 critérios, nunca 3
+    if(n === 2){
+        let bloco3 = document.getElementById("blocoCriterio3");
+        let btn3 = document.getElementById("btnAdicionarCriterio3");
+        if(btn3 && (!bloco3 || bloco3.style.display !== "block")) btn3.style.display = "block";
+    }
     carregarLotesSelect();
 }
 
