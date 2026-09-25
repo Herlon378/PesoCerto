@@ -1288,12 +1288,9 @@ async function mostrarCustoPorLote() {
 
     corpo.innerHTML = nomesLotes.map(nome => {
         let g = porLote[nome];
-        let headcount = g.comprados - g.vendidos;
-        let kgAtual = g.kgComprado - g.kgVendido;
-        let gastoTotal = g.custoCompra + g.custoInsumos;
-        let custoRestante = gastoTotal - g.receitaVenda;
-        let custoMedio = headcount > 0 ? custoRestante / headcount : 0;
-        let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
+        // fórmula compartilhada com o celular (app.js) -- ver
+        // calcularFormulaCustoLote(), garante que os dois nunca divergem
+        let { headcount, kgAtual, custoRestante, custoMedio, custoPorKg } = calcularFormulaCustoLote(g);
         let restanteFmt = formatarValorPossivelmenteNegativo(custoRestante, headcount);
         let medioFmt = formatarValorPossivelmenteNegativo(custoMedio, headcount);
         let porKgFmt = formatarValorPossivelmenteNegativo(custoPorKg, headcount);

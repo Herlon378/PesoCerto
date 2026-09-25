@@ -256,6 +256,11 @@ body {
     color: var(--ink);
 }
 
+#telaDashboard {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
 /* CABEÇALHO */
 .menuHeader {
     display: flex;
@@ -614,6 +619,12 @@ body {
     background: var(--surface-sunken);
     border-radius: var(--radius-md);
     padding: 26px 10px;
+    /* sem isso, um item de grid nunca encolhe abaixo do tamanho do próprio
+       conteúdo (min-width:auto é o padrão) -- rótulos/valores mais compridos
+       (ex: "Custo Médio/Animal", "R$ 30.000,00") do que os da Menu original
+       ("Pesagens", "0") forçavam o cartão mais largo que a própria coluna
+       do grid, e o segundo cartão da linha vazava pra fora da tela */
+    min-width: 0;
 }
 
 /* chip circular colorido atrás do ícone -- mesma linguagem visual dos
@@ -1686,4 +1697,42 @@ textarea {
         display: none !important;
     }
 
+}
+
+/* SIMULADOR DE VENDA (Dashboard, celular) -- lista de resultado calculada
+   ao vivo, mesmo espírito de .itemPesagem (rótulo à esquerda, valor à
+   direita) mas dentro do cartão escuro do .painelControlePesagem */
+.simuladorResultado {
+    margin-top: 16px;
+}
+
+.simuladorResultadoLinha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--ink-muted);
+}
+
+.simuladorResultadoLinha:last-child {
+    border-bottom: none;
+}
+
+.simuladorResultadoLinha span:last-child {
+    font-weight: 700;
+    color: var(--ink);
+}
+
+/* Lucro/Prejuízo é o número que mais importa pra decisão -- maior e com
+   a cor já escrita via JS (verde/vermelho), não fixa aqui */
+.simuladorResultadoDestaque {
+    font-size: 16px;
+}
+
+.simuladorResultadoDestaque span:last-child {
+    font-size: 20px;
+    font-weight: 800;
 }

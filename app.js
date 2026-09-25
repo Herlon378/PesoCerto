@@ -74,6 +74,7 @@ function abrirDashboard(){
     trocarTela("telaDashboard");
     preencherFiltrosDashboard();
     mostrarDashboard();
+    if(typeof atualizarDashboardLoteMobile === "function") atualizarDashboardLoteMobile();
     if(typeof mostrarPatrimonio === "function") mostrarPatrimonio();
     if(typeof mostrarEvolucaoPatrimonio === "function") mostrarEvolucaoPatrimonio();
     if(typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
@@ -912,6 +913,249 @@ function mostrarDashboard(){
     setLargura("barKgVenda", kgVenda, Math.max(kgCompra, kgVenda));
     setLargura("barValorCompra", valorCompra, Math.max(valorCompra, valorVenda));
     setLargura("barValorVenda", valorVenda, Math.max(valorCompra, valorVenda));
+}
+
+// ========================================
+// DASHBOARD POR LOTE + SIMULADOR DE VENDA (celular) -- filtro detalhado com
+// o mesmo "Custo por Lote" completo que já existe no desktop (compra +
+// insumos de estoque + lançamentos avulsos do caixa + transferências entre
+// lotes), não só a soma simples de compra/venda que mostrarDashboard() já
+// faz. As 3 rotas de onde vem parte desse custo (estoque-saidas,
+// caixa-lancamentos, transferencias-lotes) são admin-only no servidor e
+// devolvem a base inteira sem filtro por usuário -- por isso essa seção só
+// aparece logado como admin (ver atualizarDashboardLoteMobile).
+let estoqueSaidasCacheMobile = [];
+let caixaLancamentosCacheMobile = [];
+let transferenciasLotesCacheMobile = [];
+let dadosCustoLoteMobileCarregados = false;
+
+async function carregarDadosCustoLoteMobile(){
+    if(dadosCustoLoteMobileCarregados) return;
+    if(obterPapelLogado() !== "admin") return;
+    let token = obterToken();
+    if(!token) return;
+    try{
+        let headers = { "Authorization": "Bearer " + token };
+        let [respSaidas, respCaixa, respTransf] = await Promise.all([
+            fetch(`${API_URL}/api/estoque-saidas`, { headers }),
+            fetch(`${API_URL}/api/caixa-lancamentos`, { headers }),
+            fetch(`${API_URL}/api/transferencias-lotes`, { headers })
+        ]);
+        if(respSaidas.ok) estoqueSaidasCacheMobile = await respSaidas.json();
+        if(respCaixa.ok) caixaLancamentosCacheMobile = await respCaixa.json();
+        if(respTransf.ok) transferenciasLotesCacheMobile = await respTransf.json();
+        dadosCustoLoteMobileCarregados = true;
+    } catch(e){
+        // seção só informativa -- se a rede falhar, o resto do Dashboard continua normal
+    }
+}
+
+// mesma lógica de calcularInicioCicloLote() (admin.js) -- reescrita aqui
+// porque aquela função lê variáveis (transferenciasLotesCacheAdmin) que só
+// existem carregadas no desktop. Um lote fechado (headcount chega a 0) e
+// reaberto com o mesmo nome só conta o ciclo atual, não a história inteira.
+function calcularInicioCicloLoteMobile(nomeLote){
+    function chaveOrdenacao(dataStr){
+        let m = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
+        return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}` : extrairDataISO(dataStr);
+    }
+    let eventos = [];
+    relatorios.forEach(r => {
+        if((r.descricao || "Sem descrição") !== nomeLote) return;
+        let iso = extrairDataISO(r.data);
+        if(!iso) return;
+        let qtd = calcularDadosCompletos(r).totalAnimais;
+        eventos.push({ ordem: chaveOrdenacao(r.data), iso, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
+    });
+    transferenciasLotesCacheMobile.forEach(t => {
+        let iso = extrairDataISO(t.data);
+        if(!iso) return;
+        if(t.loteDestino === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: t.quantidade });
+        if(t.loteOrigem === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: -t.quantidade });
+    });
+    if(eventos.length === 0) return null;
+    eventos.sort((a, b) => a.ordem.localeCompare(b.ordem));
+    let headcount = 0;
+    let inicioCiclo = eventos[0].iso;
+    let aguardandoNovoCiclo = false;
+    eventos.forEach(ev => {
+        if(aguardandoNovoCiclo){ inicioCiclo = ev.iso; aguardandoNovoCiclo = false; }
+        headcount += ev.delta;
+        if(headcount <= 0) aguardandoNovoCiclo = true;
+    });
+    return inicioCiclo;
+}
+
+// agrega compra/venda/insumo/caixa/transferência de UM lote só (mesmo
+// padrão do gerarRelatorioLotePDF do desktop, admin.js) -- devolve os
+// números brutos; quem calcula custo restante/médio é calcularFormulaCustoLote().
+function montarResumoLoteMobile(nomeLote){
+    let inicioCiclo = calcularInicioCicloLoteMobile(nomeLote);
+    function noCicloAtual(dataStr){
+        if(!inicioCiclo) return true;
+        let iso = extrairDataISO(dataStr);
+        return iso !== null && iso >= inicioCiclo;
+    }
+
+    let g = { comprados: 0, vendidos: 0, kgComprado: 0, kgVendido: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0 };
+
+    relatorios.forEach(r => {
+        if((r.descricao || "Sem descrição") !== nomeLote) return;
+        if(!noCicloAtual(r.data)) return;
+        let d = calcularDadosCompletos(r);
+        if((r.tipo || "venda") === "compra"){
+            g.comprados += d.totalAnimais;
+            g.kgComprado += d.totalKg;
+            g.custoCompra += d.totalRS;
+        } else {
+            g.vendidos += d.totalAnimais;
+            g.kgVendido += d.totalKg;
+            g.receitaVenda += d.totalRS;
+        }
+    });
+
+    estoqueSaidasCacheMobile.forEach(s => {
+        if(s.loteNome !== nomeLote || !noCicloAtual(s.data)) return;
+        g.custoInsumos += s.valorTotal;
+    });
+
+    caixaLancamentosCacheMobile.forEach(l => {
+        if(!l.loteNome || l.loteNome !== nomeLote || !noCicloAtual(l.data)) return;
+        if(l.tipo === "saida") g.custoInsumos += l.valor;
+        else g.receitaVenda += l.valor;
+    });
+
+    transferenciasLotesCacheMobile.forEach(t => {
+        if(t.loteOrigem === nomeLote && noCicloAtual(t.data)) g.vendidos += t.quantidade;
+        if(t.loteDestino === nomeLote && noCicloAtual(t.data)){
+            g.comprados += t.quantidade;
+            g.custoCompra += t.valorTotal;
+        }
+    });
+
+    return g;
+}
+
+// fórmula final compartilhada com o desktop -- admin.js's mostrarCustoPorLote()
+// chama essa mesma função em vez de repetir a conta, pra garantir que os
+// números do celular e do gerenciamento nunca podem divergir. Custo restante
+// é quanto do que foi gasto no lote (compra+insumo) ainda não voltou em
+// venda, repartido pelos animais que sobraram.
+function calcularFormulaCustoLote(g){
+    let headcount = g.comprados - g.vendidos;
+    let kgAtual = g.kgComprado - g.kgVendido;
+    let gastoTotal = g.custoCompra + g.custoInsumos;
+    let custoRestante = gastoTotal - g.receitaVenda;
+    let custoMedio = headcount > 0 ? custoRestante / headcount : 0;
+    let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
+    return { headcount, kgAtual, custoRestante, custoMedio, custoPorKg };
+}
+
+async function atualizarDashboardLoteMobile(){
+    mostrarDashboard();
+
+    let filtroLoteEl = document.getElementById("filtroLote");
+    let secao = document.getElementById("dashboardLoteDetalhado");
+    let simulador = document.getElementById("simuladorVenda");
+    if(!filtroLoteEl || !secao) return;
+
+    let nomeLote = filtroLoteEl.value;
+    let podeVerDetalhe = obterPapelLogado() === "admin";
+
+    if(!nomeLote || !podeVerDetalhe){
+        secao.style.display = "none";
+        if(simulador) simulador.style.display = "none";
+        return;
+    }
+
+    await carregarDadosCustoLoteMobile();
+
+    let g = montarResumoLoteMobile(nomeLote);
+    let f = calcularFormulaCustoLote(g);
+    let kgMedioPorAnimal = g.comprados > 0 ? g.kgComprado / g.comprados : 0;
+    let valorMedioPorAnimal = g.comprados > 0 ? g.custoCompra / g.comprados : 0;
+
+    function set(id, texto){
+        let el = document.getElementById(id);
+        if(el) el.innerText = texto;
+    }
+    set("dashLoteAtivos", String(f.headcount));
+    set("dashLoteKgCompra", formatarPeso(g.kgComprado) + " kg");
+    set("dashLoteKgMedio", formatarPeso(kgMedioPorAnimal) + " kg");
+    set("dashLoteValorCompra", "R$ " + formatarMoeda(g.custoCompra));
+    set("dashLoteValorMedio", "R$ " + formatarMoeda(valorMedioPorAnimal));
+    set("dashLoteCustoTotal", "R$ " + formatarMoeda(f.custoRestante));
+    set("dashLoteCustoMedio", "R$ " + formatarMoeda(f.custoMedio));
+
+    secao.style.display = "block";
+    let elNomeLote = document.getElementById("dashLoteNomeSelecionado");
+    if(elNomeLote) elNomeLote.innerText = nomeLote;
+
+    if(simulador){
+        simulador.style.display = "block";
+        simulador.dataset.animaisAtivos = String(f.headcount);
+        simulador.dataset.custoMedio = String(f.custoMedio);
+        let campoPeso = document.getElementById("simPesoMedio");
+        let campoQtd = document.getElementById("simQuantidade");
+        // troca de lote sempre reinicia o simulador pros valores desse lote
+        // -- só onchange do próprio &lt;select&gt; chega aqui, então não corre o
+        // risco de apagar algo que o operador estava digitando à toa
+        if(campoPeso) campoPeso.value = kgMedioPorAnimal.toFixed(2).replace(".", ",");
+        if(campoQtd) campoQtd.value = f.headcount;
+        atualizarSimuladorVenda();
+    }
+}
+
+function alternarModoSimulador(modo){
+    let btnKg = document.getElementById("simModoKg");
+    let btnPerna = document.getElementById("simModoPerna");
+    let campoPesoCartao = document.getElementById("simPesoMedioCartao");
+    if(btnKg) btnKg.classList.toggle("criterioBtnAtivo", modo === "kg");
+    if(btnPerna) btnPerna.classList.toggle("criterioBtnAtivo", modo === "perna");
+    if(campoPesoCartao) campoPesoCartao.style.display = modo === "kg" ? "block" : "none";
+    let simulador = document.getElementById("simuladorVenda");
+    if(simulador) simulador.dataset.modo = modo;
+    atualizarSimuladorVenda();
+}
+
+function atualizarSimuladorVenda(){
+    let simulador = document.getElementById("simuladorVenda");
+    if(!simulador) return;
+
+    let modo = simulador.dataset.modo || "kg";
+    let animaisAtivos = parseFloat(simulador.dataset.animaisAtivos || "0") || 0;
+    let custoMedioPorAnimal = parseFloat(simulador.dataset.custoMedio || "0") || 0;
+
+    let campoPreco = document.getElementById("simPreco");
+    let campoPeso = document.getElementById("simPesoMedio");
+    let campoQtd = document.getElementById("simQuantidade");
+
+    let preco = campoPreco ? (parseFloat(campoPreco.value.replace(",", ".")) || 0) : 0;
+    let pesoMedio = campoPeso ? (parseFloat(campoPeso.value.replace(",", ".")) || 0) : 0;
+    let qtdVendida = campoQtd ? (parseFloat(campoQtd.value.replace(",", ".")) || 0) : 0;
+    if(qtdVendida > animaisAtivos) qtdVendida = animaisAtivos;
+    if(qtdVendida < 0) qtdVendida = 0;
+
+    let valorVenda = modo === "kg" ? (preco * pesoMedio * qtdVendida) : (preco * qtdVendida);
+    let custoVendidos = custoMedioPorAnimal * qtdVendida;
+    let lucro = valorVenda - custoVendidos;
+    let restantes = animaisAtivos - qtdVendida;
+    let custoRestante = custoMedioPorAnimal * restantes;
+
+    function set(id, texto){
+        let el = document.getElementById(id);
+        if(el) el.innerText = texto;
+    }
+    set("simResultadoValorVenda", "R$ " + formatarMoeda(valorVenda));
+    set("simResultadoCustoVendidos", "R$ " + formatarMoeda(custoVendidos));
+    let elLucro = document.getElementById("simResultadoLucro");
+    if(elLucro){
+        let positivo = lucro >= 0;
+        elLucro.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + formatarMoeda(Math.abs(lucro));
+        elLucro.style.color = positivo ? "#0ca30c" : "#d03b3b";
+    }
+    set("simResultadoRestantes", String(restantes));
+    set("simResultadoCustoRestante", "R$ " + formatarMoeda(custoRestante));
 }
 
 function formatarValorKg(input) {

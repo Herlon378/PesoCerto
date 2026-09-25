@@ -525,7 +525,13 @@
 </div>
 
 <div id="telaDashboard" class="tela">
-    <h2>Dashboard</h2>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaMenu')" aria-label="Voltar ao Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Dashboard</h2>
+    </div>
+
     <div class="stats">
         <div class="statCard">Animais Ativos<br><span id="dashAtivos">0</span></div>
         <div class="statCard">Comprados<br><span id="dashComprados">0</span></div>
@@ -535,6 +541,114 @@
         <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
         <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
     </div>
+
+    <div class="campoCartao">
+        <label class="campoCartaoLabel" for="filtroLote">Analisar por lote</label>
+        <select id="filtroLote" onchange="atualizarDashboardLoteMobile()">
+            <option value="">Todos os lotes</option>
+        </select>
+        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <div class="cardHoje" id="dashboardLoteDetalhado" style="display:none">
+        <div class="cardHojeTopo">
+            <span class="cardMenuIcone" style="background:rgba(57,135,229,0.18); color:#6aaef2;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </span>
+            <span class="cardHojeTextos">
+                <strong>Resumo do Lote</strong>
+                <small id="dashLoteNomeSelecionado">Custo completo (compra + insumos + caixa + transferências)</small>
+            </span>
+        </div>
+        <div class="hojeGrade">
+            <div class="hojeStat hojeStatAzul">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg></span>
+                <span class="hojeStatLabel">Animais Ativos</span>
+                <span class="hojeStatValor" id="dashLoteAtivos">0</span>
+            </div>
+            <div class="hojeStat hojeStatAzul">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
+                <span class="hojeStatLabel">Kg de Compra</span>
+                <span class="hojeStatValor" id="dashLoteKgCompra">0</span>
+            </div>
+            <div class="hojeStat hojeStatAzul">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                <span class="hojeStatLabel">Kg Médio/Animal</span>
+                <span class="hojeStatValor" id="dashLoteKgMedio">0</span>
+            </div>
+            <div class="hojeStat hojeStatVerde">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
+                <span class="hojeStatLabel">Valor Total Compra</span>
+                <span class="hojeStatValor" id="dashLoteValorCompra">0</span>
+            </div>
+            <div class="hojeStat hojeStatVerde">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58a2 2 0 0 1 0-2.83l7.17-7.17A2 2 0 0 1 11.17 2H18a2 2 0 0 1 2 2v6.59a2 2 0 0 1-.59 1.41z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span>
+                <span class="hojeStatLabel">Valor Médio/Animal</span>
+                <span class="hojeStatValor" id="dashLoteValorMedio">0</span>
+            </div>
+            <div class="hojeStat hojeStatLaranja">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
+                <span class="hojeStatLabel">Custo por Lote</span>
+                <span class="hojeStatValor" id="dashLoteCustoTotal">0</span>
+            </div>
+            <div class="hojeStat hojeStatLaranja">
+                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+                <span class="hojeStatLabel">Custo Médio/Animal</span>
+                <span class="hojeStatValor" id="dashLoteCustoMedio">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="painelControlePesagem" id="simuladorVenda" style="display:none" data-modo="kg">
+        <p class="criterioTitulo">Simulador de Venda</p>
+        <div class="criteriosPesagem" style="margin-top:0">
+            <button class="criterioBtn criterioBtnAtivo" id="simModoKg" onclick="alternarModoSimulador('kg')">
+                <span class="criterioBtnLabel">Modo</span>
+                <span class="criterioBtnValor">Por Kg</span>
+            </button>
+            <button class="criterioBtn" id="simModoPerna" onclick="alternarModoSimulador('perna')">
+                <span class="criterioBtnLabel">Modo</span>
+                <span class="criterioBtnValor">Na Perna</span>
+            </button>
+        </div>
+
+        <div class="campoCartao">
+            <label class="campoCartaoLabel">Preço (R$/kg ou R$/animal)</label>
+            <input id="simPreco" inputmode="decimal" placeholder="0,00" oninput="atualizarSimuladorVenda()">
+        </div>
+        <div class="campoCartao" id="simPesoMedioCartao">
+            <label class="campoCartaoLabel">Peso médio estimado (kg)</label>
+            <input id="simPesoMedio" inputmode="decimal" placeholder="0,00" oninput="atualizarSimuladorVenda()">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel">Quantidade a vender</label>
+            <input id="simQuantidade" inputmode="numeric" placeholder="0" oninput="atualizarSimuladorVenda()">
+        </div>
+
+        <div class="simuladorResultado">
+            <div class="simuladorResultadoLinha">
+                <span>Valor da Venda</span>
+                <span id="simResultadoValorVenda">R$ 0,00</span>
+            </div>
+            <div class="simuladorResultadoLinha">
+                <span>Custo dos Animais Vendidos</span>
+                <span id="simResultadoCustoVendidos">R$ 0,00</span>
+            </div>
+            <div class="simuladorResultadoLinha simuladorResultadoDestaque">
+                <span>Lucro/Prejuízo Estimado</span>
+                <span id="simResultadoLucro">R$ 0,00</span>
+            </div>
+            <div class="simuladorResultadoLinha">
+                <span>Animais Restantes</span>
+                <span id="simResultadoRestantes">0</span>
+            </div>
+            <div class="simuladorResultadoLinha">
+                <span>Custo do Restante</span>
+                <span id="simResultadoCustoRestante">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
 </div>
 
