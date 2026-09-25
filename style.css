@@ -256,9 +256,22 @@ body {
     color: var(--ink);
 }
 
+/* mesmo padrão de #telaResultado (Relatórios): cabeçalho travado
+   (.telaHeaderVoltar já é flex-shrink:0, classe compartilhada) e só
+   #dashboardConteudo rola por dentro -- só existe um jeito de voltar ao
+   Menu agora (a seta do cabeçalho), então o botão "← Menu" grande lá
+   embaixo foi removido, e sem ele não fazia mais sentido esse botão
+   "empurrar" o cabeçalho pra fora da tela ao rolar. */
 #telaDashboard {
     background: var(--navy-900);
     color: var(--ink);
+}
+
+#dashboardConteudo {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 /* CABEÇALHO */
