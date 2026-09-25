@@ -1401,6 +1401,123 @@ textarea {
     margin-bottom: 14px;
 }
 
+/* TELA DE LOGIN -- primeira tela que qualquer usuário vê, nunca tinha
+   recebido nenhum estilo próprio (era h2 cru + inputs brancos soltos +
+   um .btnGrande enorme -- daí o "botão grande e desconfigurado"). Cartão
+   escuro centralizado, mesma linguagem visual do resto do app. Usa
+   classes NOVAS (.loginSubtituloNovo, não .loginSubtitulo) de propósito:
+   .loginSubtitulo/.loginErro são reaproveitadas em várias outras telas
+   claras (Vacas Matriz, leitor de código de barras) que ainda dependem
+   da cor escura original -- mudar essas classes globalmente quebraria a
+   leitura lá. */
+#telaLogin {
+    background: var(--navy-900);
+    color: var(--ink);
+    align-items: center;
+    justify-content: center;
+}
+
+.loginCard {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.loginLogo {
+    font-size: 48px;
+    margin-bottom: 4px;
+}
+
+.loginTitulo {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+}
+
+.loginSubtituloNovo {
+    color: var(--ink-muted);
+    font-size: 14px;
+    margin-bottom: 22px;
+}
+
+.campoLogin {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px 14px;
+    margin: 10px 0;
+    text-align: left;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campoLogin:focus-within {
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 3px rgba(57,135,229,0.2);
+}
+
+.campoLogin input:focus {
+    outline: none;
+}
+
+.campoLogin svg {
+    width: 18px;
+    height: 18px;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+}
+
+.campoLogin input {
+    border: none;
+    background: transparent;
+    margin: 0;
+    padding: 12px 0;
+    color: var(--ink);
+    font-size: 16px;
+    width: 100%;
+}
+
+.campoLogin input::placeholder {
+    color: var(--ink-muted);
+}
+
+.botaoEntrar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    margin-top: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #3987e5, #1c5aa8);
+    color: white;
+    box-shadow: 0 6px 16px rgba(57,135,229,0.35);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease;
+}
+
+.botaoEntrar svg {
+    width: 18px;
+    height: 18px;
+}
+
+.botaoEntrar:active {
+    transform: scale(0.97);
+}
+
 .btn-nao {
     flex: 1;
     background: #e14b3d;

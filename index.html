@@ -13,12 +13,27 @@
 <body>
 
 <div id="telaLogin" class="tela ativa">
-    <h2>🐂 PesoCerto</h2>
-    <p class="loginSubtitulo">Entre com seu usuário para continuar</p>
-    <input id="loginUsuario" placeholder="Usuário">
-    <input id="loginSenha" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter') enviarLogin()">
-    <p id="loginErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" onclick="enviarLogin()">Entrar</button>
+    <div class="loginCard">
+        <div class="loginLogo">🐂</div>
+        <h1 class="loginTitulo">Peso<span class="menuTituloDestaque">Certo</span></h1>
+        <p class="loginSubtituloNovo">Entre com seu usuário para continuar</p>
+
+        <div class="campoLogin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <input id="loginUsuario" placeholder="Usuário">
+        </div>
+        <div class="campoLogin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <input id="loginSenha" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter') enviarLogin()">
+        </div>
+
+        <p id="loginErro" class="loginErro" style="display:none"></p>
+
+        <button class="botaoEntrar" onclick="enviarLogin()">
+            Entrar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+    </div>
 </div>
 
 <div id="telaMenu" class="tela">
