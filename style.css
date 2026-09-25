@@ -979,20 +979,162 @@ textarea {
     transform: translateX(-50%);
 }
 
-/* BOTÕES RELATÓRIO */
-.botoesRelatorio {
+/* TELA DE RELATÓRIOS -- mesma linguagem visual escura do resto do app
+   (Menu/Nova Pesagem/Pesagem); essa tela nunca tinha recebido nenhum
+   estilo próprio antes, era só a formatação padrão do navegador (texto
+   preto, cartão branco cru) */
+#telaResultado {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+.telaHeaderVoltar {
     display: flex;
-    gap: 5px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.botaoVoltarTela {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.botaoVoltarTela svg {
+    width: 20px;
+    height: 20px;
+}
+
+.botaoVoltarTela:active {
+    background: rgba(255,255,255,0.08);
+}
+
+.telaHeaderTitulo {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+}
+
+.buscaRelatorio {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px 14px;
     margin: 10px 0;
 }
 
-.botoesRelatorio button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 10px;
+.buscaRelatorio svg {
+    width: 18px;
+    height: 18px;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+}
+
+.buscaRelatorio input {
     border: none;
-    background: #1976d2;
-    color: white;
+    background: transparent;
+    margin: 0;
+    padding: 10px 0;
+    color: var(--ink);
+}
+
+.buscaRelatorio input::placeholder {
+    color: var(--ink-muted);
+}
+
+/* BOTÕES RELATÓRIO */
+.botoesRelatorio {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.botaoAcaoRelatorio {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.botaoAcaoRelatorio svg {
+    width: 20px;
+    height: 20px;
+}
+
+.botaoAcaoRelatorio:active {
+    transform: scale(0.96);
+}
+
+.botaoAcaoExcluir svg { color: #e57373; }
+.botaoAcaoWhats svg { color: #25D366; }
+.botaoAcaoImprimir svg { color: #90a4c9; }
+
+/* CARTÃO DE RELATÓRIO -- markup continua sendo gerado por
+   mostrarRelatorios() (app.js), que já monta um .cardRelatorio > label >
+   input[radio] + .infoRelatorio; aqui é só o acabamento visual, zero
+   mudança de estrutura/lógica de seleção */
+.cardRelatorio {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin: 10px 0;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.cardRelatorio label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+}
+
+.cardRelatorio input[type="radio"] {
+    width: auto;
+    margin: 4px 0 0;
+    accent-color: var(--blue-500);
+    flex-shrink: 0;
+}
+
+.infoRelatorio {
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.infoRelatorio b {
+    color: var(--ink-muted);
+    font-weight: 600;
+}
+
+/* cartão selecionado -- mesmo destaque azul usado no critério ativo da
+   tela de Pesagem, pra manter a mesma linguagem de "isto está escolhido" */
+.cardRelatorio:has(input:checked) {
+    border-color: var(--blue-500);
+    background: rgba(57,135,229,0.12);
 }
 
 /* BARRA DE SINCRONIZAÇÃO */

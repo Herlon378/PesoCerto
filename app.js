@@ -693,7 +693,7 @@ function mostrarRelatorios(){
         .filter(item => !restringir || item.r.criadoPor === meuNome);
 
     if(itens.length === 0){
-        container.innerHTML = "<p style='text-align:center; padding:20px; color:#666;'>Nenhum relatório salvo.</p>";
+        container.innerHTML = "<p style='text-align:center; padding:20px; color:#a6b0c6;'>Nenhum relatório salvo.</p>";
         return;
     }
 
