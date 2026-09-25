@@ -323,17 +323,19 @@ body {
 /* SININHO DE MENSAGENS */
 .pillSino {
     position: relative;
-    border: none;
+    border: 1px solid var(--border);
     border-radius: 999px;
     width: 62px;
     height: 62px;
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
     color: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
     padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: transform 0.08s ease, background-color 0.08s ease;
 }
 
 .badgeSino {
@@ -355,21 +357,44 @@ body {
 }
 
 .pillAcao, .pillPerfil {
-    border: none;
+    border: 1px solid var(--border);
     border-radius: 999px;
     width: 62px;
     height: 62px;
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
     color: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
     padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: transform 0.08s ease, background-color 0.08s ease;
 }
 
-/* CARTÃO GRANDE (HERO) -- Nova Pesagem */
+.pillSino:active, .pillAcao:active, .pillPerfil:active {
+    transform: scale(0.92);
+    background: rgba(255,255,255,0.16);
+}
+
+/* CARTÃO GRANDE (HERO) -- Nova Pesagem. overflow:hidden + posição
+   relativa pra caber o ícone de fundo (marca d'água) sem vazar dos
+   cantos arredondados; brilho verde no box-shadow (em vez do genérico
+   --shadow-lg) pra combinar com o próprio degradê do cartão, mesma
+   ideia do brilho azul usado no botão "Entrar" do login.
+   flex-shrink:0 é essencial aqui -- #telaMenu é um flex column e o
+   conteúdo dele já é mais alto que a tela (rola por dentro de propósito,
+   diferente da tela de Pesagem). Qualquer item flex com overflow
+   diferente de visible (esse cartão, agora com overflow:hidden) tem
+   tamanho mínimo automático 0 pro navegador -- sem flex-shrink:0 ele
+   sozinho absorve todo o encolhimento e o card colapsa quase pra
+   invisível, cortando o texto (mesmo bug já documentado pra
+   .listaPesosAtual/#relatorio, dessa vez pego antes de publicar). */
 .cardMenuHero {
+    position: relative;
+    z-index: 0;
+    overflow: hidden;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -381,11 +406,29 @@ body {
     border-radius: var(--radius-lg);
     background: linear-gradient(135deg, #2e9c4f, #1b6e33);
     color: white;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 30px rgba(27,110,51,0.4), var(--shadow-lg);
     -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease;
+}
+
+.cardMenuHero:active {
+    transform: scale(0.98);
+}
+
+.cardMenuHeroIconeFundo {
+    position: absolute;
+    z-index: 0;
+    right: -18px;
+    bottom: -22px;
+    width: 150px;
+    height: 150px;
+    color: rgba(255,255,255,0.1);
+    pointer-events: none;
 }
 
 .cardMenuHeroIcone {
+    position: relative;
+    z-index: 1;
     width: 96px;
     height: 96px;
     border-radius: var(--radius-md);
@@ -394,6 +437,12 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+.cardMenuHeroTextos,
+.cardMenuHero .cardMenuSeta {
+    position: relative;
+    z-index: 1;
 }
 
 .cardMenuHeroTextos {
@@ -442,6 +491,7 @@ body {
     position: relative;
     min-height: 220px;
     -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease;
 }
 
 .cardMenu strong {
@@ -472,16 +522,23 @@ body {
     display: flex;
 }
 
-.cardMenuAzul { border-bottom-color: var(--blue-500); }
+.cardMenu:active {
+    transform: scale(0.97);
+}
+
+/* degradê bem sutil (6% -> superfície normal) na cor de cada cartão, no
+   lugar do fundo plano -- dá uma identidade de cor a cada atalho sem
+   pesar a mão, a borda inferior colorida sozinha ficava discreta demais */
+.cardMenuAzul { border-bottom-color: var(--blue-500); background: linear-gradient(160deg, rgba(57,135,229,0.10), var(--surface) 55%); }
 .cardMenuAzul .cardMenuIcone { background: rgba(57,135,229,0.18); color: #6aaef2; }
 
-.cardMenuRoxo { border-bottom-color: #7c5ce0; }
+.cardMenuRoxo { border-bottom-color: #7c5ce0; background: linear-gradient(160deg, rgba(124,92,224,0.10), var(--surface) 55%); }
 .cardMenuRoxo .cardMenuIcone { background: rgba(124,92,224,0.18); color: #a794f0; }
 
-.cardMenuVerde { border-bottom-color: #2e9c4f; }
+.cardMenuVerde { border-bottom-color: #2e9c4f; background: linear-gradient(160deg, rgba(46,156,79,0.10), var(--surface) 55%); }
 .cardMenuVerde .cardMenuIcone { background: rgba(46,156,79,0.18); color: #5fc484; }
 
-.cardMenuLaranja { border-bottom-color: #d9822b; }
+.cardMenuLaranja { border-bottom-color: #d9822b; background: linear-gradient(160deg, rgba(217,130,43,0.10), var(--surface) 55%); }
 .cardMenuLaranja .cardMenuIcone { background: rgba(217,130,43,0.18); color: #e8a866; }
 
 /* CARTÃO "HOJE" */
@@ -544,9 +601,24 @@ body {
     padding: 26px 10px;
 }
 
+/* chip circular colorido atrás do ícone -- mesma linguagem visual dos
+   ícones dos cartões do 2x2 acima, em vez do ícone solto cinza que
+   deixava os 4 cartões todos iguais/sem identidade própria */
 .hojeStatIcone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     color: var(--ink-muted);
+    background: rgba(255,255,255,0.06);
 }
+
+.hojeStatAzul .hojeStatIcone { background: rgba(57,135,229,0.18); color: #6aaef2; }
+.hojeStatVerde .hojeStatIcone { background: rgba(46,156,79,0.18); color: #5fc484; }
+.hojeStatLaranja .hojeStatIcone { background: rgba(217,130,43,0.18); color: #e8a866; }
+.hojeStatRoxo .hojeStatIcone { background: rgba(124,92,224,0.18); color: #a794f0; }
 
 .hojeStatLabel {
     font-size: 14px;

@@ -60,6 +60,7 @@
     </div>
 
     <button class="cardMenuHero" onclick="trocarTela('telaInicial'); if(typeof fecharCriteriosExtras === 'function') fecharCriteriosExtras();">
+        <svg class="cardMenuHeroIconeFundo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19.5 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6.5 9c0-2.5 2.5-4.5 5.5-4.5s5.5 2 5.5 4.5c0 3-1.5 6-2.5 7.5-.6 1-1 2-1 3H10c0-1-.4-2-1-3-1-1.5-2.5-4.5-2.5-7.5z"></path></svg>
         <span class="cardMenuHeroIcone">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </span>
@@ -116,25 +117,25 @@
             </span>
         </div>
         <div class="hojeGrade">
-            <div class="hojeStat">
+            <div class="hojeStat hojeStatAzul">
                 <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
                 <span class="hojeStatLabel">Pesagens</span>
                 <span class="hojeStatValor" id="hojePesagens">0</span>
                 <span class="hojeStatTendencia" id="hojePesagensTendencia">— 0</span>
             </div>
-            <div class="hojeStat">
+            <div class="hojeStat hojeStatVerde">
                 <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
                 <span class="hojeStatLabel">Vendas</span>
                 <span class="hojeStatValor" id="hojeVendas">0</span>
                 <span class="hojeStatTendencia" id="hojeVendasTendencia">— 0</span>
             </div>
-            <div class="hojeStat">
+            <div class="hojeStat hojeStatLaranja">
                 <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
                 <span class="hojeStatLabel">Saídas</span>
                 <span class="hojeStatValor" id="hojeSaidas">0</span>
                 <span class="hojeStatTendencia" id="hojeSaidasTendencia">— 0</span>
             </div>
-            <div class="hojeStat" id="hojeBlocoVacas" style="display:none">
+            <div class="hojeStat hojeStatRoxo" id="hojeBlocoVacas" style="display:none">
                 <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg></span>
                 <span class="hojeStatLabel">Vacas Matriz</span>
                 <span class="hojeStatValor" id="hojeVacasTotal">0</span>
