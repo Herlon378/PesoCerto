@@ -533,8 +533,17 @@
         // controle, então o app sempre fica atualizado sem precisar fechar e
         // abrir manualmente. Seguro mesmo no meio de uma pesagem porque o
         // rascunho é salvo automaticamente e restaurado ao reabrir (db.js).
+        //
+        // "controllerchange" também dispara na PRIMEIRA instalação (primeira
+        // vez que o navegador abre o app, ou depois de limpar os dados do
+        // site) -- nesse caso não existia versão antiga rodando, então não é
+        // uma "atualização" de verdade e recarregar não tem por quê. Só
+        // recarrega se JÁ existia um controller antes (ou seja, a página já
+        // estava sendo servida por uma versão anterior do service worker).
+        let jaTinhaControlador = !!navigator.serviceWorker.controller;
         let recarregando = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (!jaTinhaControlador) { jaTinhaControlador = true; return; }
             if (recarregando) return;
             recarregando = true;
             window.location.reload();

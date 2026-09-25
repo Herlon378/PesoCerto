@@ -73,8 +73,8 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 14px 14px;
-    margin-top: 8px;
+    padding: 8px 10px;
+    margin-top: 5px;
     box-shadow: var(--shadow-lg);
     flex-shrink: 0;
 }
@@ -695,8 +695,8 @@ textarea {
 .stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: 5px;
+    margin-bottom: 6px;
     flex-shrink: 0;
 }
 
@@ -709,11 +709,11 @@ textarea {
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--ink-muted);
-    padding: 8px 8px;
+    padding: 5px 8px;
     border-radius: var(--radius-md);
     text-align: center;
     font-size: 12px;
-    line-height: 1.25;
+    line-height: 1.2;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
@@ -733,11 +733,11 @@ textarea {
     position: relative;
     background: linear-gradient(160deg, #eaf2ff, #ffffff 45%, #ffffff);
     border: 2px solid #cfe1fb;
-    border-radius: 22px;
-    padding: 14px 16px 16px;
+    border-radius: 20px;
+    padding: 8px 12px 10px;
     text-align: center;
     box-shadow: 0 8px 24px rgba(25,118,210,0.22);
-    margin: 0 0 8px;
+    margin: 0 0 6px;
 }
 
 .btnLogBalanca {
@@ -818,7 +818,7 @@ textarea {
 
 /* DISPLAY PESO */
 #displayPeso {
-    font-size: 60px;
+    font-size: 52px;
     height: auto;
     text-align: center;
     font-weight: 800;
@@ -837,9 +837,9 @@ textarea {
 /* aproxima a Observação do teclado, deixando mais espaço pra lista de
    pesos crescer acima */
 #obs {
-    margin: 8px 0 6px;
-    padding: 12px 14px;
-    font-size: 17px;
+    margin: 5px 0 4px;
+    padding: 7px 14px;
+    font-size: 15px;
 }
 
 /* TECLADO */
@@ -853,17 +853,17 @@ textarea {
 .teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 8px;
+    gap: 5px;
+    margin-top: 5px;
 }
 
 .teclado button {
     width: 100%;
-    height: 52px;
-    font-size: 22px;
+    height: 40px;
+    font-size: 18px;
     border: none;
     border-bottom: 3px solid rgba(25,118,210,0.15);
-    border-radius: 16px;
+    border-radius: 14px;
     background: linear-gradient(180deg, #ffffff, #e7edf7);
     color: #1976d2;
     font-weight: bold;
@@ -885,11 +885,11 @@ textarea {
 /* BOTÃO LANÇAR */
 .btnLancar {
     width: 100%;
-    padding: 15px;
-    margin-top: 8px;
-    font-size: 19px;
+    padding: 10px;
+    margin-top: 5px;
+    font-size: 17px;
     border: none;
-    border-radius: 16px;
+    border-radius: 14px;
     background: linear-gradient(135deg, #ffa94d, #e8850e);
     color: white;
     font-weight: bold;
@@ -913,14 +913,14 @@ textarea {
    alcance, sem precisar rolar até o fim */
 .sliderConfirmTopo {
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     flex-shrink: 0;
 }
 
 .sliderTrack {
     position: relative;
-    height: 58px;
-    border-radius: 29px;
+    height: 50px;
+    border-radius: 25px;
     background: linear-gradient(to right, #e53935, #c62828 16%, var(--surface-sunken) 42%, var(--surface-sunken) 58%, #2e9c4f 84%, #1b6e33);
     overflow: hidden;
     touch-action: pan-y;
@@ -946,9 +946,9 @@ textarea {
     position: absolute;
     left: 50%;
     top: 50%;
-    margin-top: -24px;
-    width: 48px;
-    height: 48px;
+    margin-top: -21px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: #ffffff;
     box-shadow: 0 3px 10px rgba(0,0,0,0.35);
@@ -1034,7 +1034,7 @@ textarea {
    se ajustando ao espaço que realmente sobra em cada aparelho. */
 .listaPesosAtual {
     flex: 1 1 0;
-    min-height: 90px;
+    min-height: 44px;
     max-height: 260px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
