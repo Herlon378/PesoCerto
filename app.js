@@ -1086,6 +1086,7 @@ async function atualizarDashboardLoteMobile(){
     set("dashLoteValorMedio", "R$ " + formatarMoeda(valorMedioPorAnimal));
     set("dashLoteCustoTotal", "R$ " + formatarMoeda(f.custoRestante));
     set("dashLoteCustoMedio", "R$ " + formatarMoeda(f.custoMedio));
+    set("dashLoteCustoPorKg", "R$ " + formatarMoeda(f.custoPorKg));
 
     secao.style.display = "block";
     let elNomeLote = document.getElementById("dashLoteNomeSelecionado");
@@ -1141,6 +1142,7 @@ function atualizarSimuladorVenda(){
     let lucro = valorVenda - custoVendidos;
     let restantes = animaisAtivos - qtdVendida;
     let custoRestante = custoMedioPorAnimal * restantes;
+    let custoMedioRestante = restantes > 0 ? custoRestante / restantes : 0;
 
     function set(id, texto){
         let el = document.getElementById(id);
@@ -1156,6 +1158,7 @@ function atualizarSimuladorVenda(){
     }
     set("simResultadoRestantes", String(restantes));
     set("simResultadoCustoRestante", "R$ " + formatarMoeda(custoRestante));
+    set("simResultadoCustoMedioRestante", "R$ " + formatarMoeda(custoMedioRestante));
 }
 
 function formatarValorKg(input) {

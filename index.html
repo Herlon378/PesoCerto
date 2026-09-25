@@ -534,12 +534,12 @@
 
     <div class="stats">
         <div class="statCard">Animais Ativos<br><span id="dashAtivos">0</span></div>
-        <div class="statCard">Comprados<br><span id="dashComprados">0</span></div>
         <div class="statCard">Vendidos<br><span id="dashVendidos">0</span></div>
         <div class="statCard">Kg Compra<br><span id="dashKgCompra">0</span></div>
         <div class="statCard">Kg Venda<br><span id="dashKgVenda">0</span></div>
-        <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
         <div class="statCard">R$ Venda<br><span id="dashValorVenda">0</span></div>
+        <div class="statCard">Comprados<br><span id="dashComprados">0</span></div>
+        <div class="statCard">R$ Compra<br><span id="dashValorCompra">0</span></div>
     </div>
 
     <div class="campoCartao">
@@ -560,41 +560,62 @@
                 <small id="dashLoteNomeSelecionado">Custo completo (compra + insumos + caixa + transferências)</small>
             </span>
         </div>
-        <div class="hojeGrade">
-            <div class="hojeStat hojeStatAzul">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg></span>
-                <span class="hojeStatLabel">Animais Ativos</span>
-                <span class="hojeStatValor" id="dashLoteAtivos">0</span>
+        <div class="loteMetricasLista">
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeAzul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Animais Ativos</span>
+                    <span class="loteMetricaValor" id="dashLoteAtivos">0</span>
+                </span>
             </div>
-            <div class="hojeStat hojeStatAzul">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
-                <span class="hojeStatLabel">Kg de Compra</span>
-                <span class="hojeStatValor" id="dashLoteKgCompra">0</span>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeAzul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Kg de Compra</span>
+                    <span class="loteMetricaValor" id="dashLoteKgCompra">0</span>
+                </span>
             </div>
-            <div class="hojeStat hojeStatAzul">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-                <span class="hojeStatLabel">Kg Médio/Animal</span>
-                <span class="hojeStatValor" id="dashLoteKgMedio">0</span>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeAzul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Kg Médio/Animal</span>
+                    <span class="loteMetricaValor" id="dashLoteKgMedio">0</span>
+                </span>
             </div>
-            <div class="hojeStat hojeStatVerde">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
-                <span class="hojeStatLabel">Valor Total Compra</span>
-                <span class="hojeStatValor" id="dashLoteValorCompra">0</span>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeVerde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Valor Total Compra</span>
+                    <span class="loteMetricaValor" id="dashLoteValorCompra">0</span>
+                </span>
             </div>
-            <div class="hojeStat hojeStatVerde">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58a2 2 0 0 1 0-2.83l7.17-7.17A2 2 0 0 1 11.17 2H18a2 2 0 0 1 2 2v6.59a2 2 0 0 1-.59 1.41z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span>
-                <span class="hojeStatLabel">Valor Médio/Animal</span>
-                <span class="hojeStatValor" id="dashLoteValorMedio">0</span>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeVerde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58a2 2 0 0 1 0-2.83l7.17-7.17A2 2 0 0 1 11.17 2H18a2 2 0 0 1 2 2v6.59a2 2 0 0 1-.59 1.41z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Valor Médio/Animal</span>
+                    <span class="loteMetricaValor" id="dashLoteValorMedio">0</span>
+                </span>
             </div>
-            <div class="hojeStat hojeStatLaranja">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
-                <span class="hojeStatLabel">Custo por Lote</span>
-                <span class="hojeStatValor" id="dashLoteCustoTotal">0</span>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeLaranja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Custo por Lote</span>
+                    <span class="loteMetricaValor" id="dashLoteCustoTotal">0</span>
+                </span>
             </div>
-            <div class="hojeStat hojeStatLaranja">
-                <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
-                <span class="hojeStatLabel">Custo Médio/Animal</span>
-                <span class="hojeStatValor" id="dashLoteCustoMedio">0</span>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeLaranja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Custo Médio/Animal</span>
+                    <span class="loteMetricaValor" id="dashLoteCustoMedio">0</span>
+                </span>
+            </div>
+            <div class="loteMetricaCard">
+                <span class="hojeStatIcone hojeStatIconeLaranja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
+                <span class="loteMetricaTextos">
+                    <span class="loteMetricaLabel">Custo por Kg</span>
+                    <span class="loteMetricaValor" id="dashLoteCustoPorKg">0</span>
+                </span>
             </div>
         </div>
     </div>
@@ -645,6 +666,10 @@
             <div class="simuladorResultadoLinha">
                 <span>Custo do Restante</span>
                 <span id="simResultadoCustoRestante">R$ 0,00</span>
+            </div>
+            <div class="simuladorResultadoLinha">
+                <span>Custo Médio do Restante</span>
+                <span id="simResultadoCustoMedioRestante">R$ 0,00</span>
             </div>
         </div>
     </div>

@@ -650,6 +650,56 @@ body {
    pede uma ação do operador em vez de só informar um total do dia */
 .hojeStatVermelho .hojeStatIcone { background: rgba(229,57,53,0.18); color: #e57373; }
 
+/* variantes diretas (sem precisar do wrapper .hojeStatAzul etc.) -- usadas
+   nos cartões de linha única do Resumo do Lote (.loteMetricaCard), onde o
+   ícone não está mais dentro de um .hojeStat colorido */
+.hojeStatIconeAzul { background: rgba(57,135,229,0.18); color: #6aaef2; }
+.hojeStatIconeVerde { background: rgba(46,156,79,0.18); color: #5fc484; }
+.hojeStatIconeLaranja { background: rgba(217,130,43,0.18); color: #e8a866; }
+
+/* RESUMO DO LOTE -- cartões em lista (um abaixo do outro) em vez de grade
+   2 colunas: números desse relatório passam facilmente de R$ 100 mil (até
+   R$ 1 milhão), e numa coluna de ~150px isso ficava espremido/quebrando
+   feio. Em linha cheia (~340px de largura útil) o valor sempre cabe numa
+   linha só. */
+.loteMetricasLista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.loteMetricaCard {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+}
+
+.loteMetricaCard .hojeStatIcone {
+    flex-shrink: 0;
+}
+
+.loteMetricaTextos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.loteMetricaLabel {
+    font-size: 13px;
+    color: var(--ink-muted);
+}
+
+.loteMetricaValor {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    overflow-wrap: break-word;
+}
+
 .hojeStatLabel {
     font-size: 14px;
     color: var(--ink-muted);
