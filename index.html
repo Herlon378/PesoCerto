@@ -522,7 +522,24 @@
 </div>
 
 <script>
-    if ("serviceWorker" in navigator) { navigator.serviceWorker.register("service-worker.js"); }
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js");
+        // sem isso, quando sobe uma versão nova o service worker antigo (que já
+        // está controlando a página aberta) só é trocado na PRÓXIMA vez que o
+        // app for fechado e reaberto de verdade -- até lá o app continua
+        // rodando o HTML/CSS/JS antigo em memória, misturado de forma
+        // imprevisível com o que já foi baixado de novo (tela "desconfigurada").
+        // Isso recarrega a página sozinha assim que a versão nova assume o
+        // controle, então o app sempre fica atualizado sem precisar fechar e
+        // abrir manualmente. Seguro mesmo no meio de uma pesagem porque o
+        // rascunho é salvo automaticamente e restaurado ao reabrir (db.js).
+        let recarregando = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (recarregando) return;
+            recarregando = true;
+            window.location.reload();
+        });
+    }
 </script>
 
 </body>
