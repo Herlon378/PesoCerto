@@ -76,6 +76,7 @@ body {
     padding: 22px 18px;
     margin-top: 12px;
     box-shadow: var(--shadow-lg);
+    flex-shrink: 0;
 }
 
 /* CRITÉRIOS DE PESAGEM -- atalho pra corrigir tipo/valor/lote sem sair da
@@ -89,6 +90,7 @@ body {
     grid-auto-columns: 1fr;
     gap: 10px;
     margin-top: 10px;
+    flex-shrink: 0;
 }
 
 .criterioBtn {
@@ -695,6 +697,7 @@ textarea {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-bottom: 12px;
+    flex-shrink: 0;
 }
 
 .statCard {
@@ -906,6 +909,7 @@ textarea {
 .sliderConfirmTopo {
     margin-top: 0;
     margin-bottom: 10px;
+    flex-shrink: 0;
 }
 
 .sliderTrack {
@@ -1024,6 +1028,17 @@ textarea {
        botões) fica sempre na MESMA posição, e a lista rola por dentro
        quando tem mais itens do que cabe. */
     height: 520px;
+    /* #telaPesagem é um flex container (column) e a soma dos filhos (stats +
+       essa lista + o painel de controle) passou a ser bem maior que a tela
+       depois das rodadas de "aumentar tudo" -- por padrão um item flex
+       ENCOLHE (flex-shrink:1) pra caber, e como esse elemento tem
+       overflow-y:auto, o tamanho mínimo automático dele vira 0 (regra do
+       próprio CSS flexbox), então ele era o único que sobrava pra absorver
+       todo o encolhimento -- colapsava pra praticamente invisível mesmo com
+       a altura fixa de 520px declarada acima. flex-shrink:0 trava essa
+       altura de verdade; quem sobra sem espaço agora é a TELA (.tela já
+       tem overflow-y:auto e rola normalmente). */
+    flex-shrink: 0;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     background: white;
