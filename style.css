@@ -983,6 +983,14 @@ textarea {
    (Menu/Nova Pesagem/Pesagem); essa tela nunca tinha recebido nenhum
    estilo próprio antes, era só a formatação padrão do navegador (texto
    preto, cartão branco cru) */
+/* #telaResultado é um flex column (herdado de .tela.ativa) -- cabeçalho,
+   busca e botões de ação ficam travados no tamanho deles (flex-shrink:0),
+   e só #relatorio (a lista de relatórios) é flexível e rola por dentro
+   (flex:1 + min-height:0 + overflow-y:auto). Sem isso a tela inteira
+   rolava junto -- pra imprimir um relatório lá embaixo numa lista
+   comprida, o operador tinha que rolar até ele, selecionar, e rolar de
+   volta pro topo só pra clicar em "Imprimir". Agora os botões ficam
+   sempre visíveis, só a lista desliza por baixo deles. */
 #telaResultado {
     background: var(--navy-900);
     color: var(--ink);
@@ -993,6 +1001,7 @@ textarea {
     align-items: center;
     gap: 12px;
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .botaoVoltarTela {
@@ -1033,6 +1042,7 @@ textarea {
     border-radius: var(--radius-lg);
     padding: 4px 14px;
     margin: 10px 0;
+    flex-shrink: 0;
 }
 
 .buscaRelatorio svg {
@@ -1059,6 +1069,7 @@ textarea {
     display: flex;
     gap: 8px;
     margin: 10px 0;
+    flex-shrink: 0;
 }
 
 .botaoAcaoRelatorio {
@@ -1090,6 +1101,22 @@ textarea {
 .botaoAcaoExcluir svg { color: #e57373; }
 .botaoAcaoWhats svg { color: #25D366; }
 .botaoAcaoImprimir svg { color: #90a4c9; }
+.botaoAcaoMenu svg { color: #6fa3d8; }
+
+/* #relatorio é o único filho flexível de #telaResultado -- cresce pra
+   ocupar o espaço que sobra depois do cabeçalho/busca/botões (que são
+   flex-shrink:0, tamanho fixo) e rola por dentro. min-height:0 é
+   essencial aqui: sem ele um item flex nunca encolhe abaixo do tamanho
+   do próprio conteúdo, e o overflow-y:auto nunca teria efeito de verdade
+   (o mesmo problema que o comentário antigo sobre #listaRelatorios
+   descrevia -- a diferença agora é que #relatorio É de fato um item flex
+   com altura real, então isso funciona). */
+#relatorio {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+}
 
 /* CARTÃO DE RELATÓRIO -- markup continua sendo gerado por
    mostrarRelatorios() (app.js), que já monta um .cardRelatorio > label >
@@ -1164,15 +1191,16 @@ textarea {
 }
 
 /* LISTA */
-/* #listaRelatorios não tem overflow-y/flex de propósito: seu pai (#relatorio)
-   não é flex container, então "flex:1" nunca fazia efeito e a lista sempre
-   cresce até caber todo o conteúdo (scrollHeight == clientHeight sempre).
-   Um "overflow-y:auto" nesse estado faz o navegador escolher ESSE elemento
-   como alvo do gesto de rolagem (wheel/touch) em vez de #telaResultado (que
-   é quem de fato tem overflow-y:auto com conteúdo maior que a tela) -- e
-   como #listaRelatorios não tem nada pra rolar, o gesto simplesmente não
-   faz nada, travando a rolagem da tela de Relatórios inteira no celular.
-   Removido pra deixar #telaResultado ser o único alvo de rolagem real. */
+/* Histórico: #listaRelatorios já teve overflow-y/flex direto nela, mas na
+   época #relatorio (seu pai) não era um flex container de verdade -- então
+   "flex:1" não tinha efeito nenhum, a lista sempre crescia pro tamanho do
+   próprio conteúdo, e o overflow-y:auto virava um alvo de rolagem "morto"
+   (nada pra rolar ali dentro), travando a rolagem da tela inteira. Foi
+   removido na época por isso. Agora (ver #relatorio acima) o pai É um item
+   flex de verdade com altura real, então quem tem flex/overflow-y agora é
+   #relatorio, não #listaRelatorios -- #listaRelatorios continua sem nada
+   de especial aqui, ela só cresce livre dentro do espaço que #relatorio
+   já garante e deixa rolar. */
 
 /* LISTA DE PESOS DA PESAGEM ATUAL */
 /* Histórico: era height:220px fixo -> virou flex:1 puro (empurrava tudo pro
