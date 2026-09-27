@@ -2886,10 +2886,28 @@ function confirmarExclusaoPeso(){
 // pega rede. Criar E atualizar (morte, apartação) usam o mesmo array —
 // "editar" aqui é só mudar o campo local e marcar sincronizado:false de
 // novo, o servidor faz upsert por id.
-// tela hub — nada pra carregar na hora (os dados já vêm do sync), só existe
-// pra manter o mesmo padrão "trocarTela(...); abrirTela...();" usado em
-// todo o resto do app.
-function abrirTelaVacasMatrizMobile(){}
+// tela hub — os dados já vêm do sync (nada pra buscar na hora), só monta
+// o cartão "Resumo do Rebanho" a partir do que já está em cache, toda vez
+// que a tela abre (mesmos dois avisos já usados na lista de nascimentos,
+// aqui só contados em vez de mostrados um por um).
+function abrirTelaVacasMatrizMobile(){
+    let vacas = obterVacasMatrizCacheMobile();
+    let nascimentos = obterNascimentosCacheMobile();
+
+    let vacasAtivas = vacas.filter(v => v.status === "ativa").length;
+    let bezerrosVivos = nascimentos.filter(n => n.status === "vivo").length;
+    let prontosApartar = nascimentos.filter(n => avisoApartacaoNascimento(n) !== null).length;
+    let vacinaPendente = nascimentos.filter(n => avisoVacinaBrucelose(n) !== null).length;
+
+    function set(id, valor){
+        let el = document.getElementById(id);
+        if(el) el.innerText = String(valor);
+    }
+    set("vacasResumoAtivas", vacasAtivas);
+    set("vacasResumoBezerros", bezerrosVivos);
+    set("vacasResumoApartar", prontosApartar);
+    set("vacasResumoVacina", vacinaPendente);
+}
 
 // "01", "1" e " 1 " são o mesmo brinco pro vaqueiro -- usado pra checagem
 // de duplicidade tanto aqui (aviso imediato) quanto no servidor (bloqueio
@@ -3136,6 +3154,12 @@ function confirmarMorteMobile(){
     sincronizarAgora();
 }
 
+// ícones modernos pros botões de editar/excluir das listas de Vacas
+// Matriz -- reaproveitados nos dois templates abaixo, no lugar dos
+// emojis ✏️/🗑 que estavam lá antes
+const ICONE_LAPIS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"></path></svg>';
+const ICONE_LIXEIRA_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+
 function abrirTelaVacasListaMobile(){
     mostrarVacasListaMobile();
 }
@@ -3159,8 +3183,8 @@ function mostrarVacasListaMobile(){
         let statusTxt = v.status === "ativa" ? "✅ Ativa" : v.status === "morta" ? "⚰️ Morta" : "➖ Descartada";
         let idade = formatarIdadeAnimal(v.dataNascimento);
         let botoes = podeEditarExcluir ? `
-                <button class="btnExcluirItem" onclick='abrirTelaEditarVacaMobile(${JSON.stringify(v.id)})'>✏️</button>
-                <button class="btnExcluirItem" onclick='excluirVacaMobile(${JSON.stringify(v.id)}, ${JSON.stringify(v.numero)})'>🗑</button>
+                <button class="btnExcluirItem" onclick='abrirTelaEditarVacaMobile(${JSON.stringify(v.id)})'>${ICONE_LAPIS_SVG}</button>
+                <button class="btnExcluirItem" onclick='excluirVacaMobile(${JSON.stringify(v.id)}, ${JSON.stringify(v.numero)})'>${ICONE_LIXEIRA_SVG}</button>
         ` : "";
         return `
             <div class="itemPesagem">
@@ -3274,8 +3298,8 @@ function mostrarNascimentosListaMobile(){
         let avisos = [avisoApartacaoNascimento(n), avisoVacinaBrucelose(n)].filter(Boolean);
         let avisosHtml = avisos.map(a => `<br><span style="color:${a.cor}">${a.texto}</span>`).join("");
         let botoes = podeEditarExcluir ? `
-                <button class="btnExcluirItem" onclick='abrirTelaEditarNascimentoMobile(${JSON.stringify(n.id)})'>✏️</button>
-                <button class="btnExcluirItem" onclick='excluirNascimentoMobile(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>🗑</button>
+                <button class="btnExcluirItem" onclick='abrirTelaEditarNascimentoMobile(${JSON.stringify(n.id)})'>${ICONE_LAPIS_SVG}</button>
+                <button class="btnExcluirItem" onclick='excluirNascimentoMobile(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>${ICONE_LIXEIRA_SVG}</button>
         ` : "";
         return `
             <div class="itemPesagem">

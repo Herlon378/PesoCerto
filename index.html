@@ -347,120 +347,329 @@
 </div>
 
 <div id="telaVacasMatrizMobile" class="tela">
-    <h2>🐄 Vacas Matriz</h2>
-    <button class="btnGrande" onclick="trocarTela('telaNovoNascimentoMobile'); abrirTelaNovoNascimentoMobile();">🐣 Registrar Nascimento</button>
-    <button class="btnGrande" style="background:#1976d2" onclick="trocarTela('telaApartacaoMobile'); abrirTelaApartacaoMobile();">✅ Registrar Apartação</button>
-    <button class="btnGrande" style="background:#c62828" onclick="trocarTela('telaMorteMobile'); abrirTelaMorteMobile();">⚰️ Registrar Morte</button>
-    <button class="btnGrande" style="background:#8e24aa" onclick="trocarTela('telaVacinaMobile'); abrirTelaVacinaMobile();">💉 Vacinar (Brucelose)</button>
-    <button class="btnGrande" style="background:#5e35b1" onclick="trocarTela('telaVacasListaMobile'); abrirTelaVacasListaMobile();">🐮 Ver Vacas</button>
-    <button class="btnGrande" style="background:#0288d1" onclick="trocarTela('telaNascimentosListaMobile'); abrirTelaNascimentosListaMobile();">📋 Ver Nascimentos</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaMenu')" aria-label="Voltar ao Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Vacas Matriz</h2>
+    </div>
+
+    <div id="vacasMatrizConteudo">
+        <div class="cardHoje">
+            <div class="cardHojeTopo">
+                <span class="cardMenuIcone" style="background:rgba(217,130,43,0.18); color:#e8a866;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+                </span>
+                <span class="cardHojeTextos">
+                    <strong>Resumo do Rebanho</strong>
+                    <small>Toque num alerta pra já resolver</small>
+                </span>
+            </div>
+            <div class="hojeGrade">
+                <div class="hojeStat hojeStatAzul">
+                    <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg></span>
+                    <span class="hojeStatLabel">Vacas Ativas</span>
+                    <span class="hojeStatValor" id="vacasResumoAtivas">0</span>
+                </div>
+                <div class="hojeStat hojeStatVerde">
+                    <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg></span>
+                    <span class="hojeStatLabel">Bezerros Vivos</span>
+                    <span class="hojeStatValor" id="vacasResumoBezerros">0</span>
+                </div>
+                <button class="hojeStat hojeStatLaranja hojeStatClicavel" onclick="trocarTela('telaApartacaoMobile'); abrirTelaApartacaoMobile();">
+                    <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span>
+                    <span class="hojeStatLabel">Prontos p/ Apartar</span>
+                    <span class="hojeStatValor" id="vacasResumoApartar">0</span>
+                </button>
+                <button class="hojeStat hojeStatRoxo hojeStatClicavel" onclick="trocarTela('telaVacinaMobile'); abrirTelaVacinaMobile();">
+                    <span class="hojeStatIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+                    <span class="hojeStatLabel">Vacina Pendente</span>
+                    <span class="hojeStatValor" id="vacasResumoVacina">0</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="vacasAcaoGrade">
+            <button class="vacasAcaoCard" onclick="trocarTela('telaNovoNascimentoMobile'); abrirTelaNovoNascimentoMobile();">
+                <span class="hojeStatIcone hojeStatIconeVerde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg></span>
+                <span class="vacasAcaoLabel">Registrar Nascimento</span>
+            </button>
+            <button class="vacasAcaoCard" onclick="trocarTela('telaApartacaoMobile'); abrirTelaApartacaoMobile();">
+                <span class="hojeStatIcone hojeStatIconeAzul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span>
+                <span class="vacasAcaoLabel">Registrar Apartação</span>
+            </button>
+            <button class="vacasAcaoCard" onclick="trocarTela('telaVacinaMobile'); abrirTelaVacinaMobile();">
+                <span class="hojeStatIcone hojeStatIconeRoxo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+                <span class="vacasAcaoLabel">Vacinar (Brucelose)</span>
+            </button>
+            <button class="vacasAcaoCard" onclick="trocarTela('telaMorteMobile'); abrirTelaMorteMobile();">
+                <span class="hojeStatIcone hojeStatIconeVermelho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg></span>
+                <span class="vacasAcaoLabel">Registrar Morte</span>
+            </button>
+            <button class="vacasAcaoCard" onclick="trocarTela('telaVacasListaMobile'); abrirTelaVacasListaMobile();">
+                <span class="hojeStatIcone hojeStatIconeLaranja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8c-1.5-1-2-3-1-4 1.3-.3 2.6.4 3.3 1.6"></path><path d="M19 8c1.5-1 2-3 1-4-1.3-.3-2.6.4-3.3 1.6"></path><path d="M6 9c0-2.5 2.5-4.5 6-4.5s6 2 6 4.5c0 3-1.5 6-2.5 7.5-.7 1-1 2-1 3H9.5c0-1-.3-2-1-3C7.5 15 6 12 6 9z"></path><circle cx="9.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle><circle cx="14.5" cy="9.5" r="0.6" fill="currentColor" stroke="none"></circle></svg></span>
+                <span class="vacasAcaoLabel">Ver Vacas</span>
+            </button>
+            <button class="vacasAcaoCard" onclick="trocarTela('telaNascimentosListaMobile'); abrirTelaNascimentosListaMobile();">
+                <span class="hojeStatIcone hojeStatIconeAzul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
+                <span class="vacasAcaoLabel">Ver Nascimentos</span>
+            </button>
+        </div>
+    </div>
 </div>
 
 <div id="telaNovoNascimentoMobile" class="tela">
-    <h2>🐣 Registrar Nascimento</h2>
-    <select id="nascMobVacaMaeInput">
-        <option value="">Selecione a vaca mãe</option>
-    </select>
-    <input id="nascMobNumeroBezerroInput" placeholder="Número (brinco) do bezerro">
-    <select id="nascMobSexoInput">
-        <option value="">Sexo (opcional)</option>
-        <option value="macho">Macho</option>
-        <option value="femea">Fêmea</option>
-    </select>
-    <input id="nascMobPesoInput" placeholder="Peso ao nascer (kg, opcional)" inputmode="decimal">
-    <input id="nascMobDataInput" type="date">
-    <select id="nascMobPastoInput">
-        <option value="">Sem pasto definido</option>
-    </select>
-    <p id="nascMobErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" onclick="confirmarNovoNascimentoMobile()">Confirmar Nascimento</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasMatrizMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Registrar Nascimento</h2>
+    </div>
+    <div id="nascMobConteudo">
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="nascMobVacaMaeInput">Vaca Mãe</label>
+            <select id="nascMobVacaMaeInput">
+                <option value="">Selecione a vaca mãe</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="nascMobNumeroBezerroInput">Número (brinco) do Bezerro</label>
+            <input id="nascMobNumeroBezerroInput" placeholder="Ex: 123">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="nascMobSexoInput">Sexo (opcional)</label>
+            <select id="nascMobSexoInput">
+                <option value="">Sexo (opcional)</option>
+                <option value="macho">Macho</option>
+                <option value="femea">Fêmea</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="nascMobPesoInput">Peso ao Nascer (kg, opcional)</label>
+            <input id="nascMobPesoInput" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="nascMobDataInput">Data de Nascimento</label>
+            <input id="nascMobDataInput" type="date">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="nascMobPastoInput">Pasto</label>
+            <select id="nascMobPastoInput">
+                <option value="">Sem pasto definido</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <p id="nascMobErro" class="loginErro" style="display:none"></p>
+        <button class="btnGrande" onclick="confirmarNovoNascimentoMobile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; flex-shrink:0;"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
+            Confirmar Nascimento
+        </button>
+    </div>
 </div>
 
 <div id="telaApartacaoMobile" class="tela">
-    <h2>✅ Registrar Apartação</h2>
-    <select id="apartacaoMobBezerroInput">
-        <option value="">Selecione o bezerro</option>
-    </select>
-    <input id="apartacaoMobPesoInput" placeholder="Peso na apartação (kg, opcional)" inputmode="decimal">
-    <p id="apartacaoMobErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" onclick="confirmarApartacaoMobile()">Confirmar Apartação</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasMatrizMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Registrar Apartação</h2>
+    </div>
+    <div id="apartacaoMobConteudo">
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="apartacaoMobBezerroInput">Bezerro</label>
+            <select id="apartacaoMobBezerroInput">
+                <option value="">Selecione o bezerro</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="apartacaoMobPesoInput">Peso na Apartação (kg, opcional)</label>
+            <input id="apartacaoMobPesoInput" placeholder="0" inputmode="decimal">
+        </div>
+        <p id="apartacaoMobErro" class="loginErro" style="display:none"></p>
+        <button class="btnGrande" onclick="confirmarApartacaoMobile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            Confirmar Apartação
+        </button>
+    </div>
 </div>
 
 <div id="telaMorteMobile" class="tela">
-    <h2>⚰️ Registrar Morte</h2>
-    <select id="morteMobTipoInput" onchange="atualizarSelectAnimalMorteMobile()">
-        <option value="vaca">Vaca Matriz</option>
-        <option value="bezerro">Bezerro</option>
-    </select>
-    <select id="morteMobAnimalInput">
-        <option value="">Selecione</option>
-    </select>
-    <input id="morteMobCausaInput" placeholder="Causa (opcional)">
-    <p id="morteMobErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" style="background:#c62828" onclick="confirmarMorteMobile()">Confirmar Morte</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
-</div>
-
-<div id="telaEditarNascimentoMobile" class="tela">
-    <h2>✏️ Editar Nascimento</h2>
-    <select id="editNascMobVacaMaeInput">
-        <option value="">Selecione a vaca mãe</option>
-    </select>
-    <input id="editNascMobNumeroBezerroInput" placeholder="Número (brinco) do bezerro">
-    <select id="editNascMobSexoInput">
-        <option value="">Sexo (opcional)</option>
-        <option value="macho">Macho</option>
-        <option value="femea">Fêmea</option>
-    </select>
-    <input id="editNascMobPesoInput" placeholder="Peso ao nascer (kg, opcional)" inputmode="decimal">
-    <input id="editNascMobDataInput" type="date">
-    <select id="editNascMobPastoInput">
-        <option value="">Sem pasto definido</option>
-    </select>
-    <p id="editNascMobErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" onclick="salvarEdicaoNascimentoMobile()">Salvar Alterações</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaNascimentosListaMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasMatrizMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Registrar Morte</h2>
+    </div>
+    <div id="morteMobConteudo">
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="morteMobTipoInput">Tipo de Animal</label>
+            <select id="morteMobTipoInput" onchange="atualizarSelectAnimalMorteMobile()">
+                <option value="vaca">Vaca Matriz</option>
+                <option value="bezerro">Bezerro</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="morteMobAnimalInput">Animal</label>
+            <select id="morteMobAnimalInput">
+                <option value="">Selecione</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="morteMobCausaInput">Causa (opcional)</label>
+            <input id="morteMobCausaInput" placeholder="Ex: doença, acidente">
+        </div>
+        <p id="morteMobErro" class="loginErro" style="display:none"></p>
+        <button class="btnGrande" style="background:linear-gradient(135deg, #e14b3d, #b71c1c)" onclick="confirmarMorteMobile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+            Confirmar Morte
+        </button>
+    </div>
 </div>
 
 <div id="telaVacinaMobile" class="tela">
-    <h2>💉 Vacinar Bezerra (Brucelose)</h2>
-    <select id="vacinaMobBezerraInput">
-        <option value="">Selecione a bezerra</option>
-    </select>
-    <p id="vacinaMobErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" style="background:#8e24aa" onclick="confirmarVacinaMobile()">Confirmar Vacinação</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasMatrizMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Vacinar (Brucelose)</h2>
+    </div>
+    <div id="vacinaMobConteudo">
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="vacinaMobBezerraInput">Bezerra</label>
+            <select id="vacinaMobBezerraInput">
+                <option value="">Selecione a bezerra</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <p id="vacinaMobErro" class="loginErro" style="display:none"></p>
+        <button class="btnGrande" style="background:linear-gradient(135deg, #a45de0, #6a1b9a)" onclick="confirmarVacinaMobile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+            Confirmar Vacinação
+        </button>
+    </div>
 </div>
 
 <div id="telaEditarVacaMobile" class="tela">
-    <h2>✏️ Editar Vaca</h2>
-    <input id="editVacaMobNumeroInput" placeholder="Número (brinco)">
-    <input id="editVacaMobApelidoInput" placeholder="Apelido (opcional)">
-    <input id="editVacaMobRacaInput" placeholder="Raça (opcional)">
-    <input id="editVacaMobDataNascimentoInput" type="date">
-    <select id="editVacaMobPastoInput">
-        <option value="">Sem pasto definido</option>
-    </select>
-    <p id="editVacaMobErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" onclick="salvarEdicaoVacaMobile()">Salvar Alterações</button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasListaMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasListaMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Editar Vaca</h2>
+    </div>
+    <div id="editVacaMobConteudo">
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editVacaMobNumeroInput">Número (brinco)</label>
+            <input id="editVacaMobNumeroInput" placeholder="Ex: 123">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editVacaMobApelidoInput">Apelido (opcional)</label>
+            <input id="editVacaMobApelidoInput" placeholder="Ex: Mimosa">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editVacaMobRacaInput">Raça (opcional)</label>
+            <input id="editVacaMobRacaInput" placeholder="Ex: Nelore">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editVacaMobDataNascimentoInput">Data de Nascimento</label>
+            <input id="editVacaMobDataNascimentoInput" type="date">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editVacaMobPastoInput">Pasto</label>
+            <select id="editVacaMobPastoInput">
+                <option value="">Sem pasto definido</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <p id="editVacaMobErro" class="loginErro" style="display:none"></p>
+        <button class="btnGrande" onclick="salvarEdicaoVacaMobile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            Salvar Alterações
+        </button>
+    </div>
+</div>
+
+<div id="telaEditarNascimentoMobile" class="tela">
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaNascimentosListaMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Editar Nascimento</h2>
+    </div>
+    <div id="editNascMobConteudo">
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editNascMobVacaMaeInput">Vaca Mãe</label>
+            <select id="editNascMobVacaMaeInput">
+                <option value="">Selecione a vaca mãe</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editNascMobNumeroBezerroInput">Número (brinco) do Bezerro</label>
+            <input id="editNascMobNumeroBezerroInput" placeholder="Ex: 123">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editNascMobSexoInput">Sexo (opcional)</label>
+            <select id="editNascMobSexoInput">
+                <option value="">Sexo (opcional)</option>
+                <option value="macho">Macho</option>
+                <option value="femea">Fêmea</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editNascMobPesoInput">Peso ao Nascer (kg, opcional)</label>
+            <input id="editNascMobPesoInput" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editNascMobDataInput">Data de Nascimento</label>
+            <input id="editNascMobDataInput" type="date">
+        </div>
+        <div class="campoCartao">
+            <label class="campoCartaoLabel" for="editNascMobPastoInput">Pasto</label>
+            <select id="editNascMobPastoInput">
+                <option value="">Sem pasto definido</option>
+            </select>
+            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <p id="editNascMobErro" class="loginErro" style="display:none"></p>
+        <button class="btnGrande" onclick="salvarEdicaoNascimentoMobile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            Salvar Alterações
+        </button>
+    </div>
 </div>
 
 <div id="telaVacasListaMobile" class="tela">
-    <h2>🐮 Vacas Matriz</h2>
-    <input id="buscaVacaMobile" placeholder="Buscar por número ou apelido" oninput="mostrarVacasListaMobile()">
-    <div id="listaVacasMobile" class="listaPesosAtual" style="height:auto; max-height:65vh"></div>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasMatrizMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Vacas Matriz</h2>
+    </div>
+    <div class="buscaRelatorio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input id="buscaVacaMobile" placeholder="Buscar por número ou apelido" oninput="mostrarVacasListaMobile()">
+    </div>
+    <div id="listaVacasMobile" class="listaPesosAtual listaVacasMatriz" style="height:auto; max-height:65vh"></div>
 </div>
 
 <div id="telaNascimentosListaMobile" class="tela">
-    <h2>📋 Nascimentos</h2>
-    <input id="buscaNascimentoMobile" placeholder="Buscar por número do bezerro ou mãe" oninput="mostrarNascimentosListaMobile()">
-    <div id="listaNascimentosMobile" class="listaPesosAtual" style="height:auto; max-height:65vh"></div>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaVacasMatrizMobile')">← Voltar</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaVacasMatrizMobile')" aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Nascimentos</h2>
+    </div>
+    <div class="buscaRelatorio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input id="buscaNascimentoMobile" placeholder="Buscar por número do bezerro ou mãe" oninput="mostrarNascimentosListaMobile()">
+    </div>
+    <div id="listaNascimentosMobile" class="listaPesosAtual listaVacasMatriz" style="height:auto; max-height:65vh"></div>
 </div>
 
 <div id="telaPesagem" class="tela">

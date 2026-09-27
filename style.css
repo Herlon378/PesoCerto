@@ -289,14 +289,105 @@ body {
 }
 
 /* texto informativo (preview de estoque/custo) -- classe nova de
-   propósito: .loginSubtitulo já é usada em telas CLARAS (Vacas Matriz,
-   leitor de código de barras) e sua cor cinza-escura ficaria invisível
-   no fundo escuro daqui */
+   propósito: .loginSubtitulo já é usada em telas CLARAS (leitor de
+   código de barras) e sua cor cinza-escura ficaria invisível no fundo
+   escuro daqui */
 .textoAvisoTela {
     color: var(--ink-muted);
     font-size: 14px;
     padding: 6px 4px;
     line-height: 1.4;
+}
+
+/* VACAS MATRIZ (celular) -- 9 telas, mesmo padrão escuro + cabeçalho
+   travado + conteúdo rolável já usado no resto do app. Uma regra por
+   tela (mais rápido de ler que uma lista de seletores) e um único
+   #xConteudo por tela que realmente precisa rolar; as telas de lista
+   (Vacas/Nascimentos) não têm #Conteudo -- a própria .listaPesosAtual
+   já rola por dentro (max-height:65vh), não precisa de outra camada. */
+#telaVacasMatrizMobile,
+#telaNovoNascimentoMobile,
+#telaApartacaoMobile,
+#telaMorteMobile,
+#telaVacinaMobile,
+#telaEditarVacaMobile,
+#telaEditarNascimentoMobile,
+#telaVacasListaMobile,
+#telaNascimentosListaMobile {
+    background: var(--navy-900);
+    color: var(--ink);
+}
+
+#vacasMatrizConteudo,
+#nascMobConteudo,
+#apartacaoMobConteudo,
+#morteMobConteudo,
+#vacinaMobConteudo,
+#editVacaMobConteudo,
+#editNascMobConteudo {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+}
+
+/* calendário nativo (type=date) é escuro por padrão no navegador -- some
+   sozinho num cartão escuro sem isso (ícone preto em fundo quase preto) */
+.campoCartao input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+    cursor: pointer;
+}
+
+/* grade de atalhos do hub -- cartões compactos (ícone + rótulo, sem
+   descrição longa), diferente do .cardMenu do Menu principal porque
+   aqui são 6 atalhos de um submenu, não 4 destaques da tela inicial */
+.vacasAcaoGrade {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.vacasAcaoCard {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 16px;
+    box-shadow: var(--shadow-md);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease;
+}
+
+.vacasAcaoCard:active {
+    transform: scale(0.97);
+}
+
+.vacasAcaoLabel {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.25;
+}
+
+/* dois cartões do Resumo do Rebanho (Prontos p/ Apartar, Vacina
+   Pendente) são de verdade clicáveis -- viram <button>, então precisam
+   perder o reset padrão do navegador pra continuar idênticos aos
+   .hojeStat normais (div), só ganhando feedback de toque */
+.hojeStatClicavel {
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease;
+}
+
+.hojeStatClicavel:active {
+    transform: scale(0.96);
 }
 
 /* CABEÇALHO */
@@ -694,6 +785,8 @@ body {
 .hojeStatIconeAzul { background: rgba(57,135,229,0.18); color: #6aaef2; }
 .hojeStatIconeVerde { background: rgba(46,156,79,0.18); color: #5fc484; }
 .hojeStatIconeLaranja { background: rgba(217,130,43,0.18); color: #e8a866; }
+.hojeStatIconeRoxo { background: rgba(124,92,224,0.18); color: #a794f0; }
+.hojeStatIconeVermelho { background: rgba(229,57,53,0.18); color: #e57373; }
 
 /* RESUMO DO LOTE -- cartões em lista (um abaixo do outro) em vez de grade
    2 colunas: números desse relatório passam facilmente de R$ 100 mil (até
@@ -1483,6 +1576,40 @@ textarea {
     font-size: 20px;
     padding: 4px 8px;
     cursor: pointer;
+}
+
+/* listas de Vacas/Nascimentos -- .listaPesosAtual/.itemPesagem
+   continuam brancos por padrão (compartilhados com a tela de Pesagem,
+   que precisa ficar clara pra legibilidade no sol) -- aqui um override
+   escopado só a essas duas listas, sem tocar na classe compartilhada.
+   Precisa vir DEPOIS das regras de .listaPesosAtual/.itemPesagem acima
+   (mesma especificidade -- a última no arquivo que vale, não a "mais
+   específica"; já caiu nessa armadilha antes nesta sessão). */
+.listaVacasMatriz {
+    background: var(--surface);
+}
+
+.listaVacasMatriz .itemPesagem {
+    color: var(--ink);
+    border-bottom-color: var(--border);
+}
+
+.listaVacasMatriz .itemPesagem:nth-child(even) {
+    background: rgba(255,255,255,0.04);
+}
+
+.listaVacasMatriz .listaPesosAtualVazia {
+    color: var(--ink-muted);
+}
+
+.listaVacasMatriz .btnExcluirItem {
+    color: var(--ink-muted);
+}
+
+.listaVacasMatriz .btnExcluirItem svg {
+    width: 18px;
+    height: 18px;
+    display: block;
 }
 
 /* TAG VENDA/COMPRA */
