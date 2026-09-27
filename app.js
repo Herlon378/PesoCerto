@@ -1102,6 +1102,7 @@ async function atualizarDashboardLoteMobile(){
         simulador.style.display = "block";
         simulador.dataset.animaisAtivos = String(f.headcount);
         simulador.dataset.custoMedio = String(f.custoMedio);
+        simulador.dataset.custoTotal = String(f.custoRestante);
         let campoPeso = document.getElementById("simPesoMedio");
         let campoQtd = document.getElementById("simQuantidade");
         // troca de lote sempre reinicia o simulador pros valores desse lote
@@ -1132,6 +1133,7 @@ function atualizarSimuladorVenda(){
     let modo = simulador.dataset.modo || "kg";
     let animaisAtivos = parseFloat(simulador.dataset.animaisAtivos || "0") || 0;
     let custoMedioPorAnimal = parseFloat(simulador.dataset.custoMedio || "0") || 0;
+    let custoTotalLote = parseFloat(simulador.dataset.custoTotal || "0") || 0;
 
     let campoPreco = document.getElementById("simPreco");
     let campoPeso = document.getElementById("simPesoMedio");
@@ -1147,8 +1149,15 @@ function atualizarSimuladorVenda(){
     let custoVendidos = custoMedioPorAnimal * qtdVendida;
     let lucro = valorVenda - custoVendidos;
     let restantes = animaisAtivos - qtdVendida;
-    let custoRestante = custoMedioPorAnimal * restantes;
+    // custo do restante = o que ainda não voltou em caixa: investimento total
+    // do lote menos o que essa venda simulada recupera -- não é uma simples
+    // média por cabeça, é o que realmente falta recuperar, repartido pelos
+    // animais que sobraram (pedido do Herlon: refletir o caixa real, não a
+    // média teórica por animal)
+    let custoRestante = custoTotalLote - valorVenda;
     let custoMedioRestante = restantes > 0 ? custoRestante / restantes : 0;
+    let kgRestante = pesoMedio * restantes;
+    let custoPorKgRestante = kgRestante > 0 ? custoRestante / kgRestante : 0;
 
     function set(id, texto){
         let el = document.getElementById(id);
@@ -1165,6 +1174,7 @@ function atualizarSimuladorVenda(){
     set("simResultadoRestantes", String(restantes));
     set("simResultadoCustoRestante", "R$ " + formatarMoeda(custoRestante));
     set("simResultadoCustoMedioRestante", "R$ " + formatarMoeda(custoMedioRestante));
+    set("simResultadoCustoPorKgRestante", "R$ " + formatarMoeda(custoPorKgRestante));
 }
 
 function formatarValorKg(input) {
