@@ -933,10 +933,13 @@ function mostrarDashboard(){
 let estoqueSaidasCacheMobile = [];
 let caixaLancamentosCacheMobile = [];
 let transferenciasLotesCacheMobile = [];
-let dadosCustoLoteMobileCarregados = false;
-
+// sempre busca de novo (nada de cache "só na primeira vez") -- um insumo,
+// lançamento de caixa ou transferência registrado depois da primeira
+// abertura do Dashboard só ia aparecer no Custo por Lote do celular depois
+// de recarregar a página inteira, enquanto o desktop sempre mostrava os
+// dados frescos (mesmo lote, números diferentes entre os dois na mesma
+// sessão até o celular ser recarregado).
 async function carregarDadosCustoLoteMobile(){
-    if(dadosCustoLoteMobileCarregados) return;
     if(obterPapelLogado() !== "admin") return;
     let token = obterToken();
     if(!token) return;
@@ -950,7 +953,6 @@ async function carregarDadosCustoLoteMobile(){
         if(respSaidas.ok) estoqueSaidasCacheMobile = await respSaidas.json();
         if(respCaixa.ok) caixaLancamentosCacheMobile = await respCaixa.json();
         if(respTransf.ok) transferenciasLotesCacheMobile = await respTransf.json();
-        dadosCustoLoteMobileCarregados = true;
     } catch(e){
         // seção só informativa -- se a rede falhar, o resto do Dashboard continua normal
     }
@@ -960,32 +962,37 @@ async function carregarDadosCustoLoteMobile(){
 // porque aquela função lê variáveis (transferenciasLotesCacheAdmin) que só
 // existem carregadas no desktop. Um lote fechado (headcount chega a 0) e
 // reaberto com o mesmo nome só conta o ciclo atual, não a história inteira.
+// chaveOrdenacao inclui hora (quando disponível) pra desempatar corretamente
+// dois eventos no mesmo dia -- antes usava só extrairDataISO (dia), então um
+// lote fechado (vendido até 0) e reaberto no MESMO DIA misturava a venda de
+// fechamento do ciclo antigo dentro do ciclo novo (as datas "empatavam").
+function chaveOrdenacaoLoteMobile(dataStr){
+    let m = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
+    return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}` : extrairDataISO(dataStr);
+}
+
 function calcularInicioCicloLoteMobile(nomeLote){
-    function chaveOrdenacao(dataStr){
-        let m = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
-        return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}` : extrairDataISO(dataStr);
-    }
     let eventos = [];
     relatorios.forEach(r => {
         if((r.descricao || "Sem descrição") !== nomeLote) return;
-        let iso = extrairDataISO(r.data);
-        if(!iso) return;
+        let ordem = chaveOrdenacaoLoteMobile(r.data);
+        if(!ordem) return;
         let qtd = calcularDadosCompletos(r).totalAnimais;
-        eventos.push({ ordem: chaveOrdenacao(r.data), iso, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
+        eventos.push({ ordem, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
     });
     transferenciasLotesCacheMobile.forEach(t => {
-        let iso = extrairDataISO(t.data);
-        if(!iso) return;
-        if(t.loteDestino === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: t.quantidade });
-        if(t.loteOrigem === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: -t.quantidade });
+        let ordem = chaveOrdenacaoLoteMobile(t.data);
+        if(!ordem) return;
+        if(t.loteDestino === nomeLote) eventos.push({ ordem, delta: t.quantidade });
+        if(t.loteOrigem === nomeLote) eventos.push({ ordem, delta: -t.quantidade });
     });
     if(eventos.length === 0) return null;
     eventos.sort((a, b) => a.ordem.localeCompare(b.ordem));
     let headcount = 0;
-    let inicioCiclo = eventos[0].iso;
+    let inicioCiclo = eventos[0].ordem;
     let aguardandoNovoCiclo = false;
     eventos.forEach(ev => {
-        if(aguardandoNovoCiclo){ inicioCiclo = ev.iso; aguardandoNovoCiclo = false; }
+        if(aguardandoNovoCiclo){ inicioCiclo = ev.ordem; aguardandoNovoCiclo = false; }
         headcount += ev.delta;
         if(headcount <= 0) aguardandoNovoCiclo = true;
     });
@@ -999,8 +1006,8 @@ function montarResumoLoteMobile(nomeLote){
     let inicioCiclo = calcularInicioCicloLoteMobile(nomeLote);
     function noCicloAtual(dataStr){
         if(!inicioCiclo) return true;
-        let iso = extrairDataISO(dataStr);
-        return iso !== null && iso >= inicioCiclo;
+        let ordem = chaveOrdenacaoLoteMobile(dataStr);
+        return ordem !== null && ordem >= inicioCiclo;
     }
 
     let g = { comprados: 0, vendidos: 0, kgComprado: 0, kgVendido: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0 };
@@ -1031,8 +1038,14 @@ function montarResumoLoteMobile(nomeLote){
         else g.receitaVenda += l.valor;
     });
 
+    // transferência tira headcount E o custo que foi junto com os animais do
+    // lote origem (sem isso o valor ficava contado nos dois lotes ao mesmo
+    // tempo) e leva os dois pro destino.
     transferenciasLotesCacheMobile.forEach(t => {
-        if(t.loteOrigem === nomeLote && noCicloAtual(t.data)) g.vendidos += t.quantidade;
+        if(t.loteOrigem === nomeLote && noCicloAtual(t.data)){
+            g.vendidos += t.quantidade;
+            g.custoCompra -= t.valorTotal;
+        }
         if(t.loteDestino === nomeLote && noCicloAtual(t.data)){
             g.comprados += t.quantidade;
             g.custoCompra += t.valorTotal;
@@ -1085,14 +1098,28 @@ async function atualizarDashboardLoteMobile(){
         let el = document.getElementById(id);
         if(el) el.innerText = texto;
     }
+    // mesmo tratamento do desktop (formatarValorPossivelmenteNegativo, admin.js):
+    // custo restante negativo é lucro já realizado (verde), custo restante
+    // positivo com o lote já ENCERRADO (headcount 0) é prejuízo realizado
+    // (vermelho) -- sem isso o celular mostrava "R$ -1.200,00" cru (fácil de
+    // ler como "ainda devendo") ou "R$ 0,00" escondendo um prejuízo real.
+    function setValorLote(id, valor, mostrar){
+        let el = document.getElementById(id);
+        if(!el) return;
+        if(!mostrar){ el.innerText = "—"; el.style.color = "inherit"; return; }
+        if(valor < 0){ el.innerText = "▲ R$ " + formatarMoeda(Math.abs(valor)) + " (lucro)"; el.style.color = "#0ca30c"; return; }
+        if(valor > 0 && f.headcount === 0){ el.innerText = "▼ R$ " + formatarMoeda(valor) + " (prejuízo)"; el.style.color = "#d03b3b"; return; }
+        el.innerText = "R$ " + formatarMoeda(valor);
+        el.style.color = "inherit";
+    }
     set("dashLoteAtivos", String(f.headcount));
     set("dashLoteKgCompra", formatarPeso(g.kgComprado) + " kg");
     set("dashLoteKgMedio", formatarPeso(kgMedioPorAnimal) + " kg");
     set("dashLoteValorCompra", "R$ " + formatarMoeda(g.custoCompra));
     set("dashLoteValorMedio", "R$ " + formatarMoeda(valorMedioPorAnimal));
-    set("dashLoteCustoTotal", "R$ " + formatarMoeda(f.custoRestante));
-    set("dashLoteCustoMedio", "R$ " + formatarMoeda(f.custoMedio));
-    set("dashLoteCustoPorKg", "R$ " + formatarMoeda(f.custoPorKg));
+    setValorLote("dashLoteCustoTotal", f.custoRestante, true);
+    setValorLote("dashLoteCustoMedio", f.custoMedio, f.headcount > 0);
+    setValorLote("dashLoteCustoPorKg", f.custoPorKg, f.kgAtual > 0);
 
     secao.style.display = "block";
     let elNomeLote = document.getElementById("dashLoteNomeSelecionado");
@@ -2262,9 +2289,19 @@ async function confirmarSaidaEstoqueMobile(){
     });
     localStorage.setItem("estoqueSaidas", JSON.stringify(lista));
 
+    // desconta do cache local na hora -- sem isso, uma segunda saída do
+    // mesmo produto na mesma sessão (antes da sincronização confirmar a
+    // primeira) via preview/estoque disponível desatualizado, deixando o
+    // operador lançar mais saída do que realmente existe no almoxarifado.
+    let produtos = JSON.parse(localStorage.getItem("produtosCache") || "[]");
+    let produtoAtualizado = produtos.find(p => p.id === produtoId);
+    if(produtoAtualizado) produtoAtualizado.saldoAtual = Math.max(0, (produtoAtualizado.saldoAtual || 0) - quantidade);
+    localStorage.setItem("produtosCache", JSON.stringify(produtos));
+
     alert("Saída registrada! Assim que sincronizar, o estoque é atualizado.");
     document.getElementById("saidaMobQuantidadeInput").value = "";
     if(erroEl){ erroEl.style.display = "none"; erroEl.innerText = ""; }
+    carregarProdutosSelectMobile();
     sincronizarAgora();
 }
 

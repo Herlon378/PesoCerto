@@ -491,6 +491,21 @@ async function carregarTransferenciasLotesAdmin() {
     }
 }
 
+// chave de idempotência por modal financeiro aberto -- clicar "Salvar" de
+// novo no MESMO modal (duplo toque, ou reenvio depois de um timeout numa
+// conexão ruim) manda a mesma chave, então o servidor devolve o que já
+// existe em vez de criar um segundo lançamento/conta/transferência pro
+// mesmo envio. Só abrir o modal de novo (um registro novo) gera uma chave
+// nova -- ver os 4 endpoints correspondentes em peso-api/server.js.
+function novaChaveIdempotencia(modalId) {
+    let modal = document.getElementById(modalId);
+    if (modal) modal.dataset.idempKey = crypto.randomUUID();
+}
+function obterChaveIdempotencia(modalId) {
+    let modal = document.getElementById(modalId);
+    return (modal && modal.dataset.idempKey) || crypto.randomUUID();
+}
+
 async function abrirModalTransferenciaLote() {
     let token = obterToken();
     if (!token) return;
@@ -506,6 +521,7 @@ async function abrirModalTransferenciaLote() {
     let erroEl = document.getElementById("transfErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
     await atualizarPreviewTransferencia();
+    novaChaveIdempotencia("modalTransferenciaLote");
     document.getElementById("modalTransferenciaLote").style.display = "flex";
 }
 
@@ -556,7 +572,7 @@ async function confirmarTransferenciaLote() {
         let resp = await fetch(`${API_URL}/api/transferencias-lotes`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ loteOrigem, loteDestino, quantidade, custoUnitario: custoMedio, data: formatarDataBR(dataISOSimples) })
+            body: JSON.stringify({ id: obterChaveIdempotencia("modalTransferenciaLote"), loteOrigem, loteDestino, quantidade, custoUnitario: custoMedio, data: formatarDataBR(dataISOSimples) })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao transferir (HTTP ${resp.status}).`); return; }
@@ -1147,37 +1163,53 @@ async function excluirEstoqueSaida(id) {
 // resultado do ciclo antigo, distorcendo a decisão sobre o lote em andamento.
 // Retorna null quando não dá pra detectar ciclo (sem data válida em nenhum
 // evento) -- nesse caso o chamador deve considerar o histórico inteiro.
-function calcularInicioCicloLote(nomeLote) {
-    // horário completo (quando disponível) só pra desempatar corretamente
-    // dois eventos no mesmo dia -- extrairDataISO() só dá o dia.
-    function chaveOrdenacao(dataStr) {
-        let m = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
-        return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}` : extrairDataISO(dataStr);
-    }
+// horário completo (quando disponível) só pra desempatar corretamente dois
+// eventos no mesmo dia -- extrairDataISO() só dá o dia. Compartilhada com os
+// filtros de ciclo abaixo (dentroDoCicloAtual/noCicloAtual): antes cada um
+// comparava só o dia, então um lote fechado (vendido até 0) e reaberto no
+// MESMO DIA com uma compra nova misturava a venda de fechamento do ciclo
+// antigo dentro do ciclo novo (as duas datas "empatavam" no dia).
+function chaveOrdenacaoLote(dataStr) {
+    let m = String(dataStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
+    return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}` : extrairDataISO(dataStr);
+}
 
+// dataISOLimite (opcional): reconstrói qual era o ciclo atual "como se fosse
+// hoje aquela data" -- necessário pra Evolução do Patrimônio, que recalcula
+// um lote como ele estava no fim de um mês passado; sem isso, um lote que só
+// viria a fechar/reabrir DEPOIS daquele mês faria o snapshot do mês passado
+// usar o ciclo errado (o de hoje) e mostrar o lote zerado indevidamente.
+function calcularInicioCicloLote(nomeLote, dataISOLimite) {
     let eventos = [];
+    function dentroDoLimite(dataStr) {
+        if (!dataISOLimite) return true;
+        let iso = extrairDataISO(dataStr);
+        return iso !== null && iso <= dataISOLimite;
+    }
     relatorios.forEach(r => {
         if ((r.descricao || "Sem descrição") !== nomeLote) return;
-        let iso = extrairDataISO(r.data);
-        if (!iso) return;
+        if (!dentroDoLimite(r.data)) return;
+        let ordem = chaveOrdenacaoLote(r.data);
+        if (!ordem) return;
         let qtd = calcularDadosCompletos(r).totalAnimais;
-        eventos.push({ ordem: chaveOrdenacao(r.data), iso, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
+        eventos.push({ ordem, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
     });
     transferenciasLotesCacheAdmin.forEach(t => {
-        let iso = extrairDataISO(t.data);
-        if (!iso) return;
-        if (t.loteDestino === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: t.quantidade });
-        if (t.loteOrigem === nomeLote) eventos.push({ ordem: chaveOrdenacao(t.data), iso, delta: -t.quantidade });
+        if (!dentroDoLimite(t.data)) return;
+        let ordem = chaveOrdenacaoLote(t.data);
+        if (!ordem) return;
+        if (t.loteDestino === nomeLote) eventos.push({ ordem, delta: t.quantidade });
+        if (t.loteOrigem === nomeLote) eventos.push({ ordem, delta: -t.quantidade });
     });
 
     if (eventos.length === 0) return null;
     eventos.sort((a, b) => a.ordem.localeCompare(b.ordem));
 
     let headcount = 0;
-    let inicioCiclo = eventos[0].iso;
+    let inicioCiclo = eventos[0].ordem;
     let aguardandoNovoCiclo = false;
     eventos.forEach(ev => {
-        if (aguardandoNovoCiclo) { inicioCiclo = ev.iso; aguardandoNovoCiclo = false; }
+        if (aguardandoNovoCiclo) { inicioCiclo = ev.ordem; aguardandoNovoCiclo = false; }
         headcount += ev.delta;
         if (headcount <= 0) aguardandoNovoCiclo = true;
     });
@@ -1208,8 +1240,8 @@ async function mostrarCustoPorLote() {
         if (!(nomeLote in cicloInicioPorLote)) cicloInicioPorLote[nomeLote] = calcularInicioCicloLote(nomeLote);
         let inicio = cicloInicioPorLote[nomeLote];
         if (!inicio) return true;
-        let iso = extrairDataISO(dataStr);
-        return iso !== null && iso >= inicio;
+        let ordem = chaveOrdenacaoLote(dataStr);
+        return ordem !== null && ordem >= inicio;
     }
 
     relatorios.forEach(r => {
@@ -1246,12 +1278,16 @@ async function mostrarCustoPorLote() {
     });
 
     // transferência entre lotes: sai do lote origem como se fosse vendido
-    // (headcount desconta, custo não muda — igual uma venda faria com o
-    // custo médio dos que ficaram), e entra no destino como custo de
-    // aquisição, no valor exato que saiu — não cria nem apaga patrimônio,
-    // só reorganiza entre os dois lotes.
+    // (headcount desconta E o custo que foi junto com os animais também sai
+    // — sem isso o valor ficava contado nos dois lotes ao mesmo tempo), e
+    // entra no destino como custo de aquisição, no valor exato que saiu —
+    // não cria nem apaga patrimônio, só reorganiza entre os dois lotes.
     transferenciasLotesCacheAdmin.forEach(t => {
-        if (dentroDoCicloAtual(t.loteOrigem, t.data)) grupoDoLote(t.loteOrigem).vendidos += t.quantidade;
+        if (dentroDoCicloAtual(t.loteOrigem, t.data)) {
+            let origem = grupoDoLote(t.loteOrigem);
+            origem.vendidos += t.quantidade;
+            origem.custoCompra -= t.valorTotal;
+        }
         if (dentroDoCicloAtual(t.loteDestino, t.data)) {
             let destino = grupoDoLote(t.loteDestino);
             destino.comprados += t.quantidade;
@@ -1324,8 +1360,8 @@ function gerarRelatorioLotePDF(nomeLote) {
     let inicioCiclo = calcularInicioCicloLote(nomeLote);
     function noCicloAtual(dataStr) {
         if (!inicioCiclo) return true;
-        let iso = extrairDataISO(dataStr);
-        return iso !== null && iso >= inicioCiclo;
+        let ordem = chaveOrdenacaoLote(dataStr);
+        return ordem !== null && ordem >= inicioCiclo;
     }
 
     let comprasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "compra" && noCicloAtual(r.data));
@@ -1380,6 +1416,7 @@ function gerarRelatorioLotePDF(nomeLote) {
     });
     transferenciasLotesCacheAdmin.filter(t => t.loteOrigem === nomeLote && noCicloAtual(t.data)).forEach(t => {
         vendidos += t.quantidade;
+        custoCompra -= t.valorTotal;
     });
 
     let headcount = comprados - vendidos;
@@ -1627,6 +1664,25 @@ function agregarCustoLotesFinanceiro(dataISOLimite) {
         return iso !== null && iso <= dataISOLimite;
     }
 
+    // mesmo corte de ciclo do Custo por Lote (calcularInicioCicloLote) --
+    // sem isso, um lote fechado (vendido até 0) e reaberto com o mesmo nome
+    // arrastava pra sempre o resultado do ciclo antigo pro Resultado
+    // Mensal/Patrimônio, mesmo já respeitando dataISOLimite. O corte em si
+    // também é calculado "como era" até dataISOLimite (não com o ciclo de
+    // HOJE), senão um lote que só fecha/reabre depois do mês sendo
+    // reconstruído pela Evolução do Patrimônio zerava indevidamente.
+    let cicloInicioPorLote = {};
+    function dentroDoCicloAtual(nomeLote, dataStr) {
+        if (!(nomeLote in cicloInicioPorLote)) cicloInicioPorLote[nomeLote] = calcularInicioCicloLote(nomeLote, dataISOLimite);
+        let inicio = cicloInicioPorLote[nomeLote];
+        if (!inicio) return true;
+        let ordem = chaveOrdenacaoLote(dataStr);
+        return ordem !== null && ordem >= inicio;
+    }
+    function dentro(nomeLote, dataStr) {
+        return dentroDoPeriodo(dataStr) && dentroDoCicloAtual(nomeLote, dataStr);
+    }
+
     let porLote = {};
     function grupoDoLote(nome) {
         if (!porLote[nome]) porLote[nome] = { comprados: 0, vendidos: 0, custoCompra: 0, custoInsumos: 0 };
@@ -1634,8 +1690,8 @@ function agregarCustoLotesFinanceiro(dataISOLimite) {
     }
 
     relatorios.forEach(r => {
-        if (!dentroDoPeriodo(r.data)) return;
         let nomeLote = r.descricao || "Sem descrição";
+        if (!dentro(nomeLote, r.data)) return;
         let grupo = grupoDoLote(nomeLote);
         let d = calcularDadosCompletos(r);
         if ((r.tipo || "venda") === "compra") {
@@ -1647,12 +1703,12 @@ function agregarCustoLotesFinanceiro(dataISOLimite) {
     });
 
     estoqueSaidasCacheAdmin.forEach(s => {
-        if (!dentroDoPeriodo(s.data)) return;
+        if (!dentro(s.loteNome, s.data)) return;
         grupoDoLote(s.loteNome).custoInsumos += s.valorTotal;
     });
 
     caixaLancamentosCacheAdmin.forEach(l => {
-        if (!l.loteNome || !dentroDoPeriodo(l.data)) return;
+        if (!l.loteNome || !dentro(l.loteNome, l.data)) return;
         let grupo = grupoDoLote(l.loteNome);
         // mesmo tratamento do Custo por Lote: despesa avulsa do lote soma no
         // custo, receita avulsa do lote (ex: venda de esterco) abate — sem
@@ -1662,15 +1718,25 @@ function agregarCustoLotesFinanceiro(dataISOLimite) {
         else grupo.custoInsumos -= l.valor;
     });
 
-    // mesmo tratamento do Custo por Lote: transferência tira headcount do
-    // lote origem (sem mexer no custo médio de quem ficou) e leva o valor
-    // junto pro destino — soma total sempre igual, não é compra nem venda.
+    // transferência entre lotes: tira do lote origem tanto os animais quanto
+    // o custo que foi junto com eles, e leva os dois pro destino — soma
+    // total sempre igual, não é compra nem venda. Diferente do Custo por
+    // Lote (que divide por headcount = comprados-vendidos, então tanto faz
+    // subtrair de comprados ou somar em vendidos), aqui custoMedioAnimal
+    // divide direto por "comprados" — por isso a saída tem que reduzir
+    // "comprados" mesmo (nunca foi uma venda), senão a média por animal dos
+    // que ficaram sai diluída errado.
     transferenciasLotesCacheAdmin.forEach(t => {
-        if (!dentroDoPeriodo(t.data)) return;
-        grupoDoLote(t.loteOrigem).vendidos += t.quantidade;
-        let destino = grupoDoLote(t.loteDestino);
-        destino.comprados += t.quantidade;
-        destino.custoCompra += t.valorTotal;
+        if (dentro(t.loteOrigem, t.data)) {
+            let origem = grupoDoLote(t.loteOrigem);
+            origem.comprados -= t.quantidade;
+            origem.custoCompra -= t.valorTotal;
+        }
+        if (dentro(t.loteDestino, t.data)) {
+            let destino = grupoDoLote(t.loteDestino);
+            destino.comprados += t.quantidade;
+            destino.custoCompra += t.valorTotal;
+        }
     });
 
     Object.values(porLote).forEach(g => {
@@ -1802,7 +1868,15 @@ async function mostrarResultadoMensal() {
     if (!corpo) return;
 
     await carregarCachesFinanceirasDashboard();
-    let porLote = agregarCustoLotesFinanceiro();
+    // custo por lote precisa ser o que se sabia NA DATA de cada venda, não o
+    // custo de hoje -- senão uma compra nova feita meses depois muda
+    // silenciosamente o resultado de um mês já fechado toda vez que a tela é
+    // reaberta. Memoiza por data pra não recalcular o mesmo dia repetido.
+    let custoLotesPorData = {};
+    function custoLotesAteData(dataISO) {
+        if (!(dataISO in custoLotesPorData)) custoLotesPorData[dataISO] = agregarCustoLotesFinanceiro(dataISO);
+        return custoLotesPorData[dataISO];
+    }
 
     let porMes = {};
     function grupoDoMes(ano, mes) {
@@ -1831,7 +1905,9 @@ async function mostrarResultadoMensal() {
         if (!dm) return;
         let d = calcularDadosCompletos(r);
         let nomeLote = r.descricao || "Sem descrição";
-        let custoMedio = porLote[nomeLote] ? porLote[nomeLote].custoMedioAnimal : 0;
+        let dataISO = extrairDataISO(r.data);
+        let porLoteNaData = dataISO ? custoLotesAteData(dataISO) : {};
+        let custoMedio = porLoteNaData[nomeLote] ? porLoteNaData[nomeLote].custoMedioAnimal : 0;
         let grupo = grupoDoMes(dm.ano, dm.mes);
         grupo.receitaVendas += d.totalRS;
         grupo.custoGadoVendido += d.totalAnimais * custoMedio;
@@ -2267,6 +2343,7 @@ async function abrirModalLancamento() {
 
     let erroEl = document.getElementById("lancamentoErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    novaChaveIdempotencia("modalLancamento");
     document.getElementById("modalLancamento").style.display = "flex";
 }
 
@@ -2298,7 +2375,7 @@ async function salvarLancamento() {
         let resp = await fetch(`${API_URL}/api/caixa-lancamentos`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null })
+            body: JSON.stringify({ id: obterChaveIdempotencia("modalLancamento"), tipo, categoria: categoria || null, descricao: descricao || null, valor, data: dataFormatada, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar lançamento (HTTP ${resp.status}).`); return; }
@@ -2481,6 +2558,7 @@ async function abrirModalContaPagar() {
     document.getElementById("cpPrimeiroVencimentoInput").value = new Date().toISOString().slice(0, 10);
     let erroEl = document.getElementById("cpErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    novaChaveIdempotencia("modalContaPagar");
     atualizarPreviewContaPagar();
     document.getElementById("modalContaPagar").style.display = "flex";
 }
@@ -2502,8 +2580,16 @@ function calcularParcelasContaPagar(valorTotal, numeroParcelas, primeiraDataISO)
     for (let i = 1; i <= numeroParcelas; i++) {
         let valor = i === numeroParcelas ? Math.round((valorTotal - somaAteAgora) * 100) / 100 : valorBase;
         somaAteAgora += valor;
-        let dataParcela = new Date(ano, mes - 1 + (i - 1), dia);
-        let isoParcela = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, "0")}-${String(dataParcela.getDate()).padStart(2, "0")}`;
+        // new Date(ano, mesAlvo, dia) NÃO trava no último dia do mês -- ele
+        // rola pro mês seguinte quando "dia" não existe ali (ex: dia 31 não
+        // existe em fevereiro), o que duplicava vencimentos no mesmo mês e
+        // pulava outros inteiros. Trava manualmente no último dia válido.
+        let mesesAFrente = mes - 1 + (i - 1);
+        let anoAlvo = ano + Math.floor(mesesAFrente / 12);
+        let mesAlvo = ((mesesAFrente % 12) + 12) % 12;
+        let ultimoDiaDoMesAlvo = new Date(anoAlvo, mesAlvo + 1, 0).getDate();
+        let diaAjustado = Math.min(dia, ultimoDiaDoMesAlvo);
+        let isoParcela = `${anoAlvo}-${String(mesAlvo + 1).padStart(2, "0")}-${String(diaAjustado).padStart(2, "0")}`;
         parcelas.push({ numero: i, valor, dataVencimento: formatarDataBR(isoParcela) });
     }
     return parcelas;
@@ -2548,7 +2634,7 @@ async function salvarContaPagar() {
         let resp = await fetch(`${API_URL}/api/contas-pagar`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ descricao, categoria: categoria || null, dataCompra, valorTotal, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null, parcelas })
+            body: JSON.stringify({ id: obterChaveIdempotencia("modalContaPagar"), descricao, categoria: categoria || null, dataCompra, valorTotal, loteNome: loteNome || null, subCaixaNome: subCaixaNome || null, parcelas })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
@@ -2783,6 +2869,7 @@ function abrirModalEnergia() {
     document.getElementById("energiaPreviewValor").innerText = "";
     let erroEl = document.getElementById("energiaErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    novaChaveIdempotencia("modalEnergia");
     document.getElementById("modalEnergia").style.display = "flex";
 }
 
@@ -2844,6 +2931,7 @@ async function salvarEnergia() {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({
+                id: obterChaveIdempotencia("modalEnergia"),
                 data: formatarDataBR(dataISO),
                 valorTotalFatura: valorFatura,
                 consumoTotalFatura: consumoFatura,
