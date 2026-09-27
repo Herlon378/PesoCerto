@@ -178,6 +178,15 @@ body.modoDesktop {
 .pillAcao:hover { filter: brightness(0.97); }
 
 .pillPerfil {
+    /* width/height/justify-content precisam ser reafirmados aqui -- .pillPerfil
+       também é usado no celular (style.css), onde é um botão redondo só de
+       ícone (50x50px fixo); sem isso esse tamanho vazava pra cá e espremia
+       o texto "Sair (Nome)" numa caixa quadrada pequena demais, quebrando
+       a palavra em duas linhas. */
+    width: auto;
+    height: auto;
+    justify-content: flex-start;
+    flex: none;
     border: none;
     border-radius: 999px;
     padding: 7px 16px 7px 8px;
@@ -185,6 +194,7 @@ body.modoDesktop {
     color: white;
     font-weight: 700;
     font-size: 12.5px;
+    white-space: nowrap;
     cursor: pointer;
     display: flex;
     align-items: center;
