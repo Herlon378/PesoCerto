@@ -1116,10 +1116,15 @@ async function atualizarDashboardLoteMobile(){
 function alternarModoSimulador(modo){
     let btnKg = document.getElementById("simModoKg");
     let btnPerna = document.getElementById("simModoPerna");
-    let campoPesoCartao = document.getElementById("simPesoMedioCartao");
+    let labelPeso = document.getElementById("simPesoMedioLabel");
     if(btnKg) btnKg.classList.toggle("criterioBtnAtivo", modo === "kg");
     if(btnPerna) btnPerna.classList.toggle("criterioBtnAtivo", modo === "perna");
-    if(campoPesoCartao) campoPesoCartao.style.display = modo === "kg" ? "block" : "none";
+    // no modo "Na Perna" o peso não entra na conta do valor da venda (preço é
+    // por cabeça), mas o campo continua visível -- é o que dá o kg estimado
+    // dos vendidos, usado só pra demonstrar o Custo por Kg do Restante
+    if(labelPeso) labelPeso.innerText = modo === "kg"
+        ? "Peso médio estimado (kg)"
+        : "Kg estimado médio dos vendidos";
     let simulador = document.getElementById("simuladorVenda");
     if(simulador) simulador.dataset.modo = modo;
     atualizarSimuladorVenda();
