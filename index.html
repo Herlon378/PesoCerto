@@ -204,8 +204,15 @@
             <option value="vivo">Peso Vivo (Kg)</option>
             <option value="arroba">Arroba (@)</option>
             <option value="valor_animal">Valor Fixo por Animal</option>
+            <option value="faixas">Preço por Faixa de Peso</option>
         </select>
         <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <div id="campoFaixas" class="faixasPreco" style="display:none">
+        <div class="faixasPrecoTopo"><strong>Faixas de preço</strong><button type="button" class="btnAdicionarFaixa" onclick="adicionarFaixaPreco('')">+ Faixa</button></div>
+        <div id="listaFaixas"></div>
+        <small>Limites mínimo e máximo inclusivos. Pesos sem faixa não serão lançados.</small>
     </div>
 
     <div class="campoCartao" id="campoRendimentoArroba" style="display:none">
@@ -236,9 +243,11 @@
                 <option value="vivo">Peso Vivo (Kg)</option>
                 <option value="arroba">Arroba (@)</option>
                 <option value="valor_animal">Valor Fixo por Animal</option>
+                <option value="faixas">Preço por Faixa de Peso</option>
             </select>
             <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
+        <div id="campoFaixas2" class="faixasPreco" style="display:none"><div class="faixasPrecoTopo"><strong>Faixas de preço</strong><button type="button" class="btnAdicionarFaixa" onclick="adicionarFaixaPreco('2')">+ Faixa</button></div><div id="listaFaixas2"></div><small>Limites mínimo e máximo inclusivos. Pesos sem faixa não serão lançados.</small></div>
         <div class="campoCartao" id="campoRendimentoArroba2" style="display:none">
             <label class="campoCartaoLabel" for="rendimentoArroba2">% de Rendimento</label>
             <input id="rendimentoArroba2" placeholder="Ex: 50" inputmode="decimal">
@@ -265,9 +274,11 @@
                 <option value="vivo">Peso Vivo (Kg)</option>
                 <option value="arroba">Arroba (@)</option>
                 <option value="valor_animal">Valor Fixo por Animal</option>
+                <option value="faixas">Preço por Faixa de Peso</option>
             </select>
             <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
+        <div id="campoFaixas3" class="faixasPreco" style="display:none"><div class="faixasPrecoTopo"><strong>Faixas de preço</strong><button type="button" class="btnAdicionarFaixa" onclick="adicionarFaixaPreco('3')">+ Faixa</button></div><div id="listaFaixas3"></div><small>Limites mínimo e máximo inclusivos. Pesos sem faixa não serão lançados.</small></div>
         <div class="campoCartao" id="campoRendimentoArroba3" style="display:none">
             <label class="campoCartaoLabel" for="rendimentoArroba3">% de Rendimento</label>
             <input id="rendimentoArroba3" placeholder="Ex: 50" inputmode="decimal">

@@ -91,12 +91,70 @@ function validarLimiteCompraCriterio(sufixo, tipoOperacaoEl){
     let ehValorAnimal = tipoPesagemEl && tipoPesagemEl.value === "valor_animal";
     if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin" && !ehValorAnimal){
         let limite = obterValorMaximoCompra();
+        if(tipoPesagemEl && tipoPesagemEl.value === "faixas"){
+            return limite === null || obterFaixasPreco(sufixo).every(f => f.tipo !== "kg" || f.valor <= limite);
+        }
         if(limite !== null && vKgEl){
             let valorDigitado = parseFloat(vKgEl.value.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
             if(valorDigitado > limite) return false;
         }
     }
     return true;
+}
+
+function parseNumeroLocal(valor){
+    let texto = String(valor || "").trim().replace(/\s/g, "").replace(/R\$/g, "");
+    if(texto.includes(",")) texto = texto.replace(/\./g, "").replace(",", ".");
+    let numero = Number(texto);
+    return Number.isFinite(numero) ? numero : NaN;
+}
+
+function obterFaixasPreco(sufixo){
+    let lista = document.getElementById("listaFaixas" + sufixo);
+    if(!lista) return [];
+    return [...lista.querySelectorAll(".faixaPrecoLinha")].map(linha => ({
+        minimo: parseNumeroLocal(linha.querySelector("[data-faixa='min']").value),
+        maximo: parseNumeroLocal(linha.querySelector("[data-faixa='max']").value),
+        tipo: linha.querySelector("[data-faixa='tipo']").value,
+        valor: parseNumeroLocal(linha.querySelector("[data-faixa='valor']").value)
+    }));
+}
+
+function criarLinhaFaixaPreco(sufixo, faixa){
+    let linha = document.createElement("div");
+    linha.className = "faixaPrecoLinha";
+    let min = faixa && Number.isFinite(Number(faixa.minimo)) ? faixa.minimo : "";
+    let max = faixa && Number.isFinite(Number(faixa.maximo)) ? faixa.maximo : "";
+    let valor = faixa && Number.isFinite(Number(faixa.valor)) && Number(faixa.valor) > 0 ? "R$ " + Number(faixa.valor).toFixed(2).replace(".", ",") : "";
+    linha.innerHTML = `<div class="faixaPrecoPesos"><label>De (kg)<input data-faixa="min" inputmode="decimal" value="${min}" placeholder="100"></label><label>Até (kg)<input data-faixa="max" inputmode="decimal" value="${max}" placeholder="200"></label></div><div class="faixaPrecoValor"><select data-faixa="tipo" aria-label="Tipo de preço"><option value="fixo">Fixo por animal</option><option value="kg">Por kg</option></select><input data-faixa="valor" inputmode="decimal" placeholder="R$ 0,00" value="${valor}" aria-label="Preço da faixa" oninput="formatarValorKg(this)"></div><button type="button" class="btnRemoverFaixa" aria-label="Remover faixa" title="Remover faixa" onclick="this.closest('.faixaPrecoLinha').remove()">×</button>`;
+    if(faixa && faixa.tipo) linha.querySelector("[data-faixa='tipo']").value = faixa.tipo;
+    return linha;
+}
+
+function adicionarFaixaPreco(sufixo, faixa){
+    let lista = document.getElementById("listaFaixas" + (sufixo || ""));
+    if(lista) lista.appendChild(criarLinhaFaixaPreco(sufixo || "", faixa));
+}
+
+function validarFaixasPreco(faixas, nome){
+    if(!faixas.length){ alert(`Adicione ao menos uma faixa de preço em ${nome}.`); return false; }
+    let ordenadas = [...faixas].sort((a,b) => a.minimo - b.minimo);
+    for(let i=0;i<ordenadas.length;i++){
+        let f = ordenadas[i];
+        if(!Number.isFinite(f.minimo) || !Number.isFinite(f.maximo) || !Number.isFinite(f.valor) || f.minimo < 0 || f.maximo <= f.minimo || f.valor <= 0){
+            alert(`Confira os pesos e o preço da faixa ${i+1} em ${nome}.`); return false;
+        }
+        if(i && f.minimo <= ordenadas[i-1].maximo){
+            alert(`As faixas de ${nome} não podem se sobrepor. Ajuste os limites.`); return false;
+        }
+    }
+    return true;
+}
+
+function calcularValorFaixa(peso, faixas){
+    let faixa = (faixas || []).find(f => peso >= Number(f.minimo) && peso <= Number(f.maximo));
+    if(!faixa) return null;
+    return { faixa, valorRS: faixa.tipo === "fixo" ? Number(faixa.valor) : peso * Number(faixa.valor) };
 }
 
 function iniciarPesagem(){
@@ -109,7 +167,9 @@ function iniciarPesagem(){
         alert("Preencha o nome do vendedor!");
         return;
     }
-    if(!vKg || !vKg.value.trim()){
+    if(tipoPesagemEl && tipoPesagemEl.value === "faixas"){
+        if(!validarFaixasPreco(obterFaixasPreco(""), "Critério 1")) return;
+    } else if(!vKg || !vKg.value.trim()){
         alert("Preencha o valor por kg/arroba!");
         return;
     }
@@ -126,7 +186,9 @@ function iniciarPesagem(){
         let vKgN = document.getElementById("valorKg" + n);
         let tipoN = document.getElementById("tipoPesagem" + n);
         let rendN = document.getElementById("rendimentoArroba" + n);
-        if(!vKgN || !vKgN.value.trim()){
+        if(tipoN && tipoN.value === "faixas"){
+            if(!validarFaixasPreco(obterFaixasPreco(String(n)), `Critério ${n}`)) return;
+        } else if(!vKgN || !vKgN.value.trim()){
             alert(`Preencha o valor do Critério ${n}!`);
             return;
         }
@@ -175,11 +237,18 @@ function alternarTipoPesagem(sufixo){
     let tipo = tipoPesagemEl.value;
     let ehArroba = tipo === "arroba";
     let ehValorAnimal = tipo === "valor_animal";
+    let ehFaixas = tipo === "faixas";
     // esconde o CARTÃO inteiro (rótulo + campo), não só o input -- senão
     // sobrava um cartão com o rótulo "% de Rendimento" flutuando vazio
     let campoRendEl = document.getElementById("campoRendimentoArroba" + sufixo) || rendEl;
     campoRendEl.style.display = ehArroba ? "block" : "none";
-    if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
+    let campoFaixasEl = document.getElementById("campoFaixas" + sufixo);
+    if(campoFaixasEl) campoFaixasEl.style.display = ehFaixas ? "block" : "none";
+    if(vKgEl){
+        let cartaoValor = vKgEl.closest(".campoCartao");
+        if(cartaoValor) cartaoValor.style.display = ehFaixas ? "none" : "block";
+        vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
+    }
 }
 
 function resetarPesagemAtual() {
@@ -213,6 +282,10 @@ function resetarPesagemAtual() {
     if(tipoEl) tipoEl.value = "venda";
     if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
     if(rendEl) rendEl.value = "";
+    let listaFaixasPrincipal = document.getElementById("listaFaixas");
+    if(listaFaixasPrincipal) listaFaixasPrincipal.replaceChildren();
+    let campoFaixasPrincipal = document.getElementById("campoFaixas");
+    if(campoFaixasPrincipal) campoFaixasPrincipal.style.display = "none";
     alternarTipoPesagem("");
     // desfaz os critérios extras (2 e 3), se tinham sido abertos numa
     // pesagem anterior -- volta pro estado "só Critério 1" de uma sessão nova
@@ -316,9 +389,25 @@ function adicionarPeso(){
 function efetivarLancamentoPeso(pesoNum){
     let inputPeso = document.getElementById("displayPeso");
     let inputObs = document.getElementById("obs");
+    let criterio = criteriosPesagem[criterioAtivoIndex];
+    let valorRS;
+    let faixaUsada = null;
+    if(criterio && criterio.tipoPesagem === "faixas"){
+        let calculo = calcularValorFaixa(pesoNum, criterio.faixasPreco);
+        if(!calculo){ alert(`Peso de ${formatarPeso(pesoNum)} kg sem faixa de preço. Confira as faixas antes de lançar.`); return; }
+        valorRS = Math.round((calculo.valorRS + Number.EPSILON) * 100) / 100;
+        faixaUsada = { minimo: calculo.faixa.minimo, maximo: calculo.faixa.maximo, tipo: calculo.faixa.tipo, valor: calculo.faixa.valor };
+    } else if(criterio){
+        let preco = parseNumeroLocal(criterio.valorKg);
+        let arrobas = criterio.tipoPesagem === "arroba" ? converterParaArroba(pesoNum, parseNumeroLocal(criterio.rendimento)) : 0;
+        valorRS = criterio.tipoPesagem === "valor_animal" ? preco : (criterio.tipoPesagem === "arroba" ? arrobas : pesoNum) * preco;
+        valorRS = Math.round((valorRS + Number.EPSILON) * 100) / 100;
+    }
 
     pesos.push({
         peso: pesoNum,
+        ...(Number.isFinite(valorRS) ? { valorRS } : {}),
+        ...(faixaUsada ? { faixaPreco: faixaUsada } : {}),
         obs: inputObs ? inputObs.value.trim() : ""
     });
 
@@ -347,7 +436,7 @@ function excluirPesoItem(idx){
         let rendEl = document.getElementById("rendimentoArroba");
         let rendimentoNum = rendEl ? (parseFloat(rendEl.value.replace(",", ".")) || 0) : 0;
         let arrobaItem = converterParaArroba(p.peso, rendimentoNum);
-        let valorItem = ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaItem : p.peso) * valorKgNum);
+        let valorItem = Number.isFinite(Number(p.valorRS)) ? Number(p.valorRS) : (ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaItem : p.peso) * valorKgNum));
         let numero = String(idx + 1).padStart(2, "0");
         textoEl.innerText = `Deseja excluir esta pesagem "${numero} - ${formatarPeso(p.peso)}kg - R$ ${formatarMoeda(valorItem)}"?`;
     } else if(textoEl){
@@ -450,6 +539,7 @@ function atualizarStats(){
     let tipoPesagemValor = tipoPesagemEl ? tipoPesagemEl.value : "vivo";
     let ehArroba = tipoPesagemValor === "arroba";
     let ehValorAnimal = tipoPesagemValor === "valor_animal";
+    let ehFaixas = tipoPesagemValor === "faixas";
     let rendEl = document.getElementById("rendimentoArroba");
     let rendimentoNum = rendEl ? (parseFloat(rendEl.value.replace(",", ".")) || 0) : 0;
 
@@ -459,8 +549,9 @@ function atualizarStats(){
 
     // valor_animal: preço combinado por cabeça, não por peso -- cada animal
     // vale o mesmo valor fixo, e o total é cabeças × valor fixo.
-    let ultimoValor = ehValorAnimal ? valorKgNum : ((ehArroba ? ultimoArroba : ultimo) * valorKgNum);
-    let totalValor = ehValorAnimal ? (qtd * valorKgNum) : ((ehArroba ? totalArroba : total) * valorKgNum);
+    let calcularValorAtual = p => Number.isFinite(Number(p.valorRS)) ? Number(p.valorRS) : (ehValorAnimal ? valorKgNum : ((ehArroba ? converterParaArroba(p.peso, rendimentoNum) : p.peso) * valorKgNum));
+    let ultimoValor = qtd ? calcularValorAtual(pesos[qtd - 1]) : 0;
+    let totalValor = pesos.reduce((s,p) => s + calcularValorAtual(p), 0);
     let kgImplicito = total > 0 ? (totalValor / total) : 0;
 
     let qtdEl = document.getElementById("qtd");
@@ -490,12 +581,12 @@ function atualizarStats(){
     if(uValEl) uValEl.innerText = "R$ " + formatarMoeda(ultimoValor);
     if(tValEl) tValEl.innerText = "R$ " + formatarMoeda(totalValor);
 
-    if(cardUltimoKgEl) cardUltimoKgEl.style.display = (ehArroba || ehValorAnimal) ? "none" : "block";
+    if(cardUltimoKgEl) cardUltimoKgEl.style.display = (ehArroba || ehValorAnimal || ehFaixas) ? "none" : "block";
     if(cardUltimoValorEl) cardUltimoValorEl.style.display = (ehArroba || ehValorAnimal) ? "none" : "block";
     if(cardTotalArrobaEl) cardTotalArrobaEl.style.display = ehArroba ? "block" : "none";
     if(cardMediaArrobaEl) cardMediaArrobaEl.style.display = ehArroba ? "block" : "none";
     if(cardValorAnimalEl) cardValorAnimalEl.style.display = ehValorAnimal ? "block" : "none";
-    if(cardKgImplicitoEl) cardKgImplicitoEl.style.display = ehValorAnimal ? "block" : "none";
+    if(cardKgImplicitoEl) cardKgImplicitoEl.style.display = (ehValorAnimal || ehFaixas) ? "block" : "none";
     if(totalArrobaEl) totalArrobaEl.innerText = totalArroba.toFixed(2).replace(".", ",");
     if(mediaArrobaEl) mediaArrobaEl.innerText = mediaArroba.toFixed(2).replace(".", ",");
     if(valorAnimalFixoEl) valorAnimalFixoEl.innerText = "R$ " + formatarMoeda(valorKgNum);
@@ -508,7 +599,7 @@ function atualizarStats(){
         [...pesos].reverse().forEach((p, idx) => {
             let originalIdx = pesos.length - 1 - idx;
             let arrobaItem = converterParaArroba(p.peso, rendimentoNum);
-            let valorItem = ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaItem : p.peso) * valorKgNum);
+            let valorItem = calcularValorAtual(p);
             let textoArroba = ehArroba ? ` (${arrobaItem.toFixed(2).replace(".", ",")} @)` : "";
             let textoKgImplicito = (ehValorAnimal && p.peso > 0) ? ` (R$ ${formatarMoeda(valorKgNum / p.peso)}/kg)` : "";
             listaHTML += `
@@ -576,6 +667,7 @@ function montarCriteriosPesagem(){
             valorKg: valorEl.value,
             rendimento: rendEl ? rendEl.value : "",
             descricao: loteEl ? loteEl.value : "",
+            faixasPreco: obterFaixasPreco(n),
             pesos: pesosExistentes
         });
         indice++;
@@ -623,6 +715,11 @@ function trocarCriterioAtivo(indice){
     if(valorEl) valorEl.value = c.valorKg;
     if(rendEl) rendEl.value = c.rendimento;
     if(loteEl) loteEl.value = c.descricao;
+    let listaFaixas = document.getElementById("listaFaixas");
+    if(listaFaixas){
+        listaFaixas.replaceChildren();
+        (c.faixasPreco || []).forEach(f => adicionarFaixaPreco("", f));
+    }
 
     if(typeof alternarTipoPesagem === "function") alternarTipoPesagem("");
     if(typeof atualizarStats === "function") atualizarStats();
@@ -656,6 +753,10 @@ function removerCriterioExtra(n){
     });
     let campoRend = document.getElementById("campoRendimentoArroba" + n);
     if(campoRend) campoRend.style.display = "none";
+    let listaFaixas = document.getElementById("listaFaixas" + n);
+    if(listaFaixas) listaFaixas.replaceChildren();
+    let campoFaixas = document.getElementById("campoFaixas" + n);
+    if(campoFaixas) campoFaixas.style.display = "none";
     // Critério 3 mora dentro do bloco do Critério 2 -- remover o 2 leva o 3 junto
     if(n === 2){
         let bloco3 = document.getElementById("blocoCriterio3");
@@ -1272,13 +1373,13 @@ async function gerarPDF() {
                 pdf.setFontSize(11);
             } else {
                 pdf.text(`Lote/Desc: ${registro.descricao || 'Sem Descrição'}`, 10, y);
-                pdf.text(`${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
+            pdf.text(d.ehFaixas ? "PreÃ§o por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
                 y += 7;
             }
 
             pdf.setFont("helvetica", "normal");
             if(multiplos){
-                pdf.text(`${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 10, y);
+                pdf.text(d.ehFaixas ? "PreÃ§o por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 10, y);
                 pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 110, y);
                 y += 7;
                 pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 10, y);
@@ -1322,7 +1423,7 @@ async function gerarPDF() {
                 }
 
                 let pAtual = p.peso || 0;
-                let valorInd = d.valorDoItem(pAtual);
+                let valorInd = d.valorDoItem(pAtual, p);
                 pdf.text(String(i + 1), 10, y);
                 pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
                 pdf.text(`R$ ${formatarMoeda(valorInd)}`, 90, y);
@@ -1410,8 +1511,15 @@ function calcularDadosCompletos(r) {
     // valor_animal: preço combinado por cabeça ("na perna"), não por peso --
     // o animal é pesado só pra controle, então o valor de cada um é o mesmo
     // valor fixo, e o total é cabeças × valor fixo (não peso × valor).
-    let totalRS = ehValorAnimal ? (totalAnimais * valorKgNum) : ((ehArroba ? totalArroba : totalKg) * valorKgNum);
-    let valorDoItem = pesoKg => ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaDe(pesoKg) : pesoKg) * valorKgNum);
+    let valorDoItem = (pesoKg, item) => {
+        if(item && Number.isFinite(Number(item.valorRS))) return Number(item.valorRS);
+        if(r.tipoPesagem === "faixas"){
+            let calculo = calcularValorFaixa(pesoKg, r.faixasPreco);
+            return calculo ? calculo.valorRS : 0;
+        }
+        return ehValorAnimal ? valorKgNum : ((ehArroba ? arrobaDe(pesoKg) : pesoKg) * valorKgNum);
+    };
+    let totalRS = (r.pesos || []).reduce((sum, item) => sum + valorDoItem(item.peso || 0, item), 0);
 
     return {
         valorKgNum: valorKgNum,
@@ -1422,6 +1530,7 @@ function calcularDadosCompletos(r) {
         totalArroba: totalArroba,
         ehArroba: ehArroba,
         ehValorAnimal: ehValorAnimal,
+        ehFaixas: r.tipoPesagem === "faixas",
         // taxa de R$/kg que o preço fixo por animal acabou equivalendo, na
         // média do lote -- útil pro rancheiro comparar com o mercado, já que
         // a negociação foi por cabeça e não por peso.
@@ -1476,9 +1585,12 @@ function prepararImpressao(){
                 <tbody>
         `;
 
+        if(d.ehFaixas){
+            html = html.replaceAll(`Valor por Kg:</b> R$ ${formatarMoeda(d.valorKgNum)}`, "PreÃ§o por faixa de peso</b>");
+        }
         registro.pesos.forEach((p, i) => {
             let pAtual = p.peso || 0;
-            let vInd = d.valorDoItem(pAtual);
+            let vInd = d.valorDoItem(pAtual, p);
             html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${p.obs || "-"}</td></tr>`;
         });
 
@@ -1524,6 +1636,7 @@ function exportarExcel(){
             let linha = { "Ordem": ordemGeral };
             if(multiplos) linha["Lote"] = registro.descricao || "Sem descrição";
             linha["Peso (kg)"] = p.peso || 0;
+            linha["Valor (R$)"] = Number(d.valorDoItem(p.peso || 0, p).toFixed(2));
             if(d.ehArroba){
                 linha["Arrobas (@)"] = Number(d.arrobaDe(p.peso || 0).toFixed(2));
             }
@@ -1573,7 +1686,7 @@ function montarMensagemWhatsApp(registros){
         } else {
             linhas.push("*RESUMO*");
         }
-        linhas.push("*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehValorAnimal ? " por animal" : (d.ehArroba ? " por @" : " por kg")));
+        linhas.push(d.ehFaixas ? "*Preço:* por faixa de peso" : "*Valor:* R$ " + formatarMoeda(d.valorKgNum) + (d.ehValorAnimal ? " por animal" : (d.ehArroba ? " por @" : " por kg")));
         linhas.push("Total de animais: " + d.totalAnimais);
         linhas.push("Peso total: " + formatarPeso(d.totalKg) + " kg");
         linhas.push("Peso médio: " + d.mediaKg.toFixed(2).replace(".", ",") + " kg");
@@ -1591,7 +1704,7 @@ function montarMensagemWhatsApp(registros){
         linhas.push("*PESAGENS*");
         (registro.pesos || []).forEach((p, i) => {
             let pesoKg = p.peso || 0;
-            let valorInd = d.valorDoItem(pesoKg);
+            let valorInd = d.valorDoItem(pesoKg, p);
             let linha = (i + 1) + " - " + formatarPeso(pesoKg) + "kg";
             if(d.ehArroba){
                 linha += " (" + d.arrobaDe(pesoKg).toFixed(2).replace(".", ",") + " @)";

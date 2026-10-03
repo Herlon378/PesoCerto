@@ -17,6 +17,7 @@ function salvarPesagem(){
         tipo: tipoEl ? tipoEl.value : "venda",
         tipoPesagem: tipoPesagemEl ? tipoPesagemEl.value : "vivo",
         rendimento: rendEl ? rendEl.value : "",
+        faixasPreco: (typeof criteriosPesagem !== "undefined" && criteriosPesagem[criterioAtivoIndex]) ? (criteriosPesagem[criterioAtivoIndex].faixasPreco || []) : [],
         pesos: pesos,
         data: new Date().toLocaleString("pt-BR"),
         sincronizado: false,
@@ -102,6 +103,11 @@ function restaurarPesagem(){
         if(typeof alternarTipoPesagem === "function") {
             alternarTipoPesagem("");
         }
+        let listaFaixasPrincipal = document.getElementById("listaFaixas");
+        if(listaFaixasPrincipal){
+            listaFaixasPrincipal.replaceChildren();
+            (criterios[0].faixasPreco || []).forEach(f => adicionarFaixaPreco("", f));
+        }
 
         // reabre os blocos de Critério 2/3, se o rascunho tinha eles
         [2, 3].forEach(n => {
@@ -116,6 +122,11 @@ function restaurarPesagem(){
             if(valorEl) valorEl.value = criterio.valorKg || "";
             if(rendEl) rendEl.value = criterio.rendimento || "";
             if(descEl) descEl.value = criterio.descricao || "";
+            let listaFaixas = document.getElementById("listaFaixas" + n);
+            if(listaFaixas){
+                listaFaixas.replaceChildren();
+                (criterio.faixasPreco || []).forEach(f => adicionarFaixaPreco(String(n), f));
+            }
             if(typeof alternarTipoPesagem === "function") alternarTipoPesagem(String(n));
         });
 
