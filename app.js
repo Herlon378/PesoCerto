@@ -1214,7 +1214,7 @@ function montarResumoLoteMobile(nomeLote){
         return ordem !== null && ordem >= inicioCiclo;
     }
 
-    let g = { comprados: 0, vendidos: 0, kgComprado: 0, kgVendido: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0 };
+    let g = { comprados: 0, vendidos: 0, kgComprado: 0, kgVendido: 0, custoCompra: 0, custoInsumos: 0, receitaVenda: 0, pesosCompra: [] };
 
     relatorios.forEach(r => {
         if((r.descricao || "Sem descrição") !== nomeLote) return;
@@ -1224,6 +1224,7 @@ function montarResumoLoteMobile(nomeLote){
             g.comprados += d.totalAnimais;
             g.kgComprado += d.totalKg;
             g.custoCompra += d.totalRS;
+            (r.pesos || []).forEach(p => { if(Number(p.peso) > 0) g.pesosCompra.push(Number(p.peso)); });
         } else {
             g.vendidos += d.totalAnimais;
             g.kgVendido += d.totalKg;
@@ -1333,6 +1334,7 @@ async function atualizarDashboardLoteMobile(){
         simulador.style.display = "block";
         simulador.dataset.animaisAtivos = String(f.headcount);
         simulador.dataset.custoTotal = String(f.custoRestante);
+        simulador.dataset.pesosCompra = JSON.stringify(g.pesosCompra);
         let campoPeso = document.getElementById("simPesoMedio");
         let campoQtd = document.getElementById("simQuantidade");
         // troca de lote sempre reinicia o simulador pros valores desse lote
@@ -1347,9 +1349,22 @@ async function atualizarDashboardLoteMobile(){
 function alternarModoSimulador(modo){
     let btnKg = document.getElementById("simModoKg");
     let btnPerna = document.getElementById("simModoPerna");
+    let btnMisto = document.getElementById("simModoMisto");
     let labelPeso = document.getElementById("simPesoMedioLabel");
     if(btnKg) btnKg.classList.toggle("criterioBtnAtivo", modo === "kg");
     if(btnPerna) btnPerna.classList.toggle("criterioBtnAtivo", modo === "perna");
+    if(btnMisto) btnMisto.classList.toggle("criterioBtnAtivo", modo === "misto");
+    // no Misto o preço/peso/quantidade vêm de outros campos (limite + 2
+    // preços) e o lote ativo é vendido inteiro
+    let ehMisto = modo === "misto";
+    ["simPrecoCartao", "simPesoMedioCartao", "simQuantidadeCartao"].forEach(id => {
+        let el = document.getElementById(id);
+        if(el) el.style.display = ehMisto ? "none" : "";
+    });
+    let camposMisto = document.getElementById("simMistoCampos");
+    if(camposMisto) camposMisto.style.display = ehMisto ? "block" : "none";
+    let detalheMisto = document.getElementById("simMistoDetalhe");
+    if(detalheMisto) detalheMisto.style.display = ehMisto ? "block" : "none";
     // no modo "Na Perna" o peso não entra na conta do valor da venda (preço é
     // por cabeça), mas o campo continua visível -- é o que dá o kg estimado
     // dos vendidos, usado só pra demonstrar o Custo por Kg do Restante
@@ -1359,6 +1374,57 @@ function alternarModoSimulador(modo){
     let simulador = document.getElementById("simuladorVenda");
     if(simulador) simulador.dataset.modo = modo;
     atualizarSimuladorVenda();
+}
+
+// "3100", "3.100", "3.100,00", "15,5" e "206.5" -- ponto só vira milhar quando
+// está no formato de milhar (1 a 3 dígitos + grupos de 3)
+function lerNumeroSimulador(texto){
+    let t = String(texto || "").trim().replace(/\s/g, "").replace(/R\$/g, "");
+    if(t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+    else if(/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
+    let n = Number(t);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// Modo Misto: separa os animais do lote pelo PESO DE COMPRA de cada um --
+// até o limite vende na perna (preço por cabeça), acima vende por kg
+// (preço × peso de compra do animal). Se o lote hoje tem um número de
+// animais diferente do que foi pesado na compra (já vendeu/transferiu
+// alguns), não dá pra saber QUAIS saíram, então as duas faixas são
+// ajustadas na mesma proporção e o aviso aparece na tela.
+function calcularVendaMistaSimulador(simulador, animaisAtivos){
+    let pesos = [];
+    try{ pesos = JSON.parse(simulador.dataset.pesosCompra || "[]"); }catch(e){}
+    let limite = lerNumeroSimulador((document.getElementById("simMistoLimite") || {}).value);
+    let precoPerna = lerNumeroSimulador((document.getElementById("simMistoPrecoPerna") || {}).value);
+    let precoKg = lerNumeroSimulador((document.getElementById("simMistoPrecoKg") || {}).value);
+
+    let leves = pesos.filter(p => p <= limite);
+    let pesados = pesos.filter(p => p > limite);
+    let fator = pesos.length > 0 ? animaisAtivos / pesos.length : 0;
+    let qtdLeves = Math.min(animaisAtivos, Math.round(leves.length * fator));
+    let qtdPesados = Math.max(animaisAtivos - qtdLeves, 0);
+    let kgMedioPesados = pesados.length > 0 ? pesados.reduce((s, p) => s + p, 0) / pesados.length : 0;
+    let kgPesados = kgMedioPesados * qtdPesados;
+    let valorPerna = qtdLeves * precoPerna;
+    let valorKg = kgPesados * precoKg;
+
+    function set(id, texto){ let el = document.getElementById(id); if(el) el.innerText = texto; }
+    let textoLimite = limite > 0 ? formatarPeso(limite) + " kg" : "o limite";
+    set("simMistoPernaRotulo", `Na perna (até ${textoLimite}): ${qtdLeves} × R$ ${formatarMoeda(precoPerna)}`);
+    set("simMistoPernaValor", "R$ " + formatarMoeda(valorPerna));
+    set("simMistoKgRotulo", `Por kg (acima): ${qtdPesados} anim. · ${formatarPeso(Math.round(kgPesados * 10) / 10)} kg × R$ ${formatarMoeda(precoKg)}`);
+    set("simMistoKgValor", "R$ " + formatarMoeda(valorKg));
+
+    let aviso = document.getElementById("simMistoAviso");
+    if(aviso){
+        let texto = "";
+        if(pesos.length === 0) texto = "Este lote não tem pesagem de compra — não dá pra separar os animais pelo peso.";
+        else if(pesos.length !== animaisAtivos) texto = `Na compra foram pesados ${pesos.length} animais e hoje o lote tem ${animaisAtivos}. Como não dá pra saber quais saíram, as duas faixas foram ajustadas na mesma proporção.`;
+        aviso.innerText = texto;
+        aviso.style.display = texto ? "block" : "none";
+    }
+    return { valorVenda: valorPerna + valorKg, qtdLeves, qtdPesados, kgPesados };
 }
 
 function atualizarSimuladorVenda(){
@@ -1380,6 +1446,12 @@ function atualizarSimuladorVenda(){
     if(qtdVendida < 0) qtdVendida = 0;
 
     let valorVenda = modo === "kg" ? (preco * pesoMedio * qtdVendida) : (preco * qtdVendida);
+    if(modo === "misto"){
+        let misto = calcularVendaMistaSimulador(simulador, animaisAtivos);
+        valorVenda = misto.valorVenda;
+        qtdVendida = animaisAtivos;
+        pesoMedio = 0;
+    }
     let restantes = animaisAtivos - qtdVendida;
     // modelo único de "recuperação de investimento": o lote inteiro é um
     // investimento só, e só existe lucro de verdade depois que o valor total

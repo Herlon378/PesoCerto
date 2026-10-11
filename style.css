@@ -2254,3 +2254,24 @@ textarea {
     #telaPesagem .itemPesagemNum { padding: 2px 6px; }
     #telaPesagem .btnLancar { padding: 8px; }
 }
+
+/* simulador, modo Misto: as duas partes da venda (na perna + por kg) */
+.simuladorResultadoParte span:first-child {
+    font-size: 13px;
+    color: var(--ink-muted);
+    padding-right: 8px;
+}
+.simuladorResultadoParte span:last-child {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.simuladorAviso {
+    margin: 6px 0 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255,201,77,0.1);
+    border: 1px solid rgba(255,201,77,0.3);
+    color: #ffd27a;
+    font-size: 12.5px;
+    line-height: 1.35;
+}

@@ -882,9 +882,30 @@
                 <span class="criterioBtnLabel">Modo</span>
                 <span class="criterioBtnValor">Na Perna</span>
             </button>
+            <button class="criterioBtn" id="simModoMisto" onclick="alternarModoSimulador('misto')">
+                <span class="criterioBtnLabel">Modo</span>
+                <span class="criterioBtnValor">Misto</span>
+            </button>
         </div>
 
-        <div class="campoCartao">
+        <!-- modo Misto: os leves (pelo peso de COMPRA de cada animal) saem na
+             perna, os pesados saem por kg -- sempre o lote ativo inteiro -->
+        <div id="simMistoCampos" style="display:none">
+            <div class="campoCartao">
+                <label class="campoCartaoLabel">Na perna até (kg de compra)</label>
+                <input id="simMistoLimite" inputmode="decimal" placeholder="Ex: 206,5" oninput="atualizarSimuladorVenda()">
+            </div>
+            <div class="campoCartao">
+                <label class="campoCartaoLabel">Preço na perna (R$ por animal)</label>
+                <input id="simMistoPrecoPerna" inputmode="decimal" placeholder="Ex: 3100" oninput="atualizarSimuladorVenda()">
+            </div>
+            <div class="campoCartao">
+                <label class="campoCartaoLabel">Acima do limite (R$ por kg)</label>
+                <input id="simMistoPrecoKg" inputmode="decimal" placeholder="Ex: 15" oninput="atualizarSimuladorVenda()">
+            </div>
+        </div>
+
+        <div class="campoCartao" id="simPrecoCartao">
             <label class="campoCartaoLabel">Preço (R$/kg ou R$/animal)</label>
             <input id="simPreco" inputmode="decimal" placeholder="0,00" oninput="atualizarSimuladorVenda()">
         </div>
@@ -892,12 +913,23 @@
             <label class="campoCartaoLabel" id="simPesoMedioLabel">Peso médio estimado (kg)</label>
             <input id="simPesoMedio" inputmode="decimal" placeholder="0,00" oninput="atualizarSimuladorVenda()">
         </div>
-        <div class="campoCartao">
+        <div class="campoCartao" id="simQuantidadeCartao">
             <label class="campoCartaoLabel">Quantidade a vender</label>
             <input id="simQuantidade" inputmode="numeric" placeholder="0" oninput="atualizarSimuladorVenda()">
         </div>
 
         <div class="simuladorResultado">
+            <div id="simMistoDetalhe" style="display:none">
+                <div class="simuladorResultadoLinha simuladorResultadoParte">
+                    <span id="simMistoPernaRotulo">Na perna</span>
+                    <span id="simMistoPernaValor">R$ 0,00</span>
+                </div>
+                <div class="simuladorResultadoLinha simuladorResultadoParte">
+                    <span id="simMistoKgRotulo">Por kg</span>
+                    <span id="simMistoKgValor">R$ 0,00</span>
+                </div>
+                <p class="simuladorAviso" id="simMistoAviso" style="display:none"></p>
+            </div>
             <div class="simuladorResultadoLinha">
                 <span>Valor da Venda</span>
                 <span id="simResultadoValorVenda">R$ 0,00</span>
