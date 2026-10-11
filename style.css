@@ -1035,16 +1035,22 @@ textarea {
     margin: 0 0 6px;
 }
 
-.pesoAtualIconeFundo {
+/* assinatura discreta na vertical, colada no canto direito do display
+   (no lugar do antigo ícone de mostrador) -- lê de baixo pra cima */
+.pesoAtualAssinatura {
     position: absolute;
-    z-index: -1;
     top: 50%;
-    right: 6px;
-    transform: translateY(-50%);
-    width: 100px;
-    height: 100px;
-    color: rgba(110,185,255,0.4);
+    right: 7px;
+    transform: translateY(-50%) rotate(180deg);
+    writing-mode: vertical-rl;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(150,195,255,0.45);
+    white-space: nowrap;
     pointer-events: none;
+    user-select: none;
 }
 
 .btnLogBalanca {
