@@ -9,34 +9,102 @@ let indicePesoParaExcluir = null;
 // ========================================
 // SISTEMA DE SOM (BIP + CLIQUE DO TECLADO)
 // ========================================
-function tocarTom(frequencia, duracaoSegundos, tipoOnda, volume){
-    try {
-        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function tocar(){
-            let oscillator = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            oscillator.connect(gain);
-            gain.connect(audioCtx.destination);
-            oscillator.frequency.value = frequencia;
-            oscillator.type = tipoOnda;
-            gain.gain.value = volume;
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + duracaoSegundos);
+// Por que o bip falhava "na maioria das vezes" no curral:
+// 1. o bip era curto (80ms) e grave (900Hz) -- alto-falante de celular quase
+//    não reproduz grave, e o Android "adormece" a saída de áudio depois de
+//    alguns segundos de silêncio: ao acordar, ele engole o começo do som. Um
+//    bip de 80ms cabia inteiro nesse pedaço engolido.
+// 2. o lançamento automático da balança vem de um evento Bluetooth, não de
+//    um toque na tela -- se o áudio estava suspenso (tela bloqueou, trocou
+//    de app), o Chrome não deixa retomar sem um toque, e o bip sumia calado.
+// Correções: bip agudo (faixa onde o alto-falante do celular é mais alto),
+// duplo e mais longo; saída de áudio mantida acordada durante a pesagem
+// (um tom inaudível contínuo); áudio "destravado" a cada toque na tela; e
+// vibração junto, pra quando o barulho do curral cobrir o som.
+function obterAudioCtx(){
+    if(!audioCtx || audioCtx.state === "closed"){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+}
+
+function destravarAudio(){
+    try{
+        let ctx = obterAudioCtx();
+        if(ctx.state !== "running") ctx.resume().catch(() => {});
+    }catch(e){}
+}
+
+["pointerdown", "touchstart", "keydown"].forEach(evento => {
+    document.addEventListener(evento, destravarAudio, { capture: true, passive: true });
+});
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") destravarAudio();
+});
+
+// tom quase zero e grave demais pra ouvir, tocando sem parar enquanto a
+// tela de pesagem está aberta -- só pra saída de áudio do Android não
+// dormir entre um animal e outro
+let audioMantenedor = null;
+function manterSaidaAudioAcordada(ligar){
+    try{
+        if(ligar && !audioMantenedor){
+            let ctx = obterAudioCtx();
+            let oscilador = ctx.createOscillator();
+            let ganho = ctx.createGain();
+            oscilador.frequency.value = 20;
+            ganho.gain.value = 0.001;
+            oscilador.connect(ganho);
+            ganho.connect(ctx.destination);
+            oscilador.start();
+            audioMantenedor = { oscilador, ganho };
+        }else if(!ligar && audioMantenedor){
+            audioMantenedor.oscilador.stop();
+            audioMantenedor.oscilador.disconnect();
+            audioMantenedor.ganho.disconnect();
+            audioMantenedor = null;
         }
-        // navegadores mobile suspendem o AudioContext depois de um tempo sem
-        // uso (tela bloqueou, trocou de app) -- sem retomar, o som simplesmente
-        // para de tocar, sem erro nenhum. É a causa mais comum do bip "falhar
-        // direto" nesse tipo de app usado o dia inteiro no curral.
-        if(audioCtx.state === "suspended"){
-            audioCtx.resume().then(tocar).catch(() => {});
-        } else {
+    }catch(e){}
+}
+
+// atrasoSegundos permite encadear tons (bip duplo). Envelope curto de
+// subida/descida evita o "estalo" e deixa o volume cheio o tempo todo.
+function tocarTom(frequencia, duracaoSegundos, tipoOnda, volume, atrasoSegundos){
+    try {
+        let ctx = obterAudioCtx();
+        function tocar(){
+            let inicio = ctx.currentTime + 0.02 + (atrasoSegundos || 0);
+            let fim = inicio + duracaoSegundos;
+            let oscilador = ctx.createOscillator();
+            let ganho = ctx.createGain();
+            oscilador.connect(ganho);
+            ganho.connect(ctx.destination);
+            oscilador.frequency.value = frequencia;
+            oscilador.type = tipoOnda;
+            ganho.gain.setValueAtTime(0, inicio);
+            ganho.gain.linearRampToValueAtTime(volume, inicio + 0.005);
+            ganho.gain.setValueAtTime(volume, fim - 0.01);
+            ganho.gain.linearRampToValueAtTime(0, fim);
+            oscilador.start(inicio);
+            oscilador.stop(fim + 0.02);
+        }
+        if(ctx.state === "running"){
             tocar();
+        } else {
+            // tenta retomar; se o Chrome não liberar logo (sem toque na
+            // tela), desiste em vez de soltar vários bips atrasados depois
+            let liberou = false;
+            ctx.resume().then(() => { liberou = true; tocar(); }).catch(() => {});
+            setTimeout(() => { if(!liberou && typeof logBalanca === "function") logBalanca("som bloqueado pelo navegador (toque na tela libera)"); }, 400);
         }
     } catch(e){}
 }
 
+// "peso lançado": bi-bip agudo e alto + vibração
 function bip(){
-    tocarTom(900, 0.08, "square", 0.2);
+    tocarTom(2700, 0.13, "square", 0.7);
+    tocarTom(2700, 0.13, "square", 0.7, 0.19);
+    try{ if(navigator.vibrate) navigator.vibrate([120, 70, 120]); }catch(e){}
 }
 
 // clique curto e mais agudo que o bip de "peso lançado" -- feedback sonoro
@@ -52,6 +120,7 @@ function somClique(){
 // ========================================
 function trocarTela(id){
     document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa"));
+    manterSaidaAudioAcordada(id === "telaPesagem");
     let telaAlvo = document.getElementById(id);
     if(telaAlvo) {
         telaAlvo.classList.add("ativa");
@@ -3121,7 +3190,8 @@ async function tentarReconectarBalanca(){
         balancaReconectadoEm = Date.now();
         logBalanca("reconectado");
         atualizarIndicadorBalancaPelaConexao();
-        if(typeof bip === "function") bip();
+        // tom diferente do bi-bip de "peso lançado", pra não confundir
+        tocarTom(1800, 0.3, "sine", 0.6);
     }catch(e){
         logBalanca("falhou: " + e.message);
         balancaConexaoEmAndamento = false;
