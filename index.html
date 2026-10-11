@@ -688,25 +688,28 @@
 <div id="telaPesagem" class="tela">
     <div class="sliderConfirm sliderConfirmTopo">
         <div class="sliderTrack" id="sliderTrack">
-            <span class="sliderLabelEsquerda">✕ Cancelar</span>
-            <span class="sliderLabelDireita">Finalizar ✓</span>
-            <div class="sliderHandle" id="sliderHandle">↔</div>
+            <span class="sliderLabelEsquerda"><b>✕</b> Cancelar</span>
+            <span class="sliderLabelDireita">Finalizar <b>✓</b></span>
+            <div class="sliderHandle" id="sliderHandle">⇄</div>
         </div>
     </div>
 
     <div class="stats">
-        <div class="statCard">Animais<br><span id="qtd">0</span></div>
-        <div class="statCard">Média<br><span id="media">0</span></div>
-        <div class="statCard">Total<br><span id="total">0</span></div>
-        <div class="statCard" id="cardUltimoKg">Valor/Kg<br><span id="ultimo">0</span></div>
-        <div class="statCard" id="cardTotalArroba" style="display:none">Total @<br><span id="totalArroba">0</span></div>
-        <div class="statCard" id="cardUltimoValor">Último R$<br><span id="ultimoValor">0</span></div>
-        <div class="statCard" id="cardMediaArroba" style="display:none">Média @<br><span id="mediaArroba">0</span></div>
-        <div class="statCard" id="cardValorAnimal" style="display:none">Valor/Animal<br><span id="valorAnimalFixo">0</span></div>
-        <div class="statCard" id="cardKgImplicito" style="display:none">R$/kg médio<br><span id="kgImplicito">0</span></div>
-        <div class="statCard">Total R$<br><span id="totalValor">0</span></div>
+        <div class="statCard"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".6" fill="currentColor"></circle><circle cx="14" cy="12" r=".6" fill="currentColor"></circle></svg><span class="statRotulo">Animais</span></div><span class="statValor" id="qtd">0</span></div>
+        <div class="statCard"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1 12H5L6 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg><span class="statRotulo">Média</span></div><span class="statValor" id="media">0</span></div>
+        <div class="statCard"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5H7l6 7-6 7h10"></path></svg><span class="statRotulo">Total</span></div><span class="statValor" id="total">0</span></div>
+        <div class="statCard" id="cardUltimoKg"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"></ellipse><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"></path><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg><span class="statRotulo">Valor/Kg</span></div><span class="statValor" id="ultimo">0</span></div>
+        <div class="statCard" id="cardTotalArroba" style="display:none"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path></svg><span class="statRotulo">Total @</span></div><span class="statValor" id="totalArroba">0</span></div>
+        <div class="statCard" id="cardUltimoValor"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"></ellipse><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"></path><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg><span class="statRotulo">Último</span></div><span class="statValor" id="ultimoValor">0</span></div>
+        <div class="statCard" id="cardMediaArroba" style="display:none"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path></svg><span class="statRotulo">Média @</span></div><span class="statValor" id="mediaArroba">0</span></div>
+        <div class="statCard" id="cardValorAnimal" style="display:none"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor"></circle></svg><span class="statRotulo">Valor/Animal</span></div><span class="statValor" id="valorAnimalFixo">0</span></div>
+        <div class="statCard" id="cardKgImplicito" style="display:none"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor"></circle></svg><span class="statRotulo">R$/kg médio</span></div><span class="statValor" id="kgImplicito">0</span></div>
+        <div class="statCard"><div class="statTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9" cy="7" rx="6" ry="2.5"></ellipse><path d="M3 7v5c0 1.4 2.7 2.5 6 2.5"></path><path d="M3 12v5c0 1.4 2.7 2.5 6 2.5"></path><ellipse cx="16" cy="12" rx="5" ry="2"></ellipse><path d="M11 12v5c0 1.1 2.2 2 5 2s5-.9 5-2v-5"></path></svg><span class="statRotulo">Total</span></div><span class="statValor" id="totalValor">0</span></div>
     </div>
-    <div id="listaPesosAtual" class="listaPesosAtual"></div>
+    <div class="pesosRecentesCard">
+        <div class="pesosRecentesTopo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>Pesos Recentes</span><span class="pesosRecentesQtd" id="pesosRecentesQtd">0 registros</span></div>
+        <div id="listaPesosAtual" class="listaPesosAtual"></div>
+    </div>
 
     <!-- só aparece se o operador configurou mais de 1 critério em Nova
          Pesagem -- conteúdo é montado por atualizarBotoesCriteriosPesagem() -->

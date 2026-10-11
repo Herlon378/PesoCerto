@@ -606,6 +606,24 @@ function converterParaArroba(pesoKg, rendimentoPct){
     return (pesoKg * rendimentoPct / 100) / 15;
 }
 
+function escaparHtmlPesagem(texto){
+    return String(texto).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// diminui a letra do valor só quando ele não cabe no cartão (ex: total
+// de um lote grande, "R$ 1.234.567,00") -- nunca corta o número
+function ajustarFonteStats(){
+    document.querySelectorAll("#telaPesagem .statValor").forEach(el => {
+        el.style.fontSize = "";
+        if(!el.clientWidth) return;
+        let tamanho = parseFloat(getComputedStyle(el).fontSize);
+        while(el.scrollWidth > el.clientWidth && tamanho > 10){
+            tamanho -= 1;
+            el.style.fontSize = tamanho + "px";
+        }
+    });
+}
+
 function atualizarStats(){
     let qtd = pesos.length;
     let total = pesos.reduce((a, b) => a + b.peso, 0);
@@ -652,15 +670,20 @@ function atualizarStats(){
     let valorAnimalFixoEl = document.getElementById("valorAnimalFixo");
     let kgImplicitoEl = document.getElementById("kgImplicito");
 
+    // unidade (kg/R$/@) em letra menor -- deixa o número caber nos cartões
+    // de 3 colunas sem perder destaque
+    let comKg = n => `${n}<small>kg</small>`;
+    let comRS = n => `<small>R$</small>${formatarMoeda(n)}`;
+    let comArroba = n => `${n.toFixed(2).replace(".", ",")}<small>@</small>`;
     if(qtdEl) qtdEl.innerText = qtd;
-    if(medEl) medEl.innerText = media.toFixed(2).replace(".", ",");
-    if(totEl) totEl.innerText = formatarPeso(total);
+    if(medEl) medEl.innerHTML = comKg(media.toFixed(2).replace(".", ","));
+    if(totEl) totEl.innerHTML = comKg(formatarPeso(total));
     // esse cartão (id cardUltimoKg) só aparece no critério "peso vivo (kg)"
     // -- em vez do peso do último animal (já visível na lista logo abaixo),
     // mostra o valor/kg configurado, pra lembrar o operador do preço em uso
-    if(ultEl) ultEl.innerText = "R$ " + formatarMoeda(valorKgNum);
-    if(uValEl) uValEl.innerText = "R$ " + formatarMoeda(ultimoValor);
-    if(tValEl) tValEl.innerText = "R$ " + formatarMoeda(totalValor);
+    if(ultEl) ultEl.innerHTML = comRS(valorKgNum);
+    if(uValEl) uValEl.innerHTML = comRS(ultimoValor);
+    if(tValEl) tValEl.innerHTML = comRS(totalValor);
 
     if(cardUltimoKgEl) cardUltimoKgEl.style.display = (ehArroba || ehValorAnimal || ehFaixas) ? "none" : "block";
     if(cardUltimoValorEl) cardUltimoValorEl.style.display = (ehArroba || ehValorAnimal) ? "none" : "block";
@@ -668,10 +691,13 @@ function atualizarStats(){
     if(cardMediaArrobaEl) cardMediaArrobaEl.style.display = ehArroba ? "block" : "none";
     if(cardValorAnimalEl) cardValorAnimalEl.style.display = ehValorAnimal ? "block" : "none";
     if(cardKgImplicitoEl) cardKgImplicitoEl.style.display = (ehValorAnimal || ehFaixas) ? "block" : "none";
-    if(totalArrobaEl) totalArrobaEl.innerText = totalArroba.toFixed(2).replace(".", ",");
-    if(mediaArrobaEl) mediaArrobaEl.innerText = mediaArroba.toFixed(2).replace(".", ",");
-    if(valorAnimalFixoEl) valorAnimalFixoEl.innerText = "R$ " + formatarMoeda(valorKgNum);
-    if(kgImplicitoEl) kgImplicitoEl.innerText = "R$ " + formatarMoeda(kgImplicito);
+    if(totalArrobaEl) totalArrobaEl.innerHTML = comArroba(totalArroba);
+    if(mediaArrobaEl) mediaArrobaEl.innerHTML = comArroba(mediaArroba);
+    if(valorAnimalFixoEl) valorAnimalFixoEl.innerHTML = comRS(valorKgNum);
+    if(kgImplicitoEl) kgImplicitoEl.innerHTML = comRS(kgImplicito);
+    ajustarFonteStats();
+    let qtdRegistrosEl = document.getElementById("pesosRecentesQtd");
+    if(qtdRegistrosEl) qtdRegistrosEl.innerText = qtd === 1 ? "1 registro" : qtd + " registros";
 
     let listaHTML = "";
     if(pesos.length === 0){
@@ -681,14 +707,19 @@ function atualizarStats(){
             let originalIdx = pesos.length - 1 - idx;
             let arrobaItem = converterParaArroba(p.peso, rendimentoNum);
             let valorItem = calcularValorAtual(p);
-            let textoArroba = ehArroba ? ` (${arrobaItem.toFixed(2).replace(".", ",")} @)` : "";
-            let textoKgImplicito = (ehValorAnimal && p.peso > 0) ? ` (R$ ${formatarMoeda(valorKgNum / p.peso)}/kg)` : "";
+            let extras = [];
+            if(ehArroba) extras.push(`${arrobaItem.toFixed(2).replace(".", ",")} @`);
+            if(ehValorAnimal && p.peso > 0) extras.push(`R$ ${formatarMoeda(valorKgNum / p.peso)}/kg`);
+            if(p.obs) extras.push(escaparHtmlPesagem(p.obs));
             listaHTML += `
                 <div class="itemPesagem">
-                    <span>#${originalIdx + 1} - <b>${formatarPeso(p.peso)} kg</b>${textoArroba}${textoKgImplicito} ${p.obs ? `(${p.obs})` : ''}</span>
+                    <span class="itemPesagemNum">#${originalIdx + 1}</span>
+                    <span class="itemPesagemPeso"><b>${formatarPeso(p.peso)}</b> kg${extras.length ? `<small>${extras.join(" · ")}</small>` : ""}</span>
                     <span class="itemPesagemDireita">
-                        <span style="color:#2e7d32">R$ ${formatarMoeda(valorItem)}</span>
-                        <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})">🗑</button>
+                        <span class="itemPesagemValor">R$ ${formatarMoeda(valorItem)}</span>
+                        <button class="btnExcluirItem" onclick="excluirPesoItem(${originalIdx})" aria-label="Excluir peso">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 14h10l1-14"></path><path d="M10 10v6M14 10v6"></path></svg>
+                        </button>
                     </span>
                 </div>
             `;
@@ -1921,9 +1952,9 @@ function inicializarSliderFinalizar(){
             handle.style.color = "#fff";
             handle.innerText = "✓";
         } else {
-            handle.style.background = "#ffffff";
-            handle.style.color = "#555";
-            handle.innerText = "↔";
+            handle.style.background = "";
+            handle.style.color = "";
+            handle.innerText = "⇄";
         }
     }
 
@@ -1951,9 +1982,9 @@ function inicializarSliderFinalizar(){
         arrastando = false;
         handle.style.transition = "transform 0.25s ease";
         handle.style.transform = "translateX(-50%)";
-        handle.style.background = "#ffffff";
-        handle.style.color = "#555";
-        handle.innerText = "↔";
+        handle.style.background = "";
+        handle.style.color = "";
+        handle.innerText = "⇄";
 
         let resultado = avaliarArraste(deltaX, maxOffset, LIMIAR);
         deltaX = 0;
