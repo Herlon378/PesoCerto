@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="admin.css?v=6">
+    <link rel="stylesheet" href="admin.css?v=7">
 </head>
 <body class="modoDesktop">
 
@@ -45,32 +45,119 @@
 
 <div class="painelDesktop">
 
-<div id="telaLogin" class="tela ativa">
-    <h2>🐂 PesoCerto — Entrar</h2>
-    <p class="loginSubtitulo">Entre com seu usuário para acessar o gerenciamento</p>
-    <input id="loginUsuario" placeholder="Usuário">
-    <input id="loginSenha" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter') enviarLogin()">
-    <p id="loginErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" onclick="enviarLogin()">Entrar</button>
-    <p class="loginRodapeCadastro">Sua fazenda ainda não usa o PesoCerto?
-        <button type="button" class="linkCadastroFazenda" onclick="abrirCadastroFazenda()">Cadastrar minha fazenda</button>
-    </p>
+<div id="telaLogin" class="tela telaAcesso ativa">
+    <aside class="acessoHero">
+        <div class="acessoMarca"><span class="acessoMarcaLogo">🐂</span><span>Peso<span class="menuTituloDestaque">Certo</span></span></div>
+        <div class="acessoHeroMeio">
+            <h1>Sua fazenda inteira,<br>do curral ao caixa.</h1>
+            <p>Pesagem, custo por lote, financeiro e rebanho num lugar só — no celular do peão e no computador do escritório.</p>
+            <ul class="acessoRecursos">
+                <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5a7.5 7.5 0 1 1 15 0"></path><path d="M12 12l3.2-3.2"></path></svg></span><div><b>Pesagem com balança</b><span>O peso vem direto da balança Bluetooth e o valor é calculado na hora.</span></div></li>
+                <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg></span><div><b>Custo e lucro por lote</b><span>Compra, insumos, transferências e simulação de venda.</span></div></li>
+                <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M2 10h20"></path><path d="M6 15h4"></path></svg></span><div><b>Caixa, contas e salários</b><span>Fluxo de caixa, contas a pagar e folha num lugar só.</span></div></li>
+                <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span><div><b>Seus dados, só seus</b><span>Cada fazenda tem um ambiente próprio e separado.</span></div></li>
+            </ul>
+        </div>
+        <small class="acessoRodape">PESO CERTO • HERLON REIS</small>
+    </aside>
+    <main class="acessoPainel">
+        <div class="loginCard acessoCartao">
+            <h2 class="acessoTitulo">Entrar</h2>
+            <p class="loginSubtituloNovo">Use o usuário e a senha da sua fazenda</p>
+
+            <label class="acessoRotulo" for="loginUsuario">Usuário</label>
+            <div class="campoLogin">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <input id="loginUsuario" placeholder="Seu usuário" autocomplete="username">
+            </div>
+            <label class="acessoRotulo" for="loginSenha">Senha</label>
+            <div class="campoLogin">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <input id="loginSenha" type="password" placeholder="Sua senha" autocomplete="current-password" onkeydown="if(event.key==='Enter') enviarLogin()">
+                <button type="button" class="botaoVerSenha" onclick="alternarVerSenha('loginSenha', this)" aria-label="Mostrar senha" title="Mostrar senha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+            </div>
+
+            <p id="loginErro" class="loginErro" style="display:none"></p>
+
+            <button class="botaoEntrar" onclick="enviarLogin()">
+                Entrar
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+
+            <div class="acessoDivisor"><span>ou</span></div>
+            <button type="button" class="botaoSecundarioAcesso" onclick="abrirCadastroFazenda()">🏡 Cadastrar minha fazenda</button>
+            <p class="acessoNota">Precisa do código de convite.</p>
+        </div>
+    </main>
 </div>
 
-<div id="telaCadastroFazenda" class="tela">
-    <h2>🏡 Cadastrar minha fazenda</h2>
-    <p class="loginSubtitulo">Crie o ambiente da sua fazenda. Ele começa vazio e só você e os usuários que você cadastrar terão acesso.</p>
-    <input id="cadFazendaNome" placeholder="Nome da fazenda" maxlength="80">
-    <input id="cadFazendaResponsavel" placeholder="Seu nome" maxlength="80">
-    <input id="cadFazendaUsuario" placeholder="Usuário para entrar (sem espaços)" maxlength="40" autocomplete="username">
-    <input id="cadFazendaSenha" type="password" placeholder="Senha (mínimo 6 caracteres)" autocomplete="new-password">
-    <input id="cadFazendaSenha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
-    <input id="cadFazendaConvite" placeholder="Código de convite" maxlength="40" onkeydown="if(event.key==='Enter') enviarCadastroFazenda()">
-    <p id="cadFazendaErro" class="loginErro" style="display:none"></p>
-    <button class="btnGrande" id="btnCadastrarFazenda" onclick="enviarCadastroFazenda()">Criar fazenda</button>
-    <p class="loginRodapeCadastro">Já tem cadastro?
-        <button type="button" class="linkCadastroFazenda" onclick="trocarTela('telaLogin')">Entrar</button>
-    </p>
+<div id="telaCadastroFazenda" class="tela telaAcesso">
+    <aside class="acessoHero">
+        <div class="acessoMarca"><span class="acessoMarcaLogo">🐂</span><span>Peso<span class="menuTituloDestaque">Certo</span></span></div>
+        <div class="acessoHeroMeio">
+            <h1>Comece em<br>3 passos.</h1>
+            <p>O ambiente da sua fazenda começa vazio — só você e as pessoas que você cadastrar terão acesso.</p>
+            <ol class="acessoPassos">
+                <li><span>1</span><div><b>Cadastre a fazenda</b><span>Preencha ao lado com o código de convite.</span></div></li>
+                <li><span>2</span><div><b>Crie lotes e usuários</b><span>Em Lotes e Usuários, aqui no computador.</span></div></li>
+                <li><span>3</span><div><b>Pese no celular</b><span>Seus operadores entram no app com o login que você criou.</span></div></li>
+            </ol>
+        </div>
+        <small class="acessoRodape">PESO CERTO • HERLON REIS</small>
+    </aside>
+    <main class="acessoPainel">
+        <div class="loginCard acessoCartao acessoCartaoLargo">
+            <h2 class="acessoTitulo">Cadastrar minha fazenda</h2>
+            <p class="loginSubtituloNovo">Você será o administrador da fazenda</p>
+
+            <label class="acessoRotulo" for="cadFazendaNome">Nome da fazenda</label>
+            <div class="campoLogin">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"></path><path d="M5 9v12h14V9"></path><path d="M10 21v-6h4v6"></path></svg>
+                <input id="cadFazendaNome" placeholder="Ex: Fazenda Boa Vista" maxlength="80">
+            </div>
+            <div class="acessoGrade">
+                <div>
+                    <label class="acessoRotulo" for="cadFazendaResponsavel">Seu nome</label>
+                    <div class="campoLogin">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <input id="cadFazendaResponsavel" placeholder="Nome completo" maxlength="80">
+                    </div>
+                </div>
+                <div>
+                    <label class="acessoRotulo" for="cadFazendaUsuario">Usuário para entrar</label>
+                    <div class="campoLogin">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path></svg>
+                        <input id="cadFazendaUsuario" placeholder="Sem espaços" maxlength="40" autocomplete="username">
+                    </div>
+                </div>
+                <div>
+                    <label class="acessoRotulo" for="cadFazendaSenha">Senha</label>
+                    <div class="campoLogin">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <input id="cadFazendaSenha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                        <button type="button" class="botaoVerSenha" onclick="alternarVerSenha('cadFazendaSenha', this)" aria-label="Mostrar senha" title="Mostrar senha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="acessoRotulo" for="cadFazendaSenha2">Repita a senha</label>
+                    <div class="campoLogin">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <input id="cadFazendaSenha2" type="password" placeholder="Igual à de cima" autocomplete="new-password">
+                    </div>
+                </div>
+            </div>
+            <label class="acessoRotulo" for="cadFazendaConvite">Código de convite</label>
+            <div class="campoLogin">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                <input id="cadFazendaConvite" placeholder="Ex: ABCD-1234" maxlength="40" onkeydown="if(event.key==='Enter') enviarCadastroFazenda()">
+            </div>
+
+            <p id="cadFazendaErro" class="loginErro" style="display:none"></p>
+
+            <button class="botaoEntrar" id="btnCadastrarFazenda" onclick="enviarCadastroFazenda()">Criar fazenda</button>
+            <p class="acessoNota">Já tem cadastro? <button type="button" class="linkCadastroFazenda" onclick="mostrarTelaLogin()">Entrar</button></p>
+        </div>
+    </main>
 </div>
 
 <div id="telaFazendas" class="tela">
@@ -797,7 +884,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
 <script src="app.js?v=6"></script>
-<script src="admin.js?v=13"></script>
+<script src="admin.js?v=14"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">

@@ -4253,3 +4253,13 @@ async function renomearFazendaSistema(id, nomeAtual) {
         alertarModerno(e.message, { titulo: "⚠️ Atenção" });
     }
 }
+
+function alternarVerSenha(idCampo, botao) {
+    let campo = document.getElementById(idCampo);
+    if (!campo) return;
+    let mostrar = campo.type === "password";
+    campo.type = mostrar ? "text" : "password";
+    botao.classList.toggle("ativo", mostrar);
+    botao.title = mostrar ? "Ocultar senha" : "Mostrar senha";
+    botao.setAttribute("aria-label", botao.title);
+}
