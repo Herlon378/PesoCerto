@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="admin.css?v=5">
+    <link rel="stylesheet" href="admin.css?v=6">
 </head>
 <body class="modoDesktop">
 
@@ -25,10 +25,11 @@
     <button data-tela="telaEnergia" onclick="trocarTela('telaEnergia'); abrirTelaEnergia();">⚡ Energia</button>
     <button data-tela="telaSalarios" onclick="trocarTela('telaSalarios'); abrirTelaSalarios();">💰 Salários</button>
     <button data-tela="telaVacasMatriz" onclick="trocarTela('telaVacasMatriz'); abrirTelaVacasMatriz();">🐄 Vacas Matriz</button>
+    <button data-tela="telaFazendas" style="display:none" onclick="trocarTela('telaFazendas'); carregarFazendasSistema();">🏡 Fazendas</button>
     <div class="navRodape">
         <span class="navRodapeLogo">🐂</span>
-        <strong>Estância <span class="navRodapeDestaque">Reis</span></strong>
-        <small>Trabalho • Disciplina • Resultado</small>
+        <strong id="navRodapeFazenda">Estância <span class="navRodapeDestaque">Reis</span></strong>
+        <small id="navRodapeSlogan">Trabalho • Disciplina • Resultado</small>
     </div>
 </div>
 
@@ -51,6 +52,47 @@
     <input id="loginSenha" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter') enviarLogin()">
     <p id="loginErro" class="loginErro" style="display:none"></p>
     <button class="btnGrande" onclick="enviarLogin()">Entrar</button>
+    <p class="loginRodapeCadastro">Sua fazenda ainda não usa o PesoCerto?
+        <button type="button" class="linkCadastroFazenda" onclick="abrirCadastroFazenda()">Cadastrar minha fazenda</button>
+    </p>
+</div>
+
+<div id="telaCadastroFazenda" class="tela">
+    <h2>🏡 Cadastrar minha fazenda</h2>
+    <p class="loginSubtitulo">Crie o ambiente da sua fazenda. Ele começa vazio e só você e os usuários que você cadastrar terão acesso.</p>
+    <input id="cadFazendaNome" placeholder="Nome da fazenda" maxlength="80">
+    <input id="cadFazendaResponsavel" placeholder="Seu nome" maxlength="80">
+    <input id="cadFazendaUsuario" placeholder="Usuário para entrar (sem espaços)" maxlength="40" autocomplete="username">
+    <input id="cadFazendaSenha" type="password" placeholder="Senha (mínimo 6 caracteres)" autocomplete="new-password">
+    <input id="cadFazendaSenha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
+    <input id="cadFazendaConvite" placeholder="Código de convite" maxlength="40" onkeydown="if(event.key==='Enter') enviarCadastroFazenda()">
+    <p id="cadFazendaErro" class="loginErro" style="display:none"></p>
+    <button class="btnGrande" id="btnCadastrarFazenda" onclick="enviarCadastroFazenda()">Criar fazenda</button>
+    <p class="loginRodapeCadastro">Já tem cadastro?
+        <button type="button" class="linkCadastroFazenda" onclick="trocarTela('telaLogin')">Entrar</button>
+    </p>
+</div>
+
+<div id="telaFazendas" class="tela">
+    <h2>Fazendas</h2>
+    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
+        Fazendas que usam o PesoCerto. Cada uma tem os próprios dados, separados das outras — aqui aparecem só os números gerais, nunca os dados internos delas.
+    </p>
+    <div class="cartaoConvite">
+        <div>
+            <strong>Código de convite</strong>
+            <small>Passe este código para quem você quer liberar. Sem ele, ninguém consegue cadastrar uma fazenda nova.</small>
+        </div>
+        <span class="codigoConvite" id="codigoConviteAtual">—</span>
+        <button onclick="copiarCodigoConvite()">📋 Copiar</button>
+        <button onclick="trocarCodigoConvite()">✏️ Trocar código</button>
+    </div>
+    <table class="tabelaUsuarios">
+        <thead>
+            <tr><th>Fazenda</th><th>Cadastro</th><th>Usuários</th><th>Pesagens</th><th>Último acesso</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="corpoTabelaFazendas"></tbody>
+    </table>
 </div>
 
 <div id="telaResultado" class="tela">
@@ -754,8 +796,8 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
-<script src="app.js?v=5"></script>
-<script src="admin.js?v=12"></script>
+<script src="app.js?v=6"></script>
+<script src="admin.js?v=13"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">

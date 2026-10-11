@@ -1663,7 +1663,7 @@ function prepararImpressao(){
     let totalGeral = 0;
 
     let html = `
-        <h2>Pesagem Estância Reis ${r.numero ? "— Nº " + r.numero : ""}</h2>
+        <h2>Pesagem ${escaparHtmlPesagem(nomeFazendaAtual())} ${r.numero ? "— Nº " + r.numero : ""}</h2>
         <hr>
         <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${calcularDadosCompletos(r).dataHora}</p>
     `;
@@ -2090,6 +2090,100 @@ function limparDadosVisiveis(){
     });
 }
 
+// ========================================
+// FAZENDA (sistema com várias fazendas)
+// ========================================
+// Cada fazenda tem os próprios dados no servidor. Aqui no aparelho fica
+// guardado de qual fazenda são os dados locais (pesagens, rascunho, caches)
+// -- se alguém entrar com o login de OUTRA fazenda neste aparelho, esses
+// dados são apagados antes, senão sincronizariam na fazenda errada.
+const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache"];
+
+// "<schema>:<aleatório>"; token sem ":" é de antes do multi-fazenda, e todos
+// eram da fazenda original
+function schemaDoTokenLocal(token){
+    if(!token) return null;
+    let i = token.indexOf(":");
+    return i < 0 ? "public" : token.slice(0, i);
+}
+
+function nomeFazendaAtual(){
+    let nome = localStorage.getItem("fazendaNome");
+    if(nome) return nome;
+    return schemaDoTokenLocal(obterToken()) === "public" ? "Estância Reis" : "Fazenda";
+}
+
+function ehDonoSistemaLocal(){
+    return localStorage.getItem("donoSistema") === "1";
+}
+
+function contarPendentesLocais(){
+    let total = 0;
+    ["pesagens", "estoqueSaidas", "nascimentos", "vacasMatriz"].forEach(chave => {
+        try{
+            let lista = JSON.parse(localStorage.getItem(chave) || "[]");
+            if(Array.isArray(lista)) total += lista.filter(item => item && !item.sincronizado).length;
+        }catch(e){}
+    });
+    try{ total += (JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]") || []).length; }catch(e){}
+    if(localStorage.getItem("pesagemAtual")) total += 1;
+    return total;
+}
+
+// devolve false se o operador desistiu (tinha coisa não enviada)
+function prepararDadosLocaisParaFazenda(token){
+    let nova = schemaDoTokenLocal(token);
+    let anterior = localStorage.getItem("fazendaDadosSchema") || "public";
+    if(nova === anterior){
+        localStorage.setItem("fazendaDadosSchema", nova);
+        return true;
+    }
+    let pendentes = contarPendentesLocais();
+    if(pendentes > 0 && !confirm(`Este aparelho tem ${pendentes} registro(s) da fazenda anterior que ainda não foram enviados ao servidor.\n\nEntrando com o login de outra fazenda, eles serão APAGADOS deste aparelho.\n\nContinuar mesmo assim?`)){
+        return false;
+    }
+    CHAVES_DADOS_FAZENDA.forEach(chave => localStorage.removeItem(chave));
+    relatorios = [];
+    pesos = [];
+    localStorage.setItem("fazendaDadosSchema", nova);
+    return true;
+}
+
+function guardarDadosFazenda(dados){
+    if(dados && dados.fazenda){
+        localStorage.setItem("fazendaNome", dados.fazenda.nome || "");
+        localStorage.setItem("fazendaId", dados.fazenda.id || "");
+    }
+    if(dados && dados.donoSistema !== undefined) localStorage.setItem("donoSistema", dados.donoSistema ? "1" : "");
+    atualizarMarcaFazenda();
+}
+
+// nome da fazenda no rodapé da barra lateral (computador) e o item
+// "Fazendas" do menu, que só o dono do sistema vê
+function atualizarMarcaFazenda(){
+    let logado = !!obterToken();
+    let marca = document.getElementById("navRodapeFazenda");
+    if(marca && logado){
+        let partes = nomeFazendaAtual().trim().split(/\s+/);
+        let destaque = partes.length > 1 ? partes.pop() : "";
+        marca.innerHTML = escaparHtmlPesagem(partes.join(" ")) + (destaque ? ` <span class="navRodapeDestaque">${escaparHtmlPesagem(destaque)}</span>` : "");
+    }
+    let slogan = document.getElementById("navRodapeSlogan");
+    if(slogan) slogan.style.display = (!logado || schemaDoTokenLocal(obterToken()) === "public") ? "" : "none";
+    let navFazendas = document.querySelector('[data-tela="telaFazendas"]');
+    if(navFazendas) navFazendas.style.display = (logado && ehDonoSistemaLocal()) ? "inline-block" : "none";
+}
+
+// sessões abertas antes desta versão não têm o nome da fazenda guardado
+async function atualizarDadosFazendaDoServidor(){
+    let token = obterToken();
+    if(!token || typeof API_URL === "undefined") return;
+    try{
+        let resp = await fetch(`${API_URL}/api/auth/me`, { headers: { "Authorization": "Bearer " + token } });
+        if(resp.ok) guardarDadosFazenda(await resp.json());
+    }catch(e){}
+}
+
 function irParaTelaPrincipal(){
     if(document.getElementById("telaMenu")){
         trocarTela("telaMenu");
@@ -2123,6 +2217,11 @@ async function enviarLogin(){
             mostrarErro(dados.erro || "Não foi possível entrar.");
             return;
         }
+        if(!prepararDadosLocaisParaFazenda(dados.token)){
+            fetch(`${API_URL}/api/auth/logout`, { method: "POST", headers: { "Authorization": "Bearer " + dados.token } }).catch(() => {});
+            mostrarErro("Entrada cancelada.");
+            return;
+        }
         localStorage.setItem("sessionToken", dados.token);
         localStorage.setItem("usuarioNome", dados.nome);
         localStorage.setItem("usuarioPapel", dados.papel);
@@ -2133,6 +2232,7 @@ async function enviarLogin(){
         localStorage.setItem("permAlmoxarifado", dados.permissaoAlmoxarifado ? "1" : "");
         localStorage.setItem("permVacasMatriz", dados.permissaoVacasMatriz ? "1" : "");
         localStorage.setItem("permEditarNascimentos", dados.permissaoEditarNascimentos ? "1" : "");
+        guardarDadosFazenda(dados);
         irParaTelaPrincipal();
         atualizarBotaoLogin();
         aplicarRestricoesUsuario();
@@ -2162,6 +2262,9 @@ function sair(){
     localStorage.removeItem("permEditarNascimentos");
     localStorage.removeItem("produtosCache");
     localStorage.removeItem("pastosCache");
+    localStorage.removeItem("fazendaNome");
+    localStorage.removeItem("fazendaId");
+    localStorage.removeItem("donoSistema");
     limparDadosVisiveis();
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
@@ -2201,6 +2304,7 @@ function atualizarBotaoLogin(){
     // saudação do Dashboard ("Olá, <nome>!") -- só existe no admin.html
     let saudacao = document.getElementById("saudacaoNome");
     if(saudacao && nome) saudacao.innerText = nome;
+    atualizarMarcaFazenda();
 
     // Nav do gerenciamento (desktop): cada botão só aparece se o usuário
     // estiver logado, e Usuários/Lotes exigem também o papel admin.
@@ -2213,6 +2317,7 @@ function atualizarBotaoLogin(){
         { id: "telaFluxoCaixa", soAdmin: true },
         { id: "telaContasPagar", soAdmin: true },
         { id: "telaEnergia", soAdmin: true },
+        { id: "telaSalarios", soAdmin: true },
         { id: "telaVacasMatriz", soAdmin: true }
     ].forEach(({ id, soAdmin }) => {
         let navBtn = document.querySelector(`[data-tela="${id}"]`);
@@ -2852,6 +2957,7 @@ window.onload = function() {
     inicializarSliderFinalizar();
     atualizarBotaoLogin();
     aplicarRestricoesUsuario();
+    atualizarDadosFazendaDoServidor();
 
     if(obterToken()){
         irParaTelaPrincipal();

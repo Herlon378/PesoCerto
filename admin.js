@@ -3390,7 +3390,7 @@ function desenharReciboVale(pdf, a, nomeFunc, cargoFunc) {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
-    pdf.text("ESTÂNCIA REIS", 10, y);
+    pdf.text(nomeFazendaAtual().toUpperCase(), 10, y);
     y += 5;
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
@@ -3424,7 +3424,7 @@ function desenharReciboVale(pdf, a, nomeFunc, cargoFunc) {
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(8);
-    let declaracao = `Recebi de ESTÂNCIA REIS a quantia de R$ ${formatarMoeda(a.valor)} referente a adiantamento (vale) a ser descontado na folha de pagamento da competência de ${formatarCompetenciaExtenso(a.competencia)}.`;
+    let declaracao = `Recebi de ${nomeFazendaAtual().toUpperCase()} a quantia de R$ ${formatarMoeda(a.valor)} referente a adiantamento (vale) a ser descontado na folha de pagamento da competência de ${formatarCompetenciaExtenso(a.competencia)}.`;
     let linhasDeclaracao = pdf.splitTextToSize(declaracao, 190);
     pdf.text(linhasDeclaracao, 10, y);
     y += linhasDeclaracao.length * 4 + 10;
@@ -3482,7 +3482,7 @@ async function gerarReciboSalario(contaId) {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
-    pdf.text("ESTÂNCIA REIS", 105, y, { align: "center" });
+    pdf.text(nomeFazendaAtual().toUpperCase(), 105, y, { align: "center" });
     y += 7;
     pdf.setFontSize(13);
     pdf.text("RECIBO DE PAGAMENTO DE SALÁRIO", 105, y, { align: "center" });
@@ -3536,14 +3536,14 @@ async function gerarReciboSalario(contaId) {
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(11);
-    let declaracao = `Recebi de ESTÂNCIA REIS a quantia líquida de R$ ${formatarMoeda(parcela.valor)}, referente ao pagamento do salário da competência de ${formatarCompetenciaExtenso(c.competencia)}, dando plena e geral quitação.`;
+    let declaracao = `Recebi de ${nomeFazendaAtual().toUpperCase()} a quantia líquida de R$ ${formatarMoeda(parcela.valor)}, referente ao pagamento do salário da competência de ${formatarCompetenciaExtenso(c.competencia)}, dando plena e geral quitação.`;
     let linhasDeclaracao = pdf.splitTextToSize(declaracao, 180);
     pdf.text(linhasDeclaracao, 10, y);
     y += linhasDeclaracao.length * 6 + 24;
 
     y = assinaturaPdf(pdf, y, nomeFunc, "Assinatura do Funcionário");
     y += 20;
-    assinaturaPdf(pdf, y, "Estância Reis", "Assinatura do Responsável");
+    assinaturaPdf(pdf, y, nomeFazendaAtual(), "Assinatura do Responsável");
 
     abrirPdfParaImpressao(pdf);
 }
@@ -4089,5 +4089,167 @@ async function confirmarEventoNascimento() {
         mostrarResumoVacasMatriz();
     } catch (e) {
         mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+
+// ========================================
+// CADASTRO DE FAZENDA (tela de login) E PAINEL "FAZENDAS" (dono do sistema)
+// ========================================
+function abrirCadastroFazenda() {
+    let erro = document.getElementById("cadFazendaErro");
+    if (erro) erro.style.display = "none";
+    trocarTela("telaCadastroFazenda");
+}
+
+async function enviarCadastroFazenda() {
+    let valor = id => document.getElementById(id).value;
+    let erroEl = document.getElementById("cadFazendaErro");
+    let botao = document.getElementById("btnCadastrarFazenda");
+    function mostrarErro(msg) { erroEl.innerText = msg; erroEl.style.display = "block"; }
+
+    let corpo = {
+        nomeFazenda: valor("cadFazendaNome").trim(),
+        nome: valor("cadFazendaResponsavel").trim(),
+        usuario: valor("cadFazendaUsuario").trim(),
+        senha: valor("cadFazendaSenha"),
+        codigoConvite: valor("cadFazendaConvite").trim()
+    };
+    if (!corpo.nomeFazenda || !corpo.nome || !corpo.usuario || !corpo.senha || !corpo.codigoConvite) return mostrarErro("Preencha todos os campos.");
+    if (/\s/.test(corpo.usuario)) return mostrarErro("O usuário não pode ter espaços.");
+    if (corpo.senha.length < 6) return mostrarErro("A senha precisa ter pelo menos 6 caracteres.");
+    if (corpo.senha !== valor("cadFazendaSenha2")) return mostrarErro("As senhas não são iguais.");
+
+    erroEl.style.display = "none";
+    botao.disabled = true;
+    botao.innerText = "Criando a fazenda...";
+    try {
+        let resp = await fetch(`${API_URL}/api/auth/cadastrar-fazenda`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(corpo)
+        });
+        let dados = await resp.json();
+        if (!resp.ok) return mostrarErro(dados.erro || "Não foi possível cadastrar.");
+
+        // mesmo caminho de um login normal (limpa dados locais de outra
+        // fazenda, guarda sessão/permissões e abre o painel)
+        prepararDadosLocaisParaFazenda(dados.token);
+        localStorage.setItem("sessionToken", dados.token);
+        localStorage.setItem("usuarioNome", dados.nome);
+        localStorage.setItem("usuarioPapel", dados.papel);
+        localStorage.setItem("permTipoPesagem", dados.permissaoTipoPesagem || "ambos");
+        localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
+        localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");
+        localStorage.setItem("valorMaximoCompra", "");
+        localStorage.setItem("permAlmoxarifado", dados.permissaoAlmoxarifado ? "1" : "");
+        localStorage.setItem("permVacasMatriz", dados.permissaoVacasMatriz ? "1" : "");
+        localStorage.setItem("permEditarNascimentos", dados.permissaoEditarNascimentos ? "1" : "");
+        guardarDadosFazenda(dados);
+        ["cadFazendaNome", "cadFazendaResponsavel", "cadFazendaUsuario", "cadFazendaSenha", "cadFazendaSenha2", "cadFazendaConvite"].forEach(id => { document.getElementById(id).value = ""; });
+        irParaTelaPrincipal();
+        atualizarBotaoLogin();
+        aplicarRestricoesUsuario();
+        sincronizarAgora();
+        alertarModerno(`A fazenda "${dados.fazenda.nome}" foi criada. Agora cadastre os lotes e, em Usuários, os logins dos seus operadores para o celular.`, { titulo: "✅ Bem-vindo ao PesoCerto" });
+    } catch (e) {
+        mostrarErro("Erro de conexão.");
+    } finally {
+        botao.disabled = false;
+        botao.innerText = "Criar fazenda";
+    }
+}
+
+async function requisicaoSistema(metodo, rota, corpo) {
+    let resp = await fetch(`${API_URL}${rota}`, {
+        method: metodo,
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + obterToken() },
+        body: corpo ? JSON.stringify(corpo) : undefined
+    });
+    let dados = null;
+    try { dados = await resp.json(); } catch (e) {}
+    if (!resp.ok) throw new Error((dados && dados.erro) || "Erro na requisição.");
+    return dados;
+}
+
+function formatarDataHoraCurta(valor) {
+    if (!valor) return "—";
+    let d = new Date(valor);
+    return isNaN(d) ? "—" : d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+async function carregarFazendasSistema() {
+    let corpo = document.getElementById("corpoTabelaFazendas");
+    if (!corpo) return;
+    corpo.innerHTML = `<tr><td colspan="7">Carregando...</td></tr>`;
+    try {
+        let [fazendas, convite] = await Promise.all([
+            requisicaoSistema("GET", "/api/sistema/fazendas"),
+            requisicaoSistema("GET", "/api/sistema/convite")
+        ]);
+        document.getElementById("codigoConviteAtual").innerText = convite.codigo || "—";
+        corpo.innerHTML = fazendas.map(f => `
+            <tr>
+                <td><b>${escaparHtmlPesagem(f.nome)}</b>${f.principal ? ' <span class="seloFazendaPrincipal">sua fazenda</span>' : ""}</td>
+                <td>${formatarDataHoraCurta(f.criadoEm)}</td>
+                <td>${f.usuarios}</td>
+                <td>${f.pesagens}</td>
+                <td>${formatarDataHoraCurta(f.ultimoAcesso)}</td>
+                <td>${f.ativo ? "✅ Ativa" : "🚫 Bloqueada"}</td>
+                <td class="acoesUsuario">
+                    <button title="Renomear" onclick='renomearFazendaSistema(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'>✏️</button>
+                    ${f.principal ? "" : `<button title="${f.ativo ? "Bloquear" : "Desbloquear"}" onclick='alternarBloqueioFazenda(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)}, ${!f.ativo})'>${f.ativo ? "🚫" : "✅"}</button>`}
+                </td>
+            </tr>
+        `).join("");
+    } catch (e) {
+        corpo.innerHTML = `<tr><td colspan="7">${escaparHtmlPesagem(e.message)}</td></tr>`;
+    }
+}
+
+async function copiarCodigoConvite() {
+    let codigo = document.getElementById("codigoConviteAtual").innerText;
+    try {
+        await navigator.clipboard.writeText(codigo);
+        alertarModerno("Código copiado: " + codigo, { titulo: "📋 Copiado" });
+    } catch (e) {
+        alertarModerno("Código de convite: " + codigo, { titulo: "Código de convite" });
+    }
+}
+
+async function trocarCodigoConvite() {
+    let novo = prompt("Novo código de convite (de 4 a 40 caracteres). O código antigo deixa de funcionar na hora:");
+    if (novo === null) return;
+    try {
+        let r = await requisicaoSistema("PUT", "/api/sistema/convite", { codigo: novo.trim() });
+        document.getElementById("codigoConviteAtual").innerText = r.codigo;
+    } catch (e) {
+        alertarModerno(e.message, { titulo: "⚠️ Atenção" });
+    }
+}
+
+async function alternarBloqueioFazenda(id, nome, ativar) {
+    let ok = await confirmarModerno(ativar
+        ? `Desbloquear a fazenda "${nome}"? Os usuários dela voltam a conseguir entrar.`
+        : `Bloquear a fazenda "${nome}"? Ninguém dela consegue mais entrar nem sincronizar até você desbloquear. Os dados NÃO são apagados.`,
+        { titulo: ativar ? "✅ Desbloquear fazenda" : "🚫 Bloquear fazenda", textoConfirmar: ativar ? "Desbloquear" : "Bloquear" });
+    if (!ok) return;
+    try {
+        await requisicaoSistema("PUT", "/api/sistema/fazendas/" + id, { ativo: ativar });
+        carregarFazendasSistema();
+    } catch (e) {
+        alertarModerno(e.message, { titulo: "⚠️ Atenção" });
+    }
+}
+
+async function renomearFazendaSistema(id, nomeAtual) {
+    let novo = prompt("Nome da fazenda:", nomeAtual);
+    if (novo === null || !novo.trim() || novo.trim() === nomeAtual) return;
+    try {
+        await requisicaoSistema("PUT", "/api/sistema/fazendas/" + id, { nome: novo.trim() });
+        if (id === localStorage.getItem("fazendaId")) guardarDadosFazenda({ fazenda: { id, nome: novo.trim() } });
+        carregarFazendasSistema();
+    } catch (e) {
+        alertarModerno(e.message, { titulo: "⚠️ Atenção" });
     }
 }
