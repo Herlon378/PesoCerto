@@ -2979,6 +2979,16 @@ function atualizarStatusConexaoBalanca(texto, classe){
     el.className = "statusConexaoBalanca" + (classe ? " " + classe : "");
 }
 
+function pularConexaoBalanca(){
+    trocarTela("telaPesagem");
+    atualizarStats();
+}
+
+function voltarDeConectarBalanca(){
+    desconectarBalancaBluetooth();
+    trocarTela("telaInicial");
+}
+
 // a linha "PESO ATUAL" em cima do display vira o status da balança:
 // conectada / reconectando / desconectada (toque pra reconectar) / avisos
 // rápidos (lançado automático, peso igual ao anterior)
