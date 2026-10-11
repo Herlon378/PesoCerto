@@ -4197,6 +4197,7 @@ async function carregarFazendasSistema() {
                 <td>${formatarDataHoraCurta(f.ultimoAcesso)}</td>
                 <td>${f.ativo ? "✅ Ativa" : "🚫 Bloqueada"}</td>
                 <td class="acoesUsuario">
+                    <button title="Ver compras, vendas e relatórios" onclick='verDadosFazenda(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'><svg class="iconeVerDados" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
                     <button title="Renomear" onclick='renomearFazendaSistema(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'>✏️</button>
                     ${f.principal ? "" : `<button title="${f.ativo ? "Bloquear" : "Desbloquear"}" onclick='alternarBloqueioFazenda(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)}, ${!f.ativo})'>${f.ativo ? "🚫" : "✅"}</button>`}
                 </td>
@@ -4262,4 +4263,97 @@ function alternarVerSenha(idCampo, botao) {
     botao.classList.toggle("ativo", mostrar);
     botao.title = mostrar ? "Ocultar senha" : "Mostrar senha";
     botao.setAttribute("aria-label", botao.title);
+}
+
+// ========================================
+// PAINEL FAZENDAS: consultar compras/vendas/relatórios de uma fazenda
+// (só leitura, só o dono do sistema)
+// ========================================
+let dadosFazendaAberta = { nome: "", pesagens: [] };
+
+async function verDadosFazenda(id, nome) {
+    let painel = document.getElementById("fazendaDadosPainel");
+    let corpo = document.getElementById("corpoTabelaDadosFazenda");
+    document.getElementById("fazendaDadosTitulo").innerText = "📊 " + nome;
+    document.getElementById("fazendaDadosResumo").innerHTML = "";
+    corpo.innerHTML = `<tr><td colspan="8">Carregando...</td></tr>`;
+    painel.style.display = "block";
+    painel.scrollIntoView({ behavior: "smooth", block: "start" });
+    try {
+        let pesagens = await requisicaoSistema("GET", "/api/sistema/fazendas/" + id + "/pesagens");
+        dadosFazendaAberta = { nome, pesagens };
+        let lotes = [...new Set(pesagens.map(p => p.descricao || "Sem descrição"))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        let selLote = document.getElementById("fazendaDadosFiltroLote");
+        selLote.innerHTML = `<option value="">Todos os lotes</option>` + lotes.map(l => `<option value="${escaparHtmlPesagem(l)}">${escaparHtmlPesagem(l)}</option>`).join("");
+        document.getElementById("fazendaDadosFiltroTipo").value = "";
+        renderizarDadosFazenda();
+    } catch (e) {
+        corpo.innerHTML = `<tr><td colspan="8">${escaparHtmlPesagem(e.message)}</td></tr>`;
+    }
+}
+
+function fecharDadosFazenda() {
+    document.getElementById("fazendaDadosPainel").style.display = "none";
+    dadosFazendaAberta = { nome: "", pesagens: [] };
+}
+
+function renderizarDadosFazenda() {
+    let tipo = document.getElementById("fazendaDadosFiltroTipo").value;
+    let lote = document.getElementById("fazendaDadosFiltroLote").value;
+    let lista = dadosFazendaAberta.pesagens.filter(p =>
+        (!tipo || (p.tipo || "venda") === tipo) && (!lote || (p.descricao || "Sem descrição") === lote));
+
+    // mesma conta de valores do resto do sistema (calcularDadosCompletos)
+    let tot = { compra: { n: 0, animais: 0, kg: 0, rs: 0 }, venda: { n: 0, animais: 0, kg: 0, rs: 0 } };
+    let linhas = lista.map(p => {
+        let d = calcularDadosCompletos(p);
+        let t = tot[(p.tipo || "venda") === "compra" ? "compra" : "venda"];
+        t.n++; t.animais += d.totalAnimais; t.kg += d.totalKg; t.rs += d.totalRS;
+        return { p, d };
+    });
+
+    let cartao = (classe, titulo, t) => `
+        <div class="fazendaResumoCartao ${classe}">
+            <span>${titulo}</span>
+            <b>R$ ${formatarMoeda(t.rs)}</b>
+            <small>${t.n} pesage${t.n === 1 ? "m" : "ns"} · ${t.animais} animais · ${formatarPeso(Math.round(t.kg * 10) / 10)} kg</small>
+        </div>`;
+    let saldo = tot.venda.rs - tot.compra.rs;
+    document.getElementById("fazendaDadosResumo").innerHTML =
+        cartao("fazendaResumoCompra", "🛒 Compras", tot.compra) +
+        cartao("fazendaResumoVenda", "💰 Vendas", tot.venda) +
+        `<div class="fazendaResumoCartao ${saldo >= 0 ? "fazendaResumoPositivo" : "fazendaResumoNegativo"}">
+            <span>⚖️ Vendas − Compras</span>
+            <b>${saldo >= 0 ? "▲" : "▼"} R$ ${formatarMoeda(Math.abs(saldo))}</b>
+            <small>só pesagens (sem insumos, caixa e despesas)</small>
+        </div>`;
+
+    let corpo = document.getElementById("corpoTabelaDadosFazenda");
+    if (linhas.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="8">Nenhuma pesagem ${dadosFazendaAberta.pesagens.length ? "com esse filtro" : "registrada ainda"}.</td></tr>`;
+        return;
+    }
+    corpo.innerHTML = linhas.map(({ p, d }, i) => {
+        let ehCompra = (p.tipo || "venda") === "compra";
+        let pesos = (p.pesos || []).map((x, k) => `<span>#${k + 1} ${formatarPeso(x.peso)} kg · R$ ${formatarMoeda(d.valorDoItem(x.peso || 0, x))}${x.obs ? " (" + escaparHtmlPesagem(x.obs) + ")" : ""}</span>`).join("");
+        return `
+            <tr class="linhaPesagemFazenda" onclick="alternarPesosPesagemFazenda(${i})">
+                <td>${p.numero || "—"}</td>
+                <td>${escaparHtmlPesagem(p.data || "")}</td>
+                <td><span class="seloTipoPesagem ${ehCompra ? "seloCompra" : "seloVenda"}">${ehCompra ? "Compra" : "Venda"}</span></td>
+                <td>${escaparHtmlPesagem(p.vendedor || "—")}</td>
+                <td>${escaparHtmlPesagem(p.descricao || "Sem descrição")}</td>
+                <td>${d.totalAnimais}</td>
+                <td>${formatarPeso(Math.round(d.totalKg * 10) / 10)}</td>
+                <td><b>R$ ${formatarMoeda(d.totalRS)}</b></td>
+            </tr>
+            <tr class="linhaPesosFazenda" id="pesosPesagemFazenda${i}" style="display:none">
+                <td colspan="8"><div class="pesosPesagemFazenda">${pesos || "Sem pesos."}</div></td>
+            </tr>`;
+    }).join("");
+}
+
+function alternarPesosPesagemFazenda(i) {
+    let linha = document.getElementById("pesosPesagemFazenda" + i);
+    if (linha) linha.style.display = linha.style.display === "none" ? "table-row" : "none";
 }

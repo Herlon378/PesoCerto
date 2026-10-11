@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="admin.css?v=7">
+    <link rel="stylesheet" href="admin.css?v=9">
 </head>
 <body class="modoDesktop">
 
@@ -55,7 +55,7 @@
                 <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15.5a7.5 7.5 0 1 1 15 0"></path><path d="M12 12l3.2-3.2"></path></svg></span><div><b>Pesagem com balança</b><span>O peso vem direto da balança Bluetooth e o valor é calculado na hora.</span></div></li>
                 <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg></span><div><b>Custo e lucro por lote</b><span>Compra, insumos, transferências e simulação de venda.</span></div></li>
                 <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M2 10h20"></path><path d="M6 15h4"></path></svg></span><div><b>Caixa, contas e salários</b><span>Fluxo de caixa, contas a pagar e folha num lugar só.</span></div></li>
-                <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span><div><b>Seus dados, só seus</b><span>Cada fazenda tem um ambiente próprio e separado.</span></div></li>
+                <li><span class="acessoRecursoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span><div><b>Cada fazenda no seu ambiente</b><span>Dados separados entre fazendas; o administrador do PesoCerto pode consultá-los para suporte.</span></div></li>
             </ul>
         </div>
         <small class="acessoRodape">PESO CERTO • HERLON REIS</small>
@@ -96,7 +96,7 @@
         <div class="acessoMarca"><span class="acessoMarcaLogo">🐂</span><span>Peso<span class="menuTituloDestaque">Certo</span></span></div>
         <div class="acessoHeroMeio">
             <h1>Comece em<br>3 passos.</h1>
-            <p>O ambiente da sua fazenda começa vazio — só você e as pessoas que você cadastrar terão acesso.</p>
+            <p>O ambiente da sua fazenda começa vazio e é separado das outras fazendas — só você e as pessoas que você cadastrar entram nele. O administrador do PesoCerto pode consultar os dados para suporte.</p>
             <ol class="acessoPassos">
                 <li><span>1</span><div><b>Cadastre a fazenda</b><span>Preencha ao lado com o código de convite.</span></div></li>
                 <li><span>2</span><div><b>Crie lotes e usuários</b><span>Em Lotes e Usuários, aqui no computador.</span></div></li>
@@ -163,7 +163,7 @@
 <div id="telaFazendas" class="tela">
     <h2>Fazendas</h2>
     <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-        Fazendas que usam o PesoCerto. Cada uma tem os próprios dados, separados das outras — aqui aparecem só os números gerais, nunca os dados internos delas.
+        Fazendas que usam o PesoCerto. Cada uma tem os próprios dados, separados das outras. No botão do <b>olho</b> você consulta as compras, vendas e relatórios de cada uma (só leitura — nada é alterado na fazenda).
     </p>
     <div class="cartaoConvite">
         <div>
@@ -180,6 +180,30 @@
         </thead>
         <tbody id="corpoTabelaFazendas"></tbody>
     </table>
+
+    <div id="fazendaDadosPainel" class="fazendaDadosPainel" style="display:none">
+        <div class="fazendaDadosTopo">
+            <h3 id="fazendaDadosTitulo">Dados da fazenda</h3>
+            <button onclick="fecharDadosFazenda()">✕ Fechar</button>
+        </div>
+        <div class="fazendaDadosFiltros">
+            <select id="fazendaDadosFiltroTipo" onchange="renderizarDadosFazenda()">
+                <option value="">Compras e vendas</option>
+                <option value="compra">Só compras</option>
+                <option value="venda">Só vendas</option>
+            </select>
+            <select id="fazendaDadosFiltroLote" onchange="renderizarDadosFazenda()">
+                <option value="">Todos os lotes</option>
+            </select>
+        </div>
+        <div class="fazendaDadosResumo" id="fazendaDadosResumo"></div>
+        <table class="tabelaUsuarios">
+            <thead>
+                <tr><th>Nº</th><th>Data</th><th>Tipo</th><th>Vendedor / Comprador</th><th>Lote</th><th>Animais</th><th>Kg</th><th>Valor</th></tr>
+            </thead>
+            <tbody id="corpoTabelaDadosFazenda"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="telaResultado" class="tela">
@@ -883,8 +907,8 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
-<script src="app.js?v=6"></script>
-<script src="admin.js?v=15"></script>
+<script src="app.js?v=7"></script>
+<script src="admin.js?v=17"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
