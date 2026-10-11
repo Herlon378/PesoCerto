@@ -419,6 +419,7 @@ function efetivarLancamentoPeso(pesoNum){
         obs: inputObs ? inputObs.value.trim() : ""
     });
 
+    if(typeof registrarPesoLancadoBalanca === "function") registrarPesoLancadoBalanca(pesoNum);
     bip();
     if(inputPeso) inputPeso.value = "";
     if(inputObs) inputObs.value = "";
@@ -2822,31 +2823,54 @@ const BALANCA_TOLERANCIA_ESTABILIDADE_KG = 0.5;
 // tempo que o peso precisa ficar parado nesse valor antes de lançar sozinho
 // na lista -- evita pegar o animal ainda subindo/se mexendo na balança
 const BALANCA_JANELA_ESTABILIDADE_MS = 1200;
-// o indicador pode manter o último peso "travado" no mostrador entre uma
-// pesagem e outra, em vez de voltar perto de zero sozinho -- então também
-// libera a próxima captura quando o peso mudar bastante em relação ao
-// ÚLTIMO ANIMAL LANÇADO (sinal de que é outro bicho), não só quando cair
-// perto de zero. Maior que a tolerância de estabilidade de propósito, pra
-// não confundir troca de animal com oscilação mecânica do mesmo animal.
-const BALANCA_LIMIAR_TROCA_ANIMAL_KG = 3;
+// O indicador Prix só transmite depois de TRAVAR um peso (1 cartão por
+// pesagem, confirmado no log de campo) -- então um peso diferente do último
+// lançado é outro animal e lança sozinho. Antes isso exigia mais de 3kg de
+// diferença, e animais de peso parecido no mesmo lote (250 → 252) apareciam
+// no display mas não lançavam. Agora só um peso IDÊNTICO ao último lançado
+// fica de fora (pode ser o mesmo cartão repetido) -- nesse caso o app avisa
+// e o operador confirma no "Lançar", nunca lança duplicado sozinho.
+const BALANCA_DIFERENCA_PESO_IGUAL_KG = 0.25;
+// logo depois de reconectar, o indicador pode reenviar o último peso que
+// estava travado -- ignora em silêncio se for igual ao último lançado
+const BALANCA_JANELA_POS_RECONEXAO_MS = 6000;
+// tentativas de reconexão automática: 1s, 2s, 4s, 8s e depois a cada 10s,
+// enquanto a pesagem estiver aberta
+const BALANCA_ESPERAS_RECONEXAO_MS = [1000, 2000, 4000, 8000, 10000];
+// gatt.connect() às vezes fica pendurado pra sempre no Android quando a
+// balança está fora de alcance -- desiste dessa tentativa depois disso
+const BALANCA_TIMEOUT_CONEXAO_MS = 10000;
+// o evento de desconexão nem sempre chega no Android -- confere de tempos
+// em tempos se a conexão ainda está de pé
+const BALANCA_INTERVALO_VERIFICACAO_MS = 4000;
 
 let balancaDevice = null;
+let balancaCaracteristica = null;
 let balancaBuffer = "";
-// "aguardando" = livre pra capturar o próximo peso assim que estabilizar;
-// "capturado" = já lançamos esse animal, esperando o peso cair (ele descer
-// da balança) ou mudar bastante (outro animal subiu) antes de aceitar o
-// próximo
+// true quando a desconexão foi pedida pelo app (finalizar/cancelar/voltar)
+// -- aí NÃO tenta reconectar
+let balancaDesconexaoIntencional = true;
+let balancaReconectando = false;
+let balancaTentativasReconexao = 0;
+let balancaTimerReconexao = null;
+let balancaTimerVerificacao = null;
+let balancaReconectadoEm = 0;
+let balancaWakeLock = null;
+let balancaTimerAvisoTemporario = null;
+// último peso que entrou na lista (pela balança OU digitado/"Lançar") --
+// é o que decide se uma leitura nova é outro animal ou repetição
 let balancaUltimoValorCapturado = null;
+let balancaValorReferencia = null;
+let balancaTimerEstabilidade = null;
+let balancaLancamentoAutomaticoEmCurso = false;
 // log de diagnóstico ao vivo (botão 🔍 na tela de pesagem) -- guarda os
-// últimos pacotes recebidos da balança com hora exata, pra investigar de
-// longe (sem precisar de acesso ao celular) se ela manda leituras
-// intermediárias enquanto o peso sobe ou só o valor final já travado
+// últimos eventos da balança com hora exata, pra investigar de longe
 let balancaLogEntradas = [];
 
 function logBalanca(msg){
     let hora = new Date().toLocaleTimeString("pt-BR") + "." + String(new Date().getMilliseconds()).padStart(3, "0");
     balancaLogEntradas.push(hora + " " + msg);
-    if(balancaLogEntradas.length > 30) balancaLogEntradas.shift();
+    if(balancaLogEntradas.length > 40) balancaLogEntradas.shift();
     renderizarLogBalanca();
 }
 
@@ -2863,12 +2887,20 @@ function alternarLogBalanca(){
     box.style.display = box.style.display === "none" ? "block" : "none";
     if(box.style.display === "block") renderizarLogBalanca();
 }
-let balancaEstadoCaptura = "aguardando";
-let balancaValorReferencia = null;
-let balancaTimerEstabilidade = null;
 
 function balancaBluetoothDisponivel(){
     return typeof navigator !== "undefined" && !!navigator.bluetooth;
+}
+
+// sessão de balança aberta = conectou nessa pesagem e ninguém mandou
+// desconectar (mesmo que a conexão tenha caído e esteja reconectando)
+function balancaSessaoAtiva(){
+    return !!balancaDevice && !balancaDesconexaoIntencional;
+}
+
+function telaPesagemAtiva(){
+    let tela = document.getElementById("telaPesagem");
+    return !!tela && tela.classList.contains("ativa");
 }
 
 function atualizarStatusConexaoBalanca(texto, classe){
@@ -2878,14 +2910,114 @@ function atualizarStatusConexaoBalanca(texto, classe){
     el.className = "statusConexaoBalanca" + (classe ? " " + classe : "");
 }
 
-function pularConexaoBalanca(){
-    trocarTela("telaPesagem");
-    atualizarStats();
+// a linha "PESO ATUAL" em cima do display vira o status da balança:
+// conectada / reconectando / desconectada (toque pra reconectar) / avisos
+// rápidos (lançado automático, peso igual ao anterior)
+function atualizarIndicadorBalanca(estado, texto){
+    let label = document.getElementById("pesoAtualLabel");
+    if(!label) return;
+    let textos = {
+        off: "PESO ATUAL",
+        conectada: "● BALANÇA CONECTADA",
+        reconectando: "↻ RECONECTANDO…",
+        desconectada: "⚠ BALANÇA CAIU · TOQUE AQUI",
+        lancado: "✓ LANÇADO AUTOMÁTICO",
+        igual: "PESO REPETIDO · CONFIRME ↓"
+    };
+    label.textContent = texto || textos[estado] || textos.off;
+    label.className = "pesoAtualLabel" + (estado && estado !== "off" ? " balanca-" + estado : "");
+    // compatibilidade com o verde "ao vivo" que já existia
+    if(estado === "conectada" || estado === "lancado") label.classList.add("aoVivo");
+    let btnLancar = document.querySelector(".btnLancar");
+    if(btnLancar) btnLancar.classList.toggle("btnLancarPulsando", estado === "igual");
 }
 
-function voltarDeConectarBalanca(){
-    desconectarBalancaBluetooth();
-    trocarTela("telaInicial");
+// aviso que some sozinho e volta pro status normal da conexão
+function mostrarAvisoTemporarioBalanca(estado, ms){
+    if(balancaTimerAvisoTemporario) clearTimeout(balancaTimerAvisoTemporario);
+    atualizarIndicadorBalanca(estado);
+    balancaTimerAvisoTemporario = setTimeout(() => {
+        balancaTimerAvisoTemporario = null;
+        atualizarIndicadorBalancaPelaConexao();
+    }, ms);
+}
+
+function atualizarIndicadorBalancaPelaConexao(){
+    if(!balancaSessaoAtiva()) return atualizarIndicadorBalanca("off");
+    if(balancaDevice.gatt && balancaDevice.gatt.connected && balancaCaracteristica) return atualizarIndicadorBalanca("conectada");
+    // as primeiras tentativas aparecem como "reconectando"; depois de 3
+    // falhas vira "desconectada, toque pra reconectar" (vermelho), mas o app
+    // continua tentando sozinho a cada 10s por trás
+    if(balancaConexaoEmAndamento || balancaTentativasReconexao < 3){
+        atualizarIndicadorBalanca("reconectando", balancaTentativasReconexao > 1 ? `↻ RECONECTANDO… (${balancaTentativasReconexao})` : "");
+    }else{
+        atualizarIndicadorBalanca("desconectada");
+    }
+}
+
+// toque na linha de status da tela de pesagem
+function tocarStatusBalanca(){
+    if(!balancaSessaoAtiva()) return;
+    if(balancaDevice.gatt.connected && balancaCaracteristica) return;
+    logBalanca("operador pediu reconexão");
+    balancaTentativasReconexao = 0;
+    tentarReconectarBalanca();
+}
+
+// mantém a tela do celular acesa durante a pesagem com balança -- com a
+// tela apagada o Android pode suspender o Chrome e derrubar o Bluetooth
+async function manterTelaLigadaBalanca(){
+    try{
+        if(!("wakeLock" in navigator) || balancaWakeLock || document.visibilityState !== "visible") return;
+        balancaWakeLock = await navigator.wakeLock.request("screen");
+        balancaWakeLock.addEventListener("release", () => { balancaWakeLock = null; });
+    }catch(e){
+        logBalanca("tela ligada indisponível: " + e.message);
+    }
+}
+
+function liberarTelaLigadaBalanca(){
+    if(balancaWakeLock){
+        balancaWakeLock.release().catch(() => {});
+        balancaWakeLock = null;
+    }
+}
+
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState !== "visible" || !balancaSessaoAtiva()) return;
+    manterTelaLigadaBalanca();
+    verificarConexaoBalanca();
+});
+
+function comTimeoutBalanca(promessa, ms){
+    return new Promise((resolve, reject) => {
+        let timer = setTimeout(() => reject(new Error("tempo de conexão esgotado")), ms);
+        promessa.then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
+    });
+}
+
+// conecta no GATT e assina as notificações de peso -- usada tanto na
+// primeira conexão quanto em cada reconexão (o objeto do dispositivo é o
+// mesmo, então reconectar NÃO precisa abrir a janela de escolha de novo)
+async function abrirConexaoGattBalanca(){
+    let server;
+    try{
+        server = await comTimeoutBalanca(balancaDevice.gatt.connect(), BALANCA_TIMEOUT_CONEXAO_MS);
+    }catch(e){
+        try{ balancaDevice.gatt.disconnect(); }catch(_){}
+        throw e;
+    }
+    let servico = await server.getPrimaryService(BALANCA_SERVICO_UUID);
+    let caracteristica = await servico.getCharacteristic(BALANCA_CARACTERISTICA_UUID);
+    if(balancaCaracteristica && balancaCaracteristica !== caracteristica){
+        balancaCaracteristica.removeEventListener("characteristicvaluechanged", processarNotificacaoBalanca);
+    }
+    // listener ANTES de ligar as notificações, pra não perder o 1º pacote
+    // (addEventListener com a mesma função não duplica)
+    caracteristica.addEventListener("characteristicvaluechanged", processarNotificacaoBalanca);
+    await caracteristica.startNotifications();
+    balancaCaracteristica = caracteristica;
+    balancaBuffer = "";
 }
 
 async function conectarBalancaBluetooth(){
@@ -2898,30 +3030,37 @@ async function conectarBalancaBluetooth(){
         if(botao) botao.disabled = true;
         atualizarStatusConexaoBalanca("Procurando...", "conectando");
 
-        balancaDevice = await navigator.bluetooth.requestDevice({
+        let device = await navigator.bluetooth.requestDevice({
             filters: [{ namePrefix: "Prix" }],
             optionalServices: [BALANCA_SERVICO_UUID]
         });
+        if(balancaDevice && balancaDevice !== device){
+            balancaDevice.removeEventListener("gattserverdisconnected", onBalancaBluetoothDesconectada);
+        }
+        balancaDevice = device;
         balancaDevice.addEventListener("gattserverdisconnected", onBalancaBluetoothDesconectada);
+        balancaDesconexaoIntencional = false;
+        cancelarReconexaoBalanca();
 
         atualizarStatusConexaoBalanca("Conectando...", "conectando");
-        let server = await balancaDevice.gatt.connect();
-        let servico = await server.getPrimaryService(BALANCA_SERVICO_UUID);
-        let caracteristica = await servico.getCharacteristic(BALANCA_CARACTERISTICA_UUID);
-        await caracteristica.startNotifications();
-        caracteristica.addEventListener("characteristicvaluechanged", processarNotificacaoBalanca);
+        await abrirConexaoGattBalanca();
 
-        balancaBuffer = "";
         resetarEstadoCapturaBalanca();
         balancaLogEntradas = [];
+        logBalanca("conectado em " + (balancaDevice.name || "balança"));
         let botaoLog = document.getElementById("btnLogBalanca");
         if(botaoLog) botaoLog.style.display = "inline";
+        iniciarVerificacaoConexaoBalanca();
+        manterTelaLigadaBalanca();
+        atualizarIndicadorBalanca("conectada");
 
         atualizarStatusConexaoBalanca("✅ Conectado! Iniciando pesagem...", "conectada");
         // segurinha um instante só pra dar tempo de ver a confirmação na tela
         setTimeout(() => {
-            trocarTela("telaPesagem");
-            atualizarStats();
+            if(document.getElementById("telaConectarBalanca").classList.contains("ativa")){
+                trocarTela("telaPesagem");
+                atualizarStats();
+            }
         }, 700);
     }catch(e){
         if(botao) botao.disabled = false;
@@ -2936,38 +3075,99 @@ async function conectarBalancaBluetooth(){
 
 function onBalancaBluetoothDesconectada(){
     balancaBuffer = "";
-    resetarEstadoCapturaBalanca();
+    // timer de estabilidade pendente morre junto (leitura incompleta), mas o
+    // último peso lançado é mantido -- se a balança reenviar o mesmo cartão
+    // ao reconectar, ele NÃO pode virar um animal duplicado
+    if(balancaTimerEstabilidade){ clearTimeout(balancaTimerEstabilidade); balancaTimerEstabilidade = null; }
+    balancaValorReferencia = null;
 
+    if(!balancaSessaoAtiva()){
+        atualizarIndicadorBalanca("off");
+        return;
+    }
+    logBalanca("conexão caiu");
     let botao = document.getElementById("btnConectarBalancaTela");
     if(botao) botao.disabled = false;
     atualizarStatusConexaoBalanca("Balança não conectada", "");
+    // operador continua podendo digitar na mão enquanto reconecta
+    agendarReconexaoBalanca();
+}
 
-    let botaoLog = document.getElementById("btnLogBalanca");
-    if(botaoLog) botaoLog.style.display = "none";
-    let boxLog = document.getElementById("logBalancaBox");
-    if(boxLog) boxLog.style.display = "none";
+function agendarReconexaoBalanca(){
+    if(!balancaSessaoAtiva() || balancaTimerReconexao || balancaConexaoEmAndamento) return;
+    balancaReconectando = true;
+    let espera = BALANCA_ESPERAS_RECONEXAO_MS[Math.min(balancaTentativasReconexao, BALANCA_ESPERAS_RECONEXAO_MS.length - 1)];
+    atualizarIndicadorBalancaPelaConexao();
+    balancaTimerReconexao = setTimeout(() => {
+        balancaTimerReconexao = null;
+        tentarReconectarBalanca();
+    }, espera);
+}
 
-    // se a desconexão aconteceu no meio de uma pesagem (não na tela de
-    // conectar), avisa discretamente perto do peso -- sem popup, sem
-    // travar o operador, que pode continuar digitando na mão normalmente
-    let label = document.getElementById("pesoAtualLabel");
-    let telaPesagemEl = document.getElementById("telaPesagem");
-    if(label){
-        label.classList.remove("aoVivo");
-        if(telaPesagemEl && telaPesagemEl.classList.contains("ativa")){
-            label.textContent = "⚠️ BALANÇA DESCONECTADA";
-        }
+let balancaConexaoEmAndamento = false;
+async function tentarReconectarBalanca(){
+    if(!balancaSessaoAtiva() || balancaConexaoEmAndamento) return;
+    if(balancaTimerReconexao){ clearTimeout(balancaTimerReconexao); balancaTimerReconexao = null; }
+    balancaConexaoEmAndamento = true;
+    balancaReconectando = true;
+    balancaTentativasReconexao++;
+    atualizarIndicadorBalancaPelaConexao();
+    logBalanca("tentando reconectar (" + balancaTentativasReconexao + ")");
+    try{
+        await abrirConexaoGattBalanca();
+        if(!balancaSessaoAtiva()){ try{ balancaDevice.gatt.disconnect(); }catch(_){} return; }
+        balancaReconectando = false;
+        balancaTentativasReconexao = 0;
+        balancaReconectadoEm = Date.now();
+        logBalanca("reconectado");
+        atualizarIndicadorBalancaPelaConexao();
+        if(typeof bip === "function") bip();
+    }catch(e){
+        logBalanca("falhou: " + e.message);
+        balancaConexaoEmAndamento = false;
+        agendarReconexaoBalanca();
+    }finally{
+        balancaConexaoEmAndamento = false;
+    }
+}
+
+function cancelarReconexaoBalanca(){
+    if(balancaTimerReconexao){ clearTimeout(balancaTimerReconexao); balancaTimerReconexao = null; }
+    balancaReconectando = false;
+    balancaTentativasReconexao = 0;
+}
+
+function iniciarVerificacaoConexaoBalanca(){
+    if(balancaTimerVerificacao) clearInterval(balancaTimerVerificacao);
+    balancaTimerVerificacao = setInterval(verificarConexaoBalanca, BALANCA_INTERVALO_VERIFICACAO_MS);
+}
+
+// rede de segurança pro evento de desconexão que às vezes não chega
+function verificarConexaoBalanca(){
+    if(!balancaSessaoAtiva() || balancaReconectando || balancaConexaoEmAndamento) return;
+    if(!balancaDevice.gatt.connected){
+        logBalanca("verificação: conexão perdida sem aviso");
+        onBalancaBluetoothDesconectada();
     }
 }
 
 function desconectarBalancaBluetooth(){
+    balancaDesconexaoIntencional = true;
+    cancelarReconexaoBalanca();
+    if(balancaTimerVerificacao){ clearInterval(balancaTimerVerificacao); balancaTimerVerificacao = null; }
+    if(balancaTimerAvisoTemporario){ clearTimeout(balancaTimerAvisoTemporario); balancaTimerAvisoTemporario = null; }
+    liberarTelaLigadaBalanca();
+    if(balancaCaracteristica){
+        balancaCaracteristica.removeEventListener("characteristicvaluechanged", processarNotificacaoBalanca);
+        balancaCaracteristica = null;
+    }
     if(balancaDevice && balancaDevice.gatt.connected){
         balancaDevice.gatt.disconnect();
     }
+    atualizarIndicadorBalanca("off");
 }
 
 function resetarEstadoCapturaBalanca(){
-    balancaEstadoCaptura = "aguardando";
     balancaValorReferencia = null;
     balancaUltimoValorCapturado = null;
     if(balancaTimerEstabilidade){
@@ -2980,43 +3180,35 @@ function processarNotificacaoBalanca(event){
     let texto = new TextDecoder("utf-8").decode(event.target.value);
     logBalanca("pacote: " + JSON.stringify(texto));
     balancaBuffer += texto;
-    if(balancaBuffer.length > 400) balancaBuffer = balancaBuffer.slice(-400);
 
-    // usa matchAll + pega o ÚLTIMO -- não o primeiro, senão uma leitura
-    // antiga que ainda sobrou no buffer travaria o valor mostrado
-    let ocorrencias = [...balancaBuffer.matchAll(/PESO:\s*(\d+[.,]?\d*)\s*kg/gi)];
-    if(ocorrencias.length === 0) return;
-    let valorKg = parseFloat(ocorrencias[ocorrencias.length - 1][1].replace(",", "."));
+    // cada "PESO: <n>kg" completo é consumido do buffer UMA vez só -- antes
+    // o buffer inteiro era relido a cada pacote e um peso antigo que ainda
+    // estava nele voltava a ser processado
+    let ultima = null;
+    for(let m of balancaBuffer.matchAll(/PESO:\s*(\d+(?:[.,]\d+)?)\s*kg/gi)) ultima = m;
+    if(!ultima){
+        if(balancaBuffer.length > 400) balancaBuffer = balancaBuffer.slice(-400);
+        return;
+    }
+    balancaBuffer = balancaBuffer.slice(ultima.index + ultima[0].length);
+    let valorKg = parseFloat(ultima[1].replace(",", "."));
     if(!Number.isFinite(valorKg)) return;
 
     processarLeituraBalanca(valorKg);
 }
 
-// Mostra o peso ao vivo no display da tela de pesagem sempre, e lança
-// sozinho na lista quando o valor fica parado (estável) por um tempinho --
-// sem precisar apertar nenhum botão. O "estado" evita lançar o mesmo animal
-// várias vezes seguidas: só libera a próxima captura quando o peso cair
-// perto de zero OU mudar bastante (indicando outro animal) -- o indicador
-// pode manter o último peso "travado" no mostrador em vez de voltar sozinho
-// pra perto de zero entre uma pesagem e outra, então não dá pra confiar só
-// na queda pra zero.
+// Mostra o peso ao vivo no display e lança sozinho na lista quando o valor
+// fica parado um tempinho (ver tentarCapturaAutomaticaBalanca)
 function processarLeituraBalanca(valorKg){
-    logBalanca("=> PESO interpretado: " + valorKg + "kg (estado: " + balancaEstadoCaptura + ")");
+    logBalanca("=> PESO interpretado: " + valorKg + "kg");
     let display = document.getElementById("displayPeso");
     if(display) display.value = formatarPeso(valorKg);
-    let label = document.getElementById("pesoAtualLabel");
-    if(label) label.classList.add("aoVivo");
+    if(balancaTimerAvisoTemporario === null) atualizarIndicadorBalancaPelaConexao();
 
     if(valorKg < BALANCA_LIMIAR_MINIMO_KG){
+        // balança vazia -- o próximo animal pode ter qualquer peso, até igual
         resetarEstadoCapturaBalanca();
         return;
-    }
-
-    if(balancaEstadoCaptura === "capturado"){
-        let mudouBastante = balancaUltimoValorCapturado !== null
-            && Math.abs(valorKg - balancaUltimoValorCapturado) > BALANCA_LIMIAR_TROCA_ANIMAL_KG;
-        if(!mudouBastante) return; // mesmo animal (ou balança travada no valor) -- ignora
-        balancaEstadoCaptura = "aguardando"; // peso mudou o suficiente -- outro animal, libera de novo
     }
 
     if(balancaValorReferencia === null || Math.abs(valorKg - balancaValorReferencia) > BALANCA_TOLERANCIA_ESTABILIDADE_KG){
@@ -3024,16 +3216,68 @@ function processarLeituraBalanca(valorKg){
         balancaValorReferencia = valorKg;
         if(balancaTimerEstabilidade) clearTimeout(balancaTimerEstabilidade);
         balancaTimerEstabilidade = setTimeout(() => {
-            if(balancaEstadoCaptura === "capturado") return;
-            balancaEstadoCaptura = "capturado";
-            balancaUltimoValorCapturado = balancaValorReferencia;
-            let d = document.getElementById("displayPeso");
-            if(d) d.value = formatarPeso(balancaValorReferencia);
-            adicionarPeso();
+            balancaTimerEstabilidade = null;
+            let valor = balancaValorReferencia;
+            // libera a referência: o mesmo peso chegando de novo depois
+            // (outro cartão) passa pela checagem de "igual ao anterior"
+            balancaValorReferencia = null;
+            tentarCapturaAutomaticaBalanca(valor);
         }, BALANCA_JANELA_ESTABILIDADE_MS);
     }
-    // se bateu com a referência (dentro da tolerância), não faz nada -- o
-    // timer que já está rodando dispara sozinho quando o tempo passar
+}
+
+function algumModalAbertoPesagem(){
+    return ["modalConfirmarAcao", "modalConfirmacao"].some(id => {
+        let el = document.getElementById(id);
+        return el && el.style.display === "flex";
+    });
+}
+
+function tentarCapturaAutomaticaBalanca(valorKg){
+    if(!telaPesagemAtiva()){ logBalanca("não lançou " + valorKg + "kg: fora da tela de pesagem"); return; }
+    if(algumModalAbertoPesagem()){
+        logBalanca("não lançou " + valorKg + "kg: tem um aviso aberto na tela");
+        return;
+    }
+    let igualAoAnterior = balancaUltimoValorCapturado !== null
+        && Math.abs(valorKg - balancaUltimoValorCapturado) < BALANCA_DIFERENCA_PESO_IGUAL_KG;
+    if(igualAoAnterior){
+        if(Date.now() - balancaReconectadoEm < BALANCA_JANELA_POS_RECONEXAO_MS){
+            logBalanca("ignorado " + valorKg + "kg: reenvio do último peso após reconectar");
+            return;
+        }
+        logBalanca("não lançou " + valorKg + "kg: igual ao anterior, aguardando operador");
+        if(balancaTimerAvisoTemporario){ clearTimeout(balancaTimerAvisoTemporario); balancaTimerAvisoTemporario = null; }
+        balancaTimerAvisoTemporario = setTimeout(() => { balancaTimerAvisoTemporario = null; atualizarIndicadorBalancaPelaConexao(); }, 15000);
+        atualizarIndicadorBalanca("igual");
+        if(typeof somClique === "function") somClique();
+        return;
+    }
+    let d = document.getElementById("displayPeso");
+    if(d) d.value = formatarPeso(valorKg);
+    logBalanca("lançando automático " + valorKg + "kg");
+    balancaLancamentoAutomaticoEmCurso = true;
+    try{
+        adicionarPeso();
+    }finally{
+        balancaLancamentoAutomaticoEmCurso = false;
+    }
+}
+
+// chamada por efetivarLancamentoPeso() sempre que um peso entra na lista,
+// venha ele da balança ou do botão "Lançar" -- sem isso, apertar "Lançar"
+// antes do automático disparar lançava o mesmo animal duas vezes
+function registrarPesoLancadoBalanca(pesoNum){
+    let automatico = balancaLancamentoAutomaticoEmCurso;
+    balancaUltimoValorCapturado = pesoNum;
+    if(balancaTimerEstabilidade){ clearTimeout(balancaTimerEstabilidade); balancaTimerEstabilidade = null; }
+    balancaValorReferencia = null;
+    if(!balancaSessaoAtiva()) return;
+    if(automatico) mostrarAvisoTemporarioBalanca("lancado", 1500);
+    else{
+        if(balancaTimerAvisoTemporario){ clearTimeout(balancaTimerAvisoTemporario); balancaTimerAvisoTemporario = null; }
+        atualizarIndicadorBalancaPelaConexao();
+    }
 }
 
 // ========================================

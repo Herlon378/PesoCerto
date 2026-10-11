@@ -1049,8 +1049,8 @@ textarea {
 
 .btnLogBalanca {
     position: absolute;
-    top: -10px;
-    left: 6px;
+    top: 6px;
+    left: 8px;
     border: none;
     background: #333;
     color: white;
@@ -1121,6 +1121,36 @@ textarea {
    sem precisar de nenhum botão extra na tela de pesagem */
 .pesoAtualLabel.aoVivo {
     color: #0ca30c;
+}
+
+/* status da balança na linha "PESO ATUAL" (ver atualizarIndicadorBalanca
+   em app.js) -- mesma linha, mesma altura: não muda o layout da tela */
+.pesoAtualLabel[class*="balanca-"] {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 34px;
+}
+.pesoAtualLabel.balanca-conectada,
+.pesoAtualLabel.balanca-lancado { color: #3ddc84; }
+.pesoAtualLabel.balanca-reconectando { color: #ffc94d; animation: balancaPiscar 1s ease-in-out infinite; }
+.pesoAtualLabel.balanca-desconectada { color: #ff6b6b; cursor: pointer; text-decoration: underline; }
+.pesoAtualLabel.balanca-igual { color: #ffc94d; }
+
+@keyframes balancaPiscar {
+    50% { opacity: 0.35; }
+}
+
+/* peso igual ao anterior: a balança não lança sozinha, o botão pulsa
+   pedindo a confirmação do operador */
+.btnLancar.btnLancarPulsando {
+    animation: btnLancarPulsar 0.9s ease-in-out infinite;
+}
+
+@keyframes btnLancarPulsar {
+    50% { box-shadow: 0 0 0 4px rgba(255,201,77,0.55), 0 6px 16px rgba(232,133,14,0.4); }
 }
 
 /* DISPLAY PESO */
