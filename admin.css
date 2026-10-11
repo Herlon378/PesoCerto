@@ -1342,3 +1342,40 @@ body.modoDesktop .tela.telaAcesso.ativa {
 .seloVenda { color: #7cb6ff; background: rgba(57,135,229,0.15); }
 .pesosPesagemFazenda { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-muted); font-size: 13px; padding: 4px 0; }
 @media (max-width: 900px) { .fazendaDadosResumo { grid-template-columns: 1fr; } }
+
+/* relatório completo (texto do WhatsApp) de uma pesagem, no painel Fazendas */
+.btnRelatorioFazenda {
+    width: auto; margin: 0; padding: 6px 12px; font-size: 13px; white-space: nowrap;
+    background: rgba(57,135,229,0.15); color: #9cc8ff;
+    border: 1px solid rgba(110,170,255,0.3); border-radius: 8px; cursor: pointer;
+}
+.btnRelatorioFazenda:hover { background: rgba(57,135,229,0.28); }
+.modalRelatorioFazenda {
+    position: fixed; inset: 0; z-index: 950;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; background: rgba(4,9,20,0.72);
+}
+.modalRelatorioFazendaCaixa {
+    width: 100%; max-width: 560px; max-height: calc(100vh - 48px);
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid rgba(110,170,255,0.25);
+    border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modalRelatorioFazendaTopo {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.modalRelatorioFazendaTopo h3 { margin: 0; font-size: 17px; }
+.modalRelatorioFazendaTopo button { width: auto; margin: 0; padding: 4px 10px; background: none; border: none; color: var(--ink-muted); font-size: 18px; cursor: pointer; }
+.modalRelatorioFazendaTexto {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    white-space: pre-wrap; font-size: 14px; line-height: 1.5; color: #d6deee;
+    background: #0b1428;
+}
+.modalRelatorioFazendaTexto b { color: #f4f8ff; }
+.modalRelatorioFazendaAcoes { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 20px; border-top: 1px solid var(--border); }
+.modalRelatorioFazendaAcoes button { width: auto; margin: 0; padding: 10px 16px; cursor: pointer; }
+.btnWhatsRelatorio { background: #25d366 !important; color: #06210f !important; font-weight: 700; border: none; border-radius: 10px; }
+#corpoTabelaDadosFazenda td { white-space: nowrap; }
+#corpoTabelaDadosFazenda .linhaPesosFazenda td { white-space: normal; }
+.fazendaDadosPainel { overflow-x: auto; }

@@ -4276,7 +4276,7 @@ async function verDadosFazenda(id, nome) {
     let corpo = document.getElementById("corpoTabelaDadosFazenda");
     document.getElementById("fazendaDadosTitulo").innerText = "📊 " + nome;
     document.getElementById("fazendaDadosResumo").innerHTML = "";
-    corpo.innerHTML = `<tr><td colspan="8">Carregando...</td></tr>`;
+    corpo.innerHTML = `<tr><td colspan="9">Carregando...</td></tr>`;
     painel.style.display = "block";
     painel.scrollIntoView({ behavior: "smooth", block: "start" });
     try {
@@ -4288,7 +4288,7 @@ async function verDadosFazenda(id, nome) {
         document.getElementById("fazendaDadosFiltroTipo").value = "";
         renderizarDadosFazenda();
     } catch (e) {
-        corpo.innerHTML = `<tr><td colspan="8">${escaparHtmlPesagem(e.message)}</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="9">${escaparHtmlPesagem(e.message)}</td></tr>`;
     }
 }
 
@@ -4330,7 +4330,7 @@ function renderizarDadosFazenda() {
 
     let corpo = document.getElementById("corpoTabelaDadosFazenda");
     if (linhas.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="8">Nenhuma pesagem ${dadosFazendaAberta.pesagens.length ? "com esse filtro" : "registrada ainda"}.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="9">Nenhuma pesagem ${dadosFazendaAberta.pesagens.length ? "com esse filtro" : "registrada ainda"}.</td></tr>`;
         return;
     }
     corpo.innerHTML = linhas.map(({ p, d }, i) => {
@@ -4346,9 +4346,10 @@ function renderizarDadosFazenda() {
                 <td>${d.totalAnimais}</td>
                 <td>${formatarPeso(Math.round(d.totalKg * 10) / 10)}</td>
                 <td><b>R$ ${formatarMoeda(d.totalRS)}</b></td>
+                <td><button class="btnRelatorioFazenda" onclick='event.stopPropagation(); abrirRelatorioFazenda(${JSON.stringify(p.id)})'>📄 Relatório</button></td>
             </tr>
             <tr class="linhaPesosFazenda" id="pesosPesagemFazenda${i}" style="display:none">
-                <td colspan="8"><div class="pesosPesagemFazenda">${pesos || "Sem pesos."}</div></td>
+                <td colspan="9"><div class="pesosPesagemFazenda">${pesos || "Sem pesos."}</div></td>
             </tr>`;
     }).join("");
 }
@@ -4356,4 +4357,43 @@ function renderizarDadosFazenda() {
 function alternarPesosPesagemFazenda(i) {
     let linha = document.getElementById("pesosPesagemFazenda" + i);
     if (linha) linha.style.display = linha.style.display === "none" ? "table-row" : "none";
+}
+
+// relatório completo de uma pesagem de outra fazenda -- o MESMO texto da
+// mensagem de WhatsApp do app (montarMensagemWhatsApp), inclusive juntando
+// as pesagens da mesma sessão (vários critérios) num relatório só
+let textoRelatorioFazendaAberto = "";
+
+function abrirRelatorioFazenda(idPesagem) {
+    let todas = dadosFazendaAberta.pesagens;
+    let r = todas.find(p => p.id === idPesagem);
+    if (!r) return;
+    let registros = r.sessaoId ? todas.filter(p => p.sessaoId === r.sessaoId) : [r];
+    registros.sort((a, b) => (a.numero || 0) - (b.numero || 0));
+    textoRelatorioFazendaAberto = montarMensagemWhatsApp(registros);
+    // *negrito* do WhatsApp vira negrito de verdade na tela
+    let html = escaparHtmlPesagem(textoRelatorioFazendaAberto).replace(/\*([^*\n]+)\*/g, "<b>$1</b>");
+    document.getElementById("modalRelatorioFazendaTitulo").innerText =
+        dadosFazendaAberta.nome + (r.numero ? " — Pesagem nº " + r.numero : "");
+    document.getElementById("modalRelatorioFazendaTexto").innerHTML = html;
+    document.getElementById("btnCopiarRelatorioFazenda").innerText = "📋 Copiar";
+    document.getElementById("modalRelatorioFazenda").style.display = "flex";
+}
+
+function fecharRelatorioFazenda() {
+    document.getElementById("modalRelatorioFazenda").style.display = "none";
+}
+
+async function copiarRelatorioFazenda() {
+    let botao = document.getElementById("btnCopiarRelatorioFazenda");
+    try {
+        await navigator.clipboard.writeText(textoRelatorioFazendaAberto);
+        botao.innerText = "✅ Copiado";
+    } catch (e) {
+        botao.innerText = "Não foi possível copiar";
+    }
+}
+
+function enviarRelatorioFazendaWhatsApp() {
+    window.open("https://wa.me/?text=" + encodeURIComponent(textoRelatorioFazendaAberto), "_blank");
 }

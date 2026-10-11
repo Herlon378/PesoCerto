@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
-    <link rel="stylesheet" href="admin.css?v=9">
+    <link rel="stylesheet" href="admin.css?v=11">
 </head>
 <body class="modoDesktop">
 
@@ -181,6 +181,20 @@
         <tbody id="corpoTabelaFazendas"></tbody>
     </table>
 
+    <div id="modalRelatorioFazenda" class="modalRelatorioFazenda" style="display:none" onclick="if(event.target === this) fecharRelatorioFazenda()">
+        <div class="modalRelatorioFazendaCaixa">
+            <div class="modalRelatorioFazendaTopo">
+                <h3 id="modalRelatorioFazendaTitulo">Relatório</h3>
+                <button onclick="fecharRelatorioFazenda()" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modalRelatorioFazendaTexto" id="modalRelatorioFazendaTexto"></div>
+            <div class="modalRelatorioFazendaAcoes">
+                <button onclick="copiarRelatorioFazenda()" id="btnCopiarRelatorioFazenda">📋 Copiar</button>
+                <button onclick="enviarRelatorioFazendaWhatsApp()" class="btnWhatsRelatorio">Enviar no WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
     <div id="fazendaDadosPainel" class="fazendaDadosPainel" style="display:none">
         <div class="fazendaDadosTopo">
             <h3 id="fazendaDadosTitulo">Dados da fazenda</h3>
@@ -199,7 +213,7 @@
         <div class="fazendaDadosResumo" id="fazendaDadosResumo"></div>
         <table class="tabelaUsuarios">
             <thead>
-                <tr><th>Nº</th><th>Data</th><th>Tipo</th><th>Vendedor / Comprador</th><th>Lote</th><th>Animais</th><th>Kg</th><th>Valor</th></tr>
+                <tr><th>Nº</th><th>Data</th><th>Tipo</th><th>Vendedor / Comprador</th><th>Lote</th><th>Animais</th><th>Kg</th><th>Valor</th><th></th></tr>
             </thead>
             <tbody id="corpoTabelaDadosFazenda"></tbody>
         </table>
@@ -908,7 +922,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=3"></script>
 <script src="app.js?v=7"></script>
-<script src="admin.js?v=17"></script>
+<script src="admin.js?v=18"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
