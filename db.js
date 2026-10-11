@@ -17,7 +17,6 @@ function salvarPesagem(){
         tipo: tipoEl ? tipoEl.value : "venda",
         tipoPesagem: tipoPesagemEl ? tipoPesagemEl.value : "vivo",
         rendimento: rendEl ? rendEl.value : "",
-        faixasPreco: (typeof criteriosPesagem !== "undefined" && criteriosPesagem[criterioAtivoIndex]) ? (criteriosPesagem[criterioAtivoIndex].faixasPreco || []) : [],
         pesos: pesos,
         data: new Date().toLocaleString("pt-BR"),
         sincronizado: false,
@@ -59,6 +58,13 @@ function salvarPesagemAuto(){
     };
 
     localStorage.setItem("pesagemAtual", JSON.stringify(dados));
+}
+
+function restaurarFaixaPesoCampos(sufixo, faixa){
+    let minEl = document.getElementById("pesoMin" + sufixo);
+    let maxEl = document.getElementById("pesoMax" + sufixo);
+    if(minEl) minEl.value = faixa ? String(faixa.minimo).replace(".", ",") : "";
+    if(maxEl) maxEl.value = faixa ? String(faixa.maximo).replace(".", ",") : "";
 }
 
 /* restaurar pesagem se fechar */
@@ -103,11 +109,7 @@ function restaurarPesagem(){
         if(typeof alternarTipoPesagem === "function") {
             alternarTipoPesagem("");
         }
-        let listaFaixasPrincipal = document.getElementById("listaFaixas");
-        if(listaFaixasPrincipal){
-            listaFaixasPrincipal.replaceChildren();
-            (criterios[0].faixasPreco || []).forEach(f => adicionarFaixaPreco("", f));
-        }
+        restaurarFaixaPesoCampos("", criterios[0].faixaPeso);
 
         // reabre os blocos de Critério 2/3, se o rascunho tinha eles
         [2, 3].forEach(n => {
@@ -122,11 +124,7 @@ function restaurarPesagem(){
             if(valorEl) valorEl.value = criterio.valorKg || "";
             if(rendEl) rendEl.value = criterio.rendimento || "";
             if(descEl) descEl.value = criterio.descricao || "";
-            let listaFaixas = document.getElementById("listaFaixas" + n);
-            if(listaFaixas){
-                listaFaixas.replaceChildren();
-                (criterio.faixasPreco || []).forEach(f => adicionarFaixaPreco(String(n), f));
-            }
+            restaurarFaixaPesoCampos(String(n), criterio.faixaPeso);
             if(typeof alternarTipoPesagem === "function") alternarTipoPesagem(String(n));
         });
 

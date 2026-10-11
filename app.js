@@ -91,9 +91,6 @@ function validarLimiteCompraCriterio(sufixo, tipoOperacaoEl){
     let ehValorAnimal = tipoPesagemEl && tipoPesagemEl.value === "valor_animal";
     if(tipoOperacaoEl && tipoOperacaoEl.value === "compra" && obterPapelLogado() !== "admin" && !ehValorAnimal){
         let limite = obterValorMaximoCompra();
-        if(tipoPesagemEl && tipoPesagemEl.value === "faixas"){
-            return limite === null || obterFaixasPreco(sufixo).every(f => f.tipo !== "kg" || f.valor <= limite);
-        }
         if(limite !== null && vKgEl){
             let valorDigitado = parseFloat(vKgEl.value.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
             if(valorDigitado > limite) return false;
@@ -109,48 +106,55 @@ function parseNumeroLocal(valor){
     return Number.isFinite(numero) ? numero : NaN;
 }
 
-function obterFaixasPreco(sufixo){
-    let lista = document.getElementById("listaFaixas" + sufixo);
-    if(!lista) return [];
-    return [...lista.querySelectorAll(".faixaPrecoLinha")].map(linha => ({
-        minimo: parseNumeroLocal(linha.querySelector("[data-faixa='min']").value),
-        maximo: parseNumeroLocal(linha.querySelector("[data-faixa='max']").value),
-        tipo: linha.querySelector("[data-faixa='tipo']").value,
-        valor: parseNumeroLocal(linha.querySelector("[data-faixa='valor']").value)
-    }));
+// faixa de peso (De/Até kg) de um critério -- null se o operador não
+// preencheu nenhum dos dois campos (critério sem faixa)
+function obterFaixaPesoCriterio(sufixo){
+    let minEl = document.getElementById("pesoMin" + sufixo);
+    let maxEl = document.getElementById("pesoMax" + sufixo);
+    let minTexto = minEl ? minEl.value.trim() : "";
+    let maxTexto = maxEl ? maxEl.value.trim() : "";
+    if(!minTexto && !maxTexto) return null;
+    return { minimo: parseNumeroLocal(minTexto), maximo: parseNumeroLocal(maxTexto) };
 }
 
-function criarLinhaFaixaPreco(sufixo, faixa){
-    let linha = document.createElement("div");
-    linha.className = "faixaPrecoLinha";
-    let min = faixa && Number.isFinite(Number(faixa.minimo)) ? faixa.minimo : "";
-    let max = faixa && Number.isFinite(Number(faixa.maximo)) ? faixa.maximo : "";
-    let valor = faixa && Number.isFinite(Number(faixa.valor)) && Number(faixa.valor) > 0 ? "R$ " + Number(faixa.valor).toFixed(2).replace(".", ",") : "";
-    linha.innerHTML = `<div class="faixaPrecoPesos"><label>De (kg)<input data-faixa="min" inputmode="decimal" value="${min}" placeholder="100"></label><label>Até (kg)<input data-faixa="max" inputmode="decimal" value="${max}" placeholder="200"></label></div><div class="faixaPrecoValor"><select data-faixa="tipo" aria-label="Tipo de preço"><option value="fixo">Fixo por animal</option><option value="kg">Por kg</option></select><input data-faixa="valor" inputmode="decimal" placeholder="R$ 0,00" value="${valor}" aria-label="Preço da faixa" oninput="formatarValorKg(this)"></div><button type="button" class="btnRemoverFaixa" aria-label="Remover faixa" title="Remover faixa" onclick="this.closest('.faixaPrecoLinha').remove()">×</button>`;
-    if(faixa && faixa.tipo) linha.querySelector("[data-faixa='tipo']").value = faixa.tipo;
-    return linha;
-}
-
-function adicionarFaixaPreco(sufixo, faixa){
-    let lista = document.getElementById("listaFaixas" + (sufixo || ""));
-    if(lista) lista.appendChild(criarLinhaFaixaPreco(sufixo || "", faixa));
-}
-
-function validarFaixasPreco(faixas, nome){
-    if(!faixas.length){ alert(`Adicione ao menos uma faixa de preço em ${nome}.`); return false; }
-    let ordenadas = [...faixas].sort((a,b) => a.minimo - b.minimo);
-    for(let i=0;i<ordenadas.length;i++){
-        let f = ordenadas[i];
-        if(!Number.isFinite(f.minimo) || !Number.isFinite(f.maximo) || !Number.isFinite(f.valor) || f.minimo < 0 || f.maximo <= f.minimo || f.valor <= 0){
-            alert(`Confira os pesos e o preço da faixa ${i+1} em ${nome}.`); return false;
+// se algum critério aberto tem faixa de peso, TODOS precisam ter (é o que
+// decide pra qual critério cada animal vai), e as faixas não podem se
+// sobrepor -- senão um mesmo peso caberia em dois critérios
+function validarFaixasPesoCriterios(sufixos){
+    let faixas = sufixos.map(n => ({ n, faixa: obterFaixaPesoCriterio(n) }));
+    if(faixas.every(f => !f.faixa)) return true;
+    for(let f of faixas){
+        let nome = "Critério " + (f.n || "1");
+        if(!f.faixa){ alert(`Preencha a Faixa de Peso do ${nome} (quando um critério usa faixa, todos precisam usar).`); return false; }
+        if(!Number.isFinite(f.faixa.minimo) || !Number.isFinite(f.faixa.maximo) || f.faixa.minimo < 0 || f.faixa.maximo <= f.faixa.minimo){
+            alert(`Confira a Faixa de Peso do ${nome}: o "até" precisa ser maior que o "de".`); return false;
         }
-        if(i && f.minimo <= ordenadas[i-1].maximo){
-            alert(`As faixas de ${nome} não podem se sobrepor. Ajuste os limites.`); return false;
+    }
+    let ordenadas = faixas.map(f => f.faixa).sort((x, y) => x.minimo - y.minimo);
+    for(let i = 1; i < ordenadas.length; i++){
+        if(ordenadas[i].minimo <= ordenadas[i - 1].maximo){
+            alert("As Faixas de Peso dos critérios não podem se sobrepor. Ajuste os limites.");
+            return false;
         }
     }
     return true;
 }
 
+function textoFaixaPeso(faixa){
+    return faixa ? `${formatarPeso(faixa.minimo)}–${formatarPeso(faixa.maximo)} kg` : "";
+}
+
+// critério (índice) cuja faixa contém o peso -- -1 se nenhum
+function indiceCriterioPorPeso(pesoNum){
+    return criteriosPesagem.findIndex(c => c.faixaPeso && pesoNum >= c.faixaPeso.minimo && pesoNum <= c.faixaPeso.maximo);
+}
+
+function criteriosComFaixaPeso(){
+    return criteriosPesagem.some(c => c.faixaPeso);
+}
+
+// usado só pra pesagens antigas salvas no modo "Preço por Faixa de Peso"
+// (antes das faixas virarem critérios) -- relatórios/PDF ainda leem elas
 function calcularValorFaixa(peso, faixas){
     let faixa = (faixas || []).find(f => peso >= Number(f.minimo) && peso <= Number(f.maximo));
     if(!faixa) return null;
@@ -167,9 +171,7 @@ function iniciarPesagem(){
         alert("Preencha o nome do vendedor!");
         return;
     }
-    if(tipoPesagemEl && tipoPesagemEl.value === "faixas"){
-        if(!validarFaixasPreco(obterFaixasPreco(""), "Critério 1")) return;
-    } else if(!vKg || !vKg.value.trim()){
+    if(!vKg || !vKg.value.trim()){
         alert("Preencha o valor por kg/arroba!");
         return;
     }
@@ -186,9 +188,7 @@ function iniciarPesagem(){
         let vKgN = document.getElementById("valorKg" + n);
         let tipoN = document.getElementById("tipoPesagem" + n);
         let rendN = document.getElementById("rendimentoArroba" + n);
-        if(tipoN && tipoN.value === "faixas"){
-            if(!validarFaixasPreco(obterFaixasPreco(String(n)), `Critério ${n}`)) return;
-        } else if(!vKgN || !vKgN.value.trim()){
+        if(!vKgN || !vKgN.value.trim()){
             alert(`Preencha o valor do Critério ${n}!`);
             return;
         }
@@ -209,6 +209,13 @@ function iniciarPesagem(){
             return;
         }
     }
+
+    let sufixosAbertos = ["", "2", "3"].filter(n => {
+        if(n === "") return true;
+        let bloco = document.getElementById("blocoCriterio" + n);
+        return bloco && bloco.style.display !== "none";
+    });
+    if(!validarFaixasPesoCriterios(sufixosAbertos)) return;
 
     montarCriteriosPesagem();
     criterioAtivoIndex = 0;
@@ -237,18 +244,11 @@ function alternarTipoPesagem(sufixo){
     let tipo = tipoPesagemEl.value;
     let ehArroba = tipo === "arroba";
     let ehValorAnimal = tipo === "valor_animal";
-    let ehFaixas = tipo === "faixas";
     // esconde o CARTÃO inteiro (rótulo + campo), não só o input -- senão
     // sobrava um cartão com o rótulo "% de Rendimento" flutuando vazio
     let campoRendEl = document.getElementById("campoRendimentoArroba" + sufixo) || rendEl;
     campoRendEl.style.display = ehArroba ? "block" : "none";
-    let campoFaixasEl = document.getElementById("campoFaixas" + sufixo);
-    if(campoFaixasEl) campoFaixasEl.style.display = ehFaixas ? "block" : "none";
-    if(vKgEl){
-        let cartaoValor = vKgEl.closest(".campoCartao");
-        if(cartaoValor) cartaoValor.style.display = ehFaixas ? "none" : "block";
-        vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
-    }
+    if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
 }
 
 function resetarPesagemAtual() {
@@ -282,10 +282,7 @@ function resetarPesagemAtual() {
     if(tipoEl) tipoEl.value = "venda";
     if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
     if(rendEl) rendEl.value = "";
-    let listaFaixasPrincipal = document.getElementById("listaFaixas");
-    if(listaFaixasPrincipal) listaFaixasPrincipal.replaceChildren();
-    let campoFaixasPrincipal = document.getElementById("campoFaixas");
-    if(campoFaixasPrincipal) campoFaixasPrincipal.style.display = "none";
+    ["pesoMin", "pesoMax"].forEach(id => { let el = document.getElementById(id); if(el) el.value = ""; });
     alternarTipoPesagem("");
     // desfaz os critérios extras (2 e 3), se tinham sido abertos numa
     // pesagem anterior -- volta pro estado "só Critério 1" de uma sessão nova
@@ -389,6 +386,17 @@ function adicionarPeso(){
 function efetivarLancamentoPeso(pesoNum){
     let inputPeso = document.getElementById("displayPeso");
     let inputObs = document.getElementById("obs");
+    // critérios com Faixa de Peso: o animal vai sozinho pro critério cuja
+    // faixa contém o peso (troca o critério ativo antes de lançar)
+    if(criteriosComFaixaPeso()){
+        let indice = indiceCriterioPorPeso(pesoNum);
+        if(indice < 0){
+            let faixas = criteriosPesagem.map((c, i) => `Critério ${i + 1}: ${textoFaixaPeso(c.faixaPeso)}`).join("\n");
+            alert(`Peso de ${formatarPeso(pesoNum)} kg não cabe em nenhuma faixa:\n${faixas}`);
+            return;
+        }
+        if(indice !== criterioAtivoIndex) trocarCriterioAtivo(indice);
+    }
     let criterio = criteriosPesagem[criterioAtivoIndex];
     let valorRS;
     let faixaUsada = null;
@@ -485,6 +493,9 @@ function finalizarPesagem(){
         trocarCriterioAtivo(i);
         if(typeof salvarPesagem === "function") salvarPesagem();
     });
+    // devolve os campos do Critério 1 pro que o operador configurou -- o
+    // loop acima deixou neles os valores do último critério salvo
+    if(criteriosPesagem.length > 1) trocarCriterioAtivo(0);
     sessaoPesagemIdAtual = null;
 
     criteriosPesagem = [];
@@ -667,7 +678,7 @@ function montarCriteriosPesagem(){
             valorKg: valorEl.value,
             rendimento: rendEl ? rendEl.value : "",
             descricao: loteEl ? loteEl.value : "",
-            faixasPreco: obterFaixasPreco(n),
+            faixaPeso: obterFaixaPesoCriterio(n),
             pesos: pesosExistentes
         });
         indice++;
@@ -689,7 +700,7 @@ function atualizarBotoesCriteriosPesagem(){
     linha.style.display = "grid";
     linha.innerHTML = criteriosPesagem.map((c, i) => `
         <button class="criterioBtn${i === criterioAtivoIndex ? " criterioBtnAtivo" : ""}" onclick="trocarCriterioAtivo(${i})">
-            <span class="criterioBtnLabel">Critério ${i + 1}</span>
+            <span class="criterioBtnLabel">Critério ${i + 1}${c.faixaPeso ? " · " + textoFaixaPeso(c.faixaPeso) : ""}</span>
             <span class="criterioBtnValor">${rotuloCriterio(c, i)}</span>
         </button>
     `).join("");
@@ -715,11 +726,6 @@ function trocarCriterioAtivo(indice){
     if(valorEl) valorEl.value = c.valorKg;
     if(rendEl) rendEl.value = c.rendimento;
     if(loteEl) loteEl.value = c.descricao;
-    let listaFaixas = document.getElementById("listaFaixas");
-    if(listaFaixas){
-        listaFaixas.replaceChildren();
-        (c.faixasPreco || []).forEach(f => adicionarFaixaPreco("", f));
-    }
 
     if(typeof alternarTipoPesagem === "function") alternarTipoPesagem("");
     if(typeof atualizarStats === "function") atualizarStats();
@@ -747,16 +753,12 @@ function mostrarCriterioExtra(n){
 function removerCriterioExtra(n){
     let bloco = document.getElementById("blocoCriterio" + n);
     if(bloco) bloco.style.display = "none";
-    ["tipoPesagem", "rendimentoArroba", "valorKg", "descricao"].forEach(base => {
+    ["tipoPesagem", "rendimentoArroba", "valorKg", "descricao", "pesoMin", "pesoMax"].forEach(base => {
         let el = document.getElementById(base + n);
         if(el) el.value = base === "tipoPesagem" ? "vivo" : "";
     });
     let campoRend = document.getElementById("campoRendimentoArroba" + n);
     if(campoRend) campoRend.style.display = "none";
-    let listaFaixas = document.getElementById("listaFaixas" + n);
-    if(listaFaixas) listaFaixas.replaceChildren();
-    let campoFaixas = document.getElementById("campoFaixas" + n);
-    if(campoFaixas) campoFaixas.style.display = "none";
     // Critério 3 mora dentro do bloco do Critério 2 -- remover o 2 leva o 3 junto
     if(n === 2){
         let bloco3 = document.getElementById("blocoCriterio3");
