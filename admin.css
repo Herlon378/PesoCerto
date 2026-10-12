@@ -1493,3 +1493,12 @@ body.modoDesktop { background: var(--navy-900); }
     .fazendaDadosFiltros select { min-width: 0; flex: 1 1 140px; }
     .fazendaDadosPainel { padding: 14px; }
 }
+
+/* no gerenciamento quem rola é a PÁGINA, não cada .tela -- o style.css (do
+   app do celular) deixa .tela com overflow-y:auto + overscroll-behavior
+   contain, e isso segurava o arrasto do dedo dentro da tela sem passar pra
+   página: no celular o gerenciamento não rolava pra baixo de jeito nenhum */
+body.modoDesktop .tela {
+    overflow: visible;
+    overscroll-behavior: auto;
+}
