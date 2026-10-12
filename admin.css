@@ -1379,3 +1379,117 @@ body.modoDesktop .tela.telaAcesso.ativa {
 #corpoTabelaDadosFazenda td { white-space: nowrap; }
 #corpoTabelaDadosFazenda .linhaPesosFazenda td { white-space: normal; }
 .fazendaDadosPainel { overflow-x: auto; }
+
+/* ========================================
+   GERENCIAMENTO NO CELULAR (até 900px)
+   O menu lateral de 240px ficava fixo e espremia o conteúdo -- vira uma
+   gaveta que abre pelo botão ☰ da barra de cima e fecha ao escolher uma
+   tela (ou tocar fora). Tabelas rolam pro lado dentro do próprio cartão
+   em vez de alargar a página inteira.
+   ======================================== */
+.btnMenuCelular, .navFundoCelular { display: none; }
+
+@media (max-width: 900px) {
+    .navDesktop {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        height: auto;
+        width: 264px;
+        min-width: 0;
+        max-width: 82vw;
+        z-index: 1000;
+        transform: translateX(-105%);
+        transition: transform 0.22s ease;
+    }
+    body.menuCelularAberto .navDesktop { transform: none; }
+    .navFundoCelular {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: rgba(4,9,20,0.6);
+    }
+    body.menuCelularAberto .navFundoCelular { display: block; }
+    body.menuCelularAberto { overflow: hidden; }
+
+    .btnMenuCelular {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        margin: 0;
+        padding: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        background: var(--surface-sunken);
+        color: var(--ink);
+        cursor: pointer;
+    }
+    .btnMenuCelular svg { width: 22px; height: 22px; }
+
+    .barraSuperior { padding: 10px 12px; gap: 8px; }
+    .pillStatus {
+        min-width: 0;
+        flex: 0 1 auto;
+        font-size: 11px;
+        padding: 6px 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .pillAcao { flex-shrink: 0; }
+    .pillPerfil {
+        min-width: 0;
+        max-width: 42vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 6px 12px 6px 6px;
+        font-size: 12px;
+    }
+
+    body.modoDesktop .tela { padding: 18px 14px 48px; }
+    body.modoDesktop .tela h2 { font-size: 22px; }
+
+    /* tabelas: rolam pro lado dentro delas mesmas */
+    body.modoDesktop table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    body.modoDesktop th, body.modoDesktop td { white-space: nowrap; }
+
+    .botoesRelatorio { flex-wrap: wrap; }
+}
+
+/* botões de ação das telas (Novo Usuário, Excluir, Exportar...): tinham só a
+   cor inline em cima do botão padrão do navegador -- borda clara e texto
+   pequeno, ficava pior ainda espremido no celular */
+body.modoDesktop .botoesRelatorio button {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin: 0;
+    width: auto;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+/* a faixa cinza que aparecia embaixo das telas curtas era o fundo do body */
+body.modoDesktop { background: var(--navy-900); }
+
+@media (max-width: 900px) {
+    body.modoDesktop .botoesRelatorio { display: flex; flex-wrap: wrap; gap: 8px; }
+    body.modoDesktop .botoesRelatorio button { flex: 1 1 calc(50% - 4px); padding: 12px 10px; }
+    .cartaoConvite { gap: 10px; }
+    .cartaoConvite > div { min-width: 0; flex-basis: 100%; }
+    .cartaoConvite button { flex: 1 1 auto; }
+    .fazendaDadosFiltros select { min-width: 0; flex: 1 1 140px; }
+    .fazendaDadosPainel { padding: 14px; }
+}

@@ -2,6 +2,7 @@
     let original = window.trocarTela;
     window.trocarTela = function (id) {
         original(id);
+        document.body.classList.remove("menuCelularAberto");
         document.querySelectorAll(".navDesktop [data-tela]").forEach(b => {
             b.classList.toggle("navAtivo", b.dataset.tela === id);
         });
@@ -4396,4 +4397,12 @@ async function copiarRelatorioFazenda() {
 
 function enviarRelatorioFazendaWhatsApp() {
     window.open("https://wa.me/?text=" + encodeURIComponent(textoRelatorioFazendaAberto), "_blank");
+}
+
+// menu lateral vira gaveta no celular (ver admin.css, @media max-width 900px)
+function alternarMenuCelular() {
+    document.body.classList.toggle("menuCelularAberto");
+}
+function fecharMenuCelular() {
+    document.body.classList.remove("menuCelularAberto");
 }
