@@ -50,9 +50,11 @@ function salvarPesagemAuto(){
         criteriosPesagem[criterioAtivoIndex].pesos = pesos;
     }
 
+    let destinoEl = document.getElementById("loteDestinoTransf");
     let dados = {
         vendedor: vendedor,
         tipo: tipoEl ? tipoEl.value : "venda",
+        loteDestino: destinoEl ? destinoEl.value : "",
         criteriosPesagem: (typeof criteriosPesagem !== "undefined" && criteriosPesagem.length) ? criteriosPesagem : undefined,
         data: new Date()
     };
@@ -127,6 +129,13 @@ function restaurarPesagem(){
             restaurarFaixaPesoCampos(String(n), criterio.faixaPeso);
             if(typeof alternarTipoPesagem === "function") alternarTipoPesagem(String(n));
         });
+
+        let destinoEl = document.getElementById("loteDestinoTransf");
+        if(destinoEl && dados.loteDestino){
+            if(typeof carregarLotesSelect === "function") carregarLotesSelect();
+            destinoEl.value = dados.loteDestino;
+        }
+        if(typeof alternarModoOperacao === "function") alternarModoOperacao();
 
         if(typeof atualizarStats === "function") {
             atualizarStats();

@@ -924,9 +924,9 @@
 
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
-<script src="db.js?v=3"></script>
-<script src="app.js?v=7"></script>
-<script src="admin.js?v=19"></script>
+<script src="db.js?v=4"></script>
+<script src="app.js?v=8"></script>
+<script src="admin.js?v=20"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">
@@ -987,7 +987,9 @@
             <option value="">Lote de destino</option>
         </select>
         <input id="transfQuantidadeInput" placeholder="Quantidade de animais" inputmode="numeric" oninput="atualizarPreviewTransferencia()">
-        <input id="transfDataInput" type="date">
+        <input id="transfKgInput" placeholder="Peso total dos animais (kg) — opcional" inputmode="decimal">
+        <input id="transfDataInput" type="date" onchange="atualizarPreviewTransferencia()">
+        <p class="loginSubtitulo" style="text-align:left; font-size:13px">💡 Pra pesar cada animal na balança, faça pelo celular: <b>Nova Pesagem → Operação: Transferência entre lotes</b>.</p>
         <p id="transfPreview" class="loginSubtitulo" style="text-align:left"></p>
         <p id="transfErro" class="loginErro" style="display:none"></p>
         <div class="botoes">

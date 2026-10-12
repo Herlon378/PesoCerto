@@ -486,6 +486,10 @@ async function carregarTransferenciasLotesAdmin() {
         let resp = await fetch(`${API_URL}/api/transferencias-lotes`, { headers: { "Authorization": "Bearer " + token } });
         if (!resp.ok) return [];
         transferenciasLotesCacheAdmin = await resp.json();
+        // o valor das transferências automáticas depende de insumos e
+        // lançamentos do lote de origem (ver resolverValoresTransferencias)
+        await Promise.all([carregarEstoqueSaidasAdmin(), carregarCaixaLancamentosAdmin()]);
+        resolverValoresTransferencias(transferenciasLotesCacheAdmin, relatorios, estoqueSaidasCacheAdmin, caixaLancamentosCacheAdmin);
         return transferenciasLotesCacheAdmin;
     } catch (e) {
         return [];
@@ -518,12 +522,34 @@ async function abrirModalTransferenciaLote() {
     document.getElementById("transfLoteDestinoInput").innerHTML = opcoes;
 
     document.getElementById("transfQuantidadeInput").value = "";
+    document.getElementById("transfKgInput").value = "";
     document.getElementById("transfDataInput").value = new Date().toISOString().slice(0, 10);
     let erroEl = document.getElementById("transfErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
     await atualizarPreviewTransferencia();
     novaChaveIdempotencia("modalTransferenciaLote");
     document.getElementById("modalTransferenciaLote").style.display = "flex";
+}
+
+// data escolhida + hora de agora (sem hora, a transferência de hoje ficaria
+// ordenada ANTES da venda de hoje e pegaria o custo errado)
+function dataTransferenciaModal() {
+    let iso = document.getElementById("transfDataInput").value;
+    let agora = new Date();
+    if (!iso) return agora.toLocaleString("pt-BR");
+    let [a, m, d] = iso.split("-");
+    let hh = n => String(n).padStart(2, "0");
+    return `${d}/${m}/${a}, ${hh(agora.getHours())}:${hh(agora.getMinutes())}:${hh(agora.getSeconds())}`;
+}
+
+function calcularPreviaTransferencia(loteOrigem, qtd, dataStr) {
+    resolverValoresTransferencias(transferenciasLotesCacheAdmin, relatorios, estoqueSaidasCacheAdmin, caixaLancamentosCacheAdmin);
+    let simulada = { loteOrigem, loteDestino: "", quantidade: qtd, data: dataStr, modoCusto: "automatico" };
+    let est = estadoLoteAteTransferencia(loteOrigem, chaveOrdenacaoLoteMobile(dataStr) || "9999", simulada, transferenciasLotesCacheAdmin, relatorios, estoqueSaidasCacheAdmin, caixaLancamentosCacheAdmin);
+    let restante = est.gasto - est.receita;
+    let q = Math.min(qtd, est.headcount);
+    let valor = est.headcount > 0 && restante > 0 ? Math.round(restante * q / est.headcount * 100) / 100 : 0;
+    return { headcount: est.headcount, restante, valor };
 }
 
 async function atualizarPreviewTransferencia() {
@@ -534,13 +560,12 @@ async function atualizarPreviewTransferencia() {
     if (!loteOrigem) { preview.innerText = ""; return; }
 
     await carregarCachesFinanceirasDashboard();
-    let porLote = agregarCustoLotesFinanceiro();
-    let g = porLote[loteOrigem];
-    let custoMedio = g ? g.custoMedioAnimal : 0;
-    let headcount = g ? g.headcountAtual : 0;
-
-    let texto = `Animais disponíveis em "${loteOrigem}": ${headcount} · Custo médio: R$ ${formatarMoeda(custoMedio)}/animal`;
-    if (qtd > 0) texto += ` · Total a transferir: R$ ${formatarMoeda(qtd * custoMedio)}`;
+    let previa = calcularPreviaTransferencia(loteOrigem, qtd, dataTransferenciaModal());
+    let texto = `Animais em "${loteOrigem}": ${previa.headcount}. `;
+    texto += previa.restante > 0
+        ? `Ainda falta recuperar R$ ${formatarMoeda(previa.restante)} desse lote em vendas (R$ ${formatarMoeda(previa.restante / Math.max(previa.headcount, 1))} por animal).`
+        : `Esse lote já recuperou todo o investimento${previa.restante < 0 ? " e tem R$ " + formatarMoeda(-previa.restante) + " de lucro, que fica nele" : ""}.`;
+    if (qtd > 0) texto += ` → Os ${qtd} animal(is) vão com custo de R$ ${formatarMoeda(previa.valor)}.`;
     preview.innerText = texto;
 }
 
@@ -566,14 +591,16 @@ async function confirmarTransferenciaLote() {
         if (loteOrigem === loteDestino) { mostrarErro("Origem e destino não podem ser o mesmo lote."); return; }
         if (!Number.isFinite(quantidade) || quantidade <= 0) { mostrarErro("Quantidade inválida."); return; }
 
-        let porLote = agregarCustoLotesFinanceiro();
-        let g = porLote[loteOrigem];
-        let custoMedio = g ? g.custoMedioAnimal : 0;
+        let kgTexto = document.getElementById("transfKgInput").value.trim();
+        let kgTotal = kgTexto ? parseFloat(kgTexto.replace(/\./g, "").replace(",", ".")) : null;
+        if (kgTexto && (!Number.isFinite(kgTotal) || kgTotal <= 0)) { mostrarErro("Peso total inválido."); return; }
 
+        // custo calculado nos relatórios (só o que a origem ainda não
+        // recuperou -- ver resolverValoresTransferencias em app.js)
         let resp = await fetch(`${API_URL}/api/transferencias-lotes`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ id: obterChaveIdempotencia("modalTransferenciaLote"), loteOrigem, loteDestino, quantidade, custoUnitario: custoMedio, data: formatarDataBR(dataISOSimples) })
+            body: JSON.stringify({ id: obterChaveIdempotencia("modalTransferenciaLote"), loteOrigem, loteDestino, quantidade, modoCusto: "automatico", kgTotal, data: dataTransferenciaModal() })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao transferir (HTTP ${resp.status}).`); return; }
@@ -598,8 +625,8 @@ async function carregarHistoricoTransferencias() {
             <td>${t.data || "—"}</td>
             <td>${t.loteOrigem}</td>
             <td>${t.loteDestino}</td>
-            <td>${t.quantidade}</td>
-            <td>R$ ${formatarMoeda(t.valorTotal)}</td>
+            <td>${t.quantidade}${t.kgTotal ? ` <small style="color:var(--ink-muted)">(${formatarPeso(t.kgTotal)} kg)</small>` : ""}</td>
+            <td>R$ ${formatarMoeda(t.valorTotal)}${t.modoCusto === "automatico" ? ` <small style="color:var(--ink-muted)" title="Calculado: só o custo que o lote de origem ainda não tinha recuperado">automático</small>` : ""}</td>
             <td class="acoesUsuario"><button onclick='excluirTransferenciaLote(${JSON.stringify(t.id)})'>🗑️</button></td>
         </tr>
     `).join("");
@@ -1287,11 +1314,13 @@ async function mostrarCustoPorLote() {
         if (dentroDoCicloAtual(t.loteOrigem, t.data)) {
             let origem = grupoDoLote(t.loteOrigem);
             origem.vendidos += t.quantidade;
+            origem.kgVendido += Number(t.kgTotal) || 0;
             origem.custoCompra -= t.valorTotal;
         }
         if (dentroDoCicloAtual(t.loteDestino, t.data)) {
             let destino = grupoDoLote(t.loteDestino);
             destino.comprados += t.quantidade;
+            destino.kgComprado += Number(t.kgTotal) || 0;
             destino.custoCompra += t.valorTotal;
         }
     });
@@ -1412,11 +1441,22 @@ function gerarRelatorioLotePDF(nomeLote) {
     });
     transferenciasLotesCacheAdmin.filter(t => t.loteDestino === nomeLote && noCicloAtual(t.data)).forEach(t => {
         comprados += t.quantidade;
+        kgComprado += Number(t.kgTotal) || 0;
         custoCompra += t.valorTotal;
         somarInsumo("Recebido por transferência", t.valorTotal);
+        (t.pesos || []).forEach(p => {
+            animaisDetalhados.push({
+                peso: p.peso || 0,
+                valor: t.custoUnitario || 0,
+                data: t.data ? String(t.data).split(",")[0] : "—",
+                vendedor: "Transferido de " + t.loteOrigem,
+                obs: p.obs || ""
+            });
+        });
     });
     transferenciasLotesCacheAdmin.filter(t => t.loteOrigem === nomeLote && noCicloAtual(t.data)).forEach(t => {
         vendidos += t.quantidade;
+        kgVendido += Number(t.kgTotal) || 0;
         custoCompra -= t.valorTotal;
     });
 

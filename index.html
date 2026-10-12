@@ -184,21 +184,23 @@
 
     <div class="campoCartao">
         <label class="campoCartaoLabel" for="tipoOperacao">Operação</label>
-        <select id="tipoOperacao">
+        <select id="tipoOperacao" onchange="alternarModoOperacao()">
             <option value="venda">Venda</option>
             <option value="compra">Compra</option>
+            <option value="transferencia">Transferência</option>
         </select>
         <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
 
-    <div class="campoCartao">
+    <div class="campoCartao" id="cardNomeVendedor">
         <label class="campoCartaoLabel" for="nomeVendedor">Nome do vendedor</label>
         <input id="nomeVendedor" placeholder="Nome do vendedor">
         <span class="campoCartaoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
     </div>
 
-    <p class="criterioTitulo">Critério 1</p>
-    <div class="campoCartao">
+    <p class="criterioTitulo" id="tituloCriterio1">Critério 1</p>
+    <p class="avisoTransferencia" id="avisoTransferencia" style="display:none">Pese os animais que vão mudar de lote. O custo deles é calculado sozinho: só o que o lote de origem <b>ainda não recuperou</b> em vendas, dividido pelos animais que restam — se o lote já deu lucro, eles vão com custo zero e o lucro fica no lote de origem.</p>
+    <div class="campoCartao" id="cardTipoPesagem1">
         <label class="campoCartaoLabel" for="tipoPesagem">Tipo de Pesagem</label>
         <select id="tipoPesagem" onchange="alternarTipoPesagem('')">
             <option value="vivo">Peso Vivo (Kg)</option>
@@ -208,7 +210,7 @@
         <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
 
-    <div class="campoCartao campoFaixaPeso">
+    <div class="campoCartao campoFaixaPeso" id="cardFaixaPeso1">
         <label class="campoCartaoLabel" for="pesoMin">Faixa de Peso <small>(opcional)</small></label>
         <div class="faixaPesoLinha"><input id="pesoMin" placeholder="De kg" inputmode="decimal"><span>até</span><input id="pesoMax" placeholder="Até kg" inputmode="decimal"></div>
     </div>
@@ -218,15 +220,23 @@
         <input id="rendimentoArroba" placeholder="Ex: 50" inputmode="decimal">
     </div>
 
-    <div class="campoCartao">
+    <div class="campoCartao" id="cardValor1">
         <label class="campoCartaoLabel" for="valorKg">Valor</label>
         <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
     </div>
 
     <div class="campoCartao">
-        <label class="campoCartaoLabel" for="descricao">Lote</label>
+        <label class="campoCartaoLabel" for="descricao" id="labelLote1">Lote</label>
         <select id="descricao">
             <option value="">Sem lote</option>
+        </select>
+        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+
+    <div class="campoCartao" id="cardLoteDestino" style="display:none">
+        <label class="campoCartaoLabel" for="loteDestinoTransf">Lote de destino</label>
+        <select id="loteDestinoTransf">
+            <option value="">Selecione o lote</option>
         </select>
         <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>

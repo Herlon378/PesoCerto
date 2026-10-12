@@ -230,7 +230,53 @@ function calcularValorFaixa(peso, faixas){
     return { faixa, valorRS: faixa.tipo === "fixo" ? Number(faixa.valor) : peso * Number(faixa.valor) };
 }
 
+function ehModoTransferencia(){
+    let el = document.getElementById("tipoOperacao");
+    return !!el && el.value === "transferencia";
+}
+
+// Nova Pesagem no modo "Transferência entre lotes": não tem vendedor nem
+// preço (o custo é calculado nos relatórios, ver resolverValoresTransferencias),
+// só lote de origem, lote de destino e os animais pesados
+function alternarModoOperacao(){
+    let transf = ehModoTransferencia();
+    function mostrar(id, visivel){ let el = document.getElementById(id); if(el) el.style.display = visivel ? "" : "none"; }
+    mostrar("cardNomeVendedor", !transf);
+    mostrar("cardTipoPesagem1", !transf);
+    mostrar("cardValor1", !transf);
+    mostrar("cardFaixaPeso1", !transf);
+    mostrar("cardLoteDestino", transf);
+    mostrar("avisoTransferencia", transf);
+    mostrar("btnAdicionarCriterio2", !transf);
+    let titulo = document.getElementById("tituloCriterio1");
+    if(titulo) titulo.innerText = transf ? "Transferência" : "Critério 1";
+    let labelLote = document.getElementById("labelLote1");
+    if(labelLote) labelLote.innerText = transf ? "Lote de origem" : "Lote";
+    if(transf){
+        if(typeof fecharCriteriosExtras === "function") fecharCriteriosExtras();
+        mostrar("btnAdicionarCriterio2", false);
+        mostrar("campoRendimentoArroba", false);
+        ["pesoMin", "pesoMax"].forEach(id => { let el = document.getElementById(id); if(el) el.value = ""; });
+    } else {
+        alternarTipoPesagem("");
+    }
+}
+
 function iniciarPesagem(){
+    if(ehModoTransferencia()){
+        let origem = document.getElementById("descricao").value;
+        let destino = document.getElementById("loteDestinoTransf").value;
+        if(!origem){ alert("Escolha o lote de origem (de onde os animais saem)."); return; }
+        if(!destino){ alert("Escolha o lote de destino (pra onde os animais vão)."); return; }
+        if(origem === destino){ alert("O lote de origem e o de destino não podem ser o mesmo."); return; }
+        let tipoPesagemEl = document.getElementById("tipoPesagem");
+        if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
+        montarCriteriosPesagem();
+        criterioAtivoIndex = 0;
+        pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
+        abrirTelaPesagemOuBalanca();
+        return;
+    }
     let nv = document.getElementById("nomeVendedor");
     let vKg = document.getElementById("valorKg");
     let tipoPesagemEl = document.getElementById("tipoPesagem");
@@ -289,7 +335,10 @@ function iniciarPesagem(){
     montarCriteriosPesagem();
     criterioAtivoIndex = 0;
     pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
+    abrirTelaPesagemOuBalanca();
+}
 
+function abrirTelaPesagemOuBalanca(){
     if(balancaBluetoothDisponivel()){
         atualizarStatusConexaoBalanca("Balança não conectada", "");
         let botaoBalanca = document.getElementById("btnConectarBalancaTela");
@@ -350,6 +399,8 @@ function resetarPesagemAtual() {
     if(dPeso) dPeso.value = "";
     if(tipoEl) tipoEl.value = "venda";
     if(tipoPesagemEl) tipoPesagemEl.value = "vivo";
+    let destinoEl = document.getElementById("loteDestinoTransf");
+    if(destinoEl) destinoEl.value = "";
     if(rendEl) rendEl.value = "";
     ["pesoMin", "pesoMax"].forEach(id => { let el = document.getElementById(id); if(el) el.value = ""; });
     alternarTipoPesagem("");
@@ -357,6 +408,7 @@ function resetarPesagemAtual() {
     // pesagem anterior -- volta pro estado "só Critério 1" de uma sessão nova
     if(typeof fecharCriteriosExtras === "function") fecharCriteriosExtras();
     aplicarRestricoesUsuario();
+    alternarModoOperacao();
 
     localStorage.removeItem("pesagemAtual");
     atualizarStats();
@@ -538,7 +590,42 @@ function fecharConfirmacao(confirmado){
     indicePesoParaExcluir = null;
 }
 
+// os animais pesados viram UMA transferência (fila local, enviada pela
+// sincronização -- funciona offline igual às pesagens)
+function finalizarTransferenciaPesada(){
+    if(criteriosPesagem[criterioAtivoIndex]) criteriosPesagem[criterioAtivoIndex].pesos = pesos;
+    if(pesos.length === 0){ alert("Nenhum peso lançado!"); return; }
+    let origem = document.getElementById("descricao").value;
+    let destino = document.getElementById("loteDestinoTransf").value;
+    let kgTotal = pesos.reduce((s, p) => s + (Number(p.peso) || 0), 0);
+    let transferencia = {
+        id: crypto.randomUUID(),
+        loteOrigem: origem,
+        loteDestino: destino,
+        quantidade: pesos.length,
+        pesos: pesos.map(p => ({ peso: p.peso, obs: p.obs || "" })),
+        kgTotal: Math.round(kgTotal * 100) / 100,
+        modoCusto: "automatico",
+        data: new Date().toLocaleString("pt-BR")
+    };
+    let fila = JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]");
+    fila.push(transferencia);
+    localStorage.setItem("transferenciasPendentes", JSON.stringify(fila));
+    localStorage.removeItem("pesagemAtual");
+
+    criteriosPesagem = [];
+    criterioAtivoIndex = 0;
+    pesos = [];
+    desconectarBalancaBluetooth();
+    resetarEstadoCapturaBalanca();
+    alert(`Transferência registrada: ${transferencia.quantidade} animal(is), ${formatarPeso(transferencia.kgTotal)} kg, de "${origem}" para "${destino}".`);
+    atualizarStats();
+    trocarTela("telaMenu");
+    sincronizarAgora();
+}
+
 function finalizarPesagem(){
+    if(ehModoTransferencia()){ finalizarTransferenciaPesada(); return; }
     // garante que o array do critério ativo está com o `pesos` mais recente
     // antes de checar/salvar (já é a mesma referência, isso é só defensivo)
     if(criteriosPesagem[criterioAtivoIndex]) criteriosPesagem[criterioAtivoIndex].pesos = pesos;
@@ -1157,9 +1244,104 @@ async function carregarDadosCustoLoteMobile(){
         if(respSaidas.ok) estoqueSaidasCacheMobile = await respSaidas.json();
         if(respCaixa.ok) caixaLancamentosCacheMobile = await respCaixa.json();
         if(respTransf.ok) transferenciasLotesCacheMobile = await respTransf.json();
+        carregarDadosCustoLoteMobileResolvido();
     } catch(e){
         // seção só informativa -- se a rede falhar, o resto do Dashboard continua normal
     }
+}
+
+// ========================================
+// CUSTO DAS TRANSFERÊNCIAS ENTRE LOTES
+// ========================================
+// Regra (pedida pelo Herlon): os animais transferidos levam só o custo que o
+// lote de origem AINDA NÃO RECUPEROU, dividido pelos animais que restam nele.
+// Ex: comprou 10 por R$1.000 (R$10.000) e vendeu 9:
+//   - por R$1.200 cada (R$10.800): já recuperou tudo e lucrou R$800 -> o que
+//     sobra vai com custo R$0 e o lucro de R$800 FICA no lote de origem;
+//   - por R$1.100 cada (R$9.900): faltam R$100 -> o que sobra vai com R$100.
+// Antes ia o "custo médio" (custo restante ÷ animais), que fica NEGATIVO
+// quando o lote já deu lucro -- a transferência levava o lucro embora.
+// Transferências registradas com modoCusto "automatico" têm o valor
+// calculado aqui, na hora de cada relatório, olhando tudo que aconteceu no
+// lote de origem até o momento da transferência (então um gasto ou venda
+// lançado depois, com data anterior, já entra certo). As antigas (manual)
+// continuam com o valor que foi gravado.
+function resolverValoresTransferencias(transferencias, pesagens, saidas, lancamentos){
+    if(!Array.isArray(transferencias)) return;
+    let automaticas = transferencias.filter(t => t.modoCusto === "automatico");
+    if(automaticas.length === 0) return;
+    let chave = chaveOrdenacaoLoteMobile;
+    automaticas.forEach(t => { t._pendente = true; t.valorTotal = 0; t.custoUnitario = 0; });
+    [...automaticas]
+        .sort((a, b) => (chave(a.data) || "").localeCompare(chave(b.data) || ""))
+        .forEach(t => {
+            let limite = chave(t.data) || "9999";
+            let est = estadoLoteAteTransferencia(t.loteOrigem, limite, t, transferencias, pesagens || [], saidas || [], lancamentos || []);
+            let restante = est.gasto - est.receita;
+            let qtd = Math.min(Number(t.quantidade) || 0, est.headcount);
+            t.valorTotal = (est.headcount > 0 && restante > 0) ? Math.round(restante * qtd / est.headcount * 100) / 100 : 0;
+            t.custoUnitario = t.quantidade > 0 ? t.valorTotal / t.quantidade : 0;
+            t.custoRestanteOrigem = restante;
+            t.headcountOrigem = est.headcount;
+            delete t._pendente;
+        });
+}
+
+// como estava o lote de origem logo antes da transferência: só o ciclo
+// atual dele (mesma regra de calcularInicioCicloLote -- lote que zerou e
+// recebeu animais de novo começa do zero)
+function estadoLoteAteTransferencia(nomeLote, limite, atual, transferencias, pesagens, saidas, lancamentos){
+    let chave = chaveOrdenacaoLoteMobile;
+    let eventos = [];
+    pesagens.forEach(r => {
+        if((r.descricao || "Sem descrição") !== nomeLote) return;
+        let o = chave(r.data);
+        if(!o || o > limite) return;
+        let d = calcularDadosCompletos(r);
+        let ehCompra = (r.tipo || "venda") === "compra";
+        eventos.push({ o, delta: ehCompra ? d.totalAnimais : -d.totalAnimais, gasto: ehCompra ? d.totalRS : 0, receita: ehCompra ? 0 : d.totalRS });
+    });
+    transferencias.forEach(t => {
+        if(t === atual || t._pendente) return;
+        let o = chave(t.data);
+        if(!o || o > limite) return;
+        let valor = Number(t.valorTotal) || 0;
+        if(t.loteDestino === nomeLote) eventos.push({ o, delta: Number(t.quantidade) || 0, gasto: valor, receita: 0 });
+        if(t.loteOrigem === nomeLote) eventos.push({ o, delta: -(Number(t.quantidade) || 0), gasto: -valor, receita: 0 });
+    });
+    eventos.sort((a, b) => a.o.localeCompare(b.o));
+
+    let cabecas = 0, inicio = eventos.length ? eventos[0].o : null, aguardando = false;
+    eventos.forEach(e => {
+        if(aguardando){ inicio = e.o; aguardando = false; }
+        cabecas += e.delta;
+        if(cabecas <= 0) aguardando = true;
+    });
+    let est = { gasto: 0, receita: 0, headcount: 0 };
+    if(aguardando) return est; // ciclo já fechado: não sobrou animal nenhum
+    let noCiclo = o => !inicio || o >= inicio;
+    eventos.forEach(e => {
+        if(!noCiclo(e.o)) return;
+        est.gasto += e.gasto; est.receita += e.receita; est.headcount += e.delta;
+    });
+    saidas.forEach(s => {
+        if(s.loteNome !== nomeLote) return;
+        let o = chave(s.data);
+        if(!o || o > limite || !noCiclo(o)) return;
+        est.gasto += Number(s.valorTotal) || 0;
+    });
+    lancamentos.forEach(l => {
+        if(!l.loteNome || l.loteNome !== nomeLote) return;
+        let o = chave(l.data);
+        if(!o || o > limite || !noCiclo(o)) return;
+        if(l.tipo === "saida") est.gasto += Number(l.valor) || 0;
+        else est.receita += Number(l.valor) || 0;
+    });
+    return est;
+}
+
+function carregarDadosCustoLoteMobileResolvido(){
+    resolverValoresTransferencias(transferenciasLotesCacheMobile, relatorios, estoqueSaidasCacheMobile, caixaLancamentosCacheMobile);
 }
 
 // mesma lógica de calcularInicioCicloLote() (admin.js) -- reescrita aqui
@@ -1249,11 +1431,14 @@ function montarResumoLoteMobile(nomeLote){
     transferenciasLotesCacheMobile.forEach(t => {
         if(t.loteOrigem === nomeLote && noCicloAtual(t.data)){
             g.vendidos += t.quantidade;
+            g.kgVendido += Number(t.kgTotal) || 0;
             g.custoCompra -= t.valorTotal;
         }
         if(t.loteDestino === nomeLote && noCicloAtual(t.data)){
             g.comprados += t.quantidade;
+            g.kgComprado += Number(t.kgTotal) || 0;
             g.custoCompra += t.valorTotal;
+            (t.pesos || []).forEach(p => { if(Number(p.peso) > 0) g.pesosCompra.push(Number(p.peso)); });
         }
     });
 
@@ -2131,7 +2316,7 @@ function aplicarRestricoesUsuario(){
     let permTipo = obterPermTipoPesagem();
     if(obterPapelLogado() !== "admin" && permTipo !== "ambos"){
         Array.from(selectTipo.options).forEach(o => {
-            if(o.value !== permTipo) o.disabled = true;
+            if(o.value !== permTipo && o.value !== "transferencia") o.disabled = true;
         });
         selectTipo.value = permTipo;
     }
@@ -2169,7 +2354,7 @@ function limparDadosVisiveis(){
 // guardado de qual fazenda são os dados locais (pesagens, rascunho, caches)
 // -- se alguém entrar com o login de OUTRA fazenda neste aparelho, esses
 // dados são apagados antes, senão sincronizariam na fazenda errada.
-const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache"];
+const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "transferenciasPendentes", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache"];
 
 // "<schema>:<aleatório>"; token sem ":" é de antes do multi-fazenda, e todos
 // eram da fazenda original
@@ -2198,6 +2383,7 @@ function contarPendentesLocais(){
         }catch(e){}
     });
     try{ total += (JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]") || []).length; }catch(e){}
+    try{ total += (JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]") || []).length; }catch(e){}
     if(localStorage.getItem("pesagemAtual")) total += 1;
     return total;
 }
@@ -2602,6 +2788,12 @@ function carregarLotesSelect(){
         select.innerHTML = opcoes;
         select.value = valorAtual;
     });
+    let destino = document.getElementById("loteDestinoTransf");
+    if(destino){
+        let valorAtual = destino.value;
+        destino.innerHTML = `<option value="">Selecione o lote</option>` + opcoes.replace(`<option value="">Sem lote</option>`, "");
+        destino.value = valorAtual;
+    }
 }
 
 function carregarLotesSelectSaida(){
@@ -2827,6 +3019,30 @@ async function sincronizarAgora(){
             }
         }
         localStorage.setItem("exclusoesPendentes", JSON.stringify(exclusoesPendentes));
+
+        // transferências pesadas no celular -- depois das pesagens, porque o
+        // servidor confere se o lote de origem tem animais suficientes
+        let transfPendentes = JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]");
+        for(let t of [...transfPendentes]){
+            let respT = await fetch(`${API_URL}/api/transferencias-lotes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify(t)
+            });
+            if(respT.ok){
+                transfPendentes = transfPendentes.filter(x => x.id !== t.id);
+            } else if(respT.status === 400 || respT.status === 403){
+                // recusada (ex: o lote de origem não tem tantos animais) -- não
+                // adianta tentar de novo; guarda os pesos e avisa
+                let erro = (await respT.json().catch(() => ({}))).erro || "recusada pelo servidor";
+                transfPendentes = transfPendentes.filter(x => x.id !== t.id);
+                let recusadas = JSON.parse(localStorage.getItem("transferenciasRecusadas") || "[]");
+                recusadas.push({ ...t, erro });
+                localStorage.setItem("transferenciasRecusadas", JSON.stringify(recusadas));
+                alert(`A transferência de ${t.quantidade} animal(is) de "${t.loteOrigem}" para "${t.loteDestino}" não foi aceita: ${erro}`);
+            }
+        }
+        localStorage.setItem("transferenciasPendentes", JSON.stringify(transfPendentes));
 
         let respGet = await fetch(`${API_URL}/api/pesagens`, {
             headers: { "Authorization": "Bearer " + token }
