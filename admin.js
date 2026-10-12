@@ -353,17 +353,18 @@ async function carregarLotes() {
             headers: { "Authorization": "Bearer " + token }
         });
         if (!resp.ok) {
-            corpo.innerHTML = `<tr><td colspan="3">Sessão expirada ou sem acesso.</td></tr>`;
+            corpo.innerHTML = `<tr><td colspan="4">Sessão expirada ou sem acesso.</td></tr>`;
             return;
         }
         let lotes = await resp.json();
         if (lotes.length === 0) {
-            corpo.innerHTML = `<tr><td colspan="3">Nenhum lote cadastrado ainda.</td></tr>`;
+            corpo.innerHTML = `<tr><td colspan="4">Nenhum lote cadastrado ainda.</td></tr>`;
             return;
         }
         corpo.innerHTML = lotes.map(l => `
             <tr>
                 <td>${l.nome}</td>
+                <td><b>${typeof l.saldo === "number" ? l.saldo : "—"}</b></td>
                 <td>${l.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
                     <button onclick='abrirModalLote(${JSON.stringify(l)})'>✏️</button>
@@ -373,7 +374,7 @@ async function carregarLotes() {
             </tr>
         `).join("");
     } catch (e) {
-        corpo.innerHTML = `<tr><td colspan="3">Erro ao carregar lotes.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="4">Erro ao carregar lotes.</td></tr>`;
     }
 }
 
@@ -590,6 +591,9 @@ async function confirmarTransferenciaLote() {
         if (!loteDestino) { mostrarErro("Selecione o lote de destino."); return; }
         if (loteOrigem === loteDestino) { mostrarErro("Origem e destino não podem ser o mesmo lote."); return; }
         if (!Number.isFinite(quantidade) || quantidade <= 0) { mostrarErro("Quantidade inválida."); return; }
+
+        let previa = calcularPreviaTransferencia(loteOrigem, quantidade, dataTransferenciaModal());
+        if (quantidade > previa.headcount) { mostrarErro(`O lote "${loteOrigem}" tem só ${previa.headcount} animal(is) no saldo.`); return; }
 
         let kgTexto = document.getElementById("transfKgInput").value.trim();
         let kgTotal = kgTexto ? parseFloat(kgTexto.replace(/\./g, "").replace(",", ".")) : null;

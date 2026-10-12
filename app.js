@@ -230,6 +230,62 @@ function calcularValorFaixa(peso, faixas){
     return { faixa, valorRS: faixa.tipo === "fixo" ? Number(faixa.valor) : peso * Number(faixa.valor) };
 }
 
+// ========================================
+// SALDO DE ANIMAIS POR LOTE
+// ========================================
+// O servidor manda o saldo de cada lote junto da lista de lotes (compras -
+// vendas + transferências recebidas - enviadas) e é a palavra final: recusa
+// qualquer venda/transferência que deixe um lote negativo. Aqui no aparelho
+// o saldo é usado pra IMPEDIR o erro antes -- já descontando o que foi
+// lançado neste aparelho e ainda não sincronizou (funciona offline).
+// null = lote sem saldo conhecido (sem lote, ou lote fora da lista).
+function saldoLoteLocal(nomeLote){
+    if(!nomeLote) return null;
+    let lote = JSON.parse(localStorage.getItem("lotesCache") || "[]").find(l => l.nome === nomeLote);
+    if(!lote || typeof lote.saldo !== "number") return null;
+    let saldo = lote.saldo;
+    JSON.parse(localStorage.getItem("pesagens") || "[]").forEach(r => {
+        if(!r || r.sincronizado || (r.descricao || "") !== nomeLote) return;
+        let n = (r.pesos || []).length;
+        saldo += (r.tipo || "venda") === "compra" ? n : -n;
+    });
+    JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]").forEach(t => {
+        if(t.loteOrigem === nomeLote) saldo -= Number(t.quantidade) || 0;
+        if(t.loteDestino === nomeLote) saldo += Number(t.quantidade) || 0;
+    });
+    return saldo;
+}
+
+function operacaoTiraAnimais(){
+    let el = document.getElementById("tipoOperacao");
+    let v = el ? el.value : "venda";
+    return v === "venda" || v === "transferencia";
+}
+
+// quantos animais ainda dá pra lançar num critério desta pesagem (venda ou
+// transferência): saldo do lote menos o que outros critérios da MESMA
+// pesagem já lançaram do mesmo lote. null = sem limite.
+function limiteAnimaisCriterio(indice){
+    let c = criteriosPesagem[indice];
+    if(!c || !operacaoTiraAnimais()) return null;
+    let saldo = saldoLoteLocal(c.descricao);
+    if(saldo === null) return null;
+    let usadosOutros = criteriosPesagem.reduce((s, x, i) => s + (i !== indice && x.descricao === c.descricao ? x.pesos.length : 0), 0);
+    return Math.max(saldo - usadosOutros, 0);
+}
+
+function saldoPermiteIniciar(){
+    if(!operacaoTiraAnimais()) return true;
+    for(let i = 0; i < criteriosPesagem.length; i++){
+        let limite = limiteAnimaisCriterio(i);
+        if(limite !== null && limite <= criteriosPesagem[i].pesos.length){
+            alert(`O lote "${criteriosPesagem[i].descricao}" não tem animais no saldo pra ${ehModoTransferencia() ? "transferir" : "vender"}.`);
+            return false;
+        }
+    }
+    return true;
+}
+
 function ehModoTransferencia(){
     let el = document.getElementById("tipoOperacao");
     return !!el && el.value === "transferencia";
@@ -274,6 +330,7 @@ function iniciarPesagem(){
         montarCriteriosPesagem();
         criterioAtivoIndex = 0;
         pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
+        if(!saldoPermiteIniciar()) return;
         abrirTelaPesagemOuBalanca();
         return;
     }
@@ -335,6 +392,7 @@ function iniciarPesagem(){
     montarCriteriosPesagem();
     criterioAtivoIndex = 0;
     pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
+    if(!saldoPermiteIniciar()) return;
     abrirTelaPesagemOuBalanca();
 }
 
@@ -517,6 +575,12 @@ function efetivarLancamentoPeso(pesoNum){
             return;
         }
         if(indice !== criterioAtivoIndex) trocarCriterioAtivo(indice);
+    }
+    let limiteSaldo = limiteAnimaisCriterio(criterioAtivoIndex);
+    if(limiteSaldo !== null && pesos.length >= limiteSaldo){
+        let nomeLote = criteriosPesagem[criterioAtivoIndex].descricao;
+        alert(`Saldo do lote "${nomeLote}": ${limiteSaldo} animal(is) e ${pesos.length} já lançado(s) nesta pesagem. Não dá pra ${ehModoTransferencia() ? "transferir" : "vender"} mais do que o lote tem.`);
+        return;
     }
     let criterio = criteriosPesagem[criterioAtivoIndex];
     let valorRS;
@@ -762,7 +826,11 @@ function atualizarStats(){
     let comKg = n => `${n}<small>kg</small>`;
     let comRS = n => `<small>R$</small>${formatarMoeda(n)}`;
     let comArroba = n => `${n.toFixed(2).replace(".", ",")}<small>@</small>`;
-    if(qtdEl) qtdEl.innerText = qtd;
+    if(qtdEl){
+        let limiteSaldo = typeof limiteAnimaisCriterio === "function" ? limiteAnimaisCriterio(criterioAtivoIndex) : null;
+        if(limiteSaldo !== null) qtdEl.innerHTML = `${qtd}<small>/${limiteSaldo}</small>`;
+        else qtdEl.innerText = qtd;
+    }
     if(medEl) medEl.innerHTML = comKg(media.toFixed(2).replace(".", ","));
     if(totEl) totEl.innerHTML = comKg(formatarPeso(total));
     // esse cartão (id cardUltimoKg) só aparece no critério "peso vivo (kg)"
@@ -2164,6 +2232,16 @@ function excluirSelecionado(){
         : confirm("Deseja excluir este relatório permanentemente?");
     if(!confirmado) return;
 
+    for(let r of registros){
+        if(!r || (r.tipo || "venda") !== "compra" || !r.descricao) continue;
+        let saldo = saldoLoteLocal(r.descricao);
+        let animais = (r.pesos || []).length;
+        if(saldo !== null && r.sincronizado && saldo - animais < 0){
+            alert(`Não dá pra excluir essa compra: o lote "${r.descricao}" tem ${saldo} animal(is) no saldo e ela trouxe ${animais}. Parte deles já foi vendida ou transferida — exclua antes a venda/transferência.`);
+            return;
+        }
+    }
+
     let idsParaRemover = new Set(registros.filter(r => r && r.id).map(r => r.id));
     relatorios.forEach(r => {
         if(r && idsParaRemover.has(r.id) && typeof registrarExclusaoPendente === "function"){
@@ -2778,7 +2856,11 @@ async function marcarMensagemLidaMobile(id){
 function carregarLotesSelect(){
     let lotes = JSON.parse(localStorage.getItem("lotesCache") || "[]");
     let opcoes = `<option value="">Sem lote</option>` +
-        lotes.map(l => `<option value="${l.nome.replace(/"/g, "&quot;")}">${l.nome}</option>`).join("");
+        lotes.map(l => {
+            let saldo = saldoLoteLocal(l.nome);
+            let rotulo = saldo === null ? l.nome : `${l.nome} — ${saldo} ${saldo === 1 ? "animal" : "animais"}`;
+            return `<option value="${l.nome.replace(/"/g, "&quot;")}">${rotulo}</option>`;
+        }).join("");
     // preenche o select do Critério 1 e também os dos Critérios 2/3 (só
     // existem no DOM se o operador tiver aberto esses blocos extras)
     ["descricao", "descricao2", "descricao3"].forEach(id => {
@@ -2998,6 +3080,14 @@ async function sincronizarAgora(){
             if(!resp.ok) throw new Error(sessaoExpirada ? "sessão expirada, faça login de novo" : "falha ao enviar");
             let respostaSync = await resp.json().catch(() => ({}));
             idsRejeitadosPermissao = respostaSync.idsRejeitados || [];
+            // recusada por saldo (ex: outro celular vendeu do mesmo lote antes)
+            // -- fica guardada aqui sem sincronizar; avisa uma vez só
+            (respostaSync.rejeitadasSaldo || []).forEach(x => {
+                let r = lista.find(p => p.id === x.id);
+                if(!r || r.avisoSaldo) return;
+                r.avisoSaldo = true;
+                alert(`A ${(r.tipo || "venda") === "compra" ? "compra" : "venda"} de ${x.quantidade} animal(is) do lote "${x.lote}" não foi aceita pelo servidor: o lote só tem ${x.saldo} animal(is) no saldo. Ela ficou guardada neste aparelho sem sincronizar — confira em Relatórios e exclua ou corrija.`);
+            });
             // só marca como sincronizado o que o servidor realmente aceitou —
             // um HTTP 200 não significa que TODOS os registros do lote foram
             // gravados, já que o servidor descarta silenciosamente pesagens
@@ -3016,6 +3106,12 @@ async function sincronizarAgora(){
             });
             if(respDel.ok){
                 exclusoesPendentes = exclusoesPendentes.filter(x => x !== id);
+            } else if(respDel.status === 400){
+                // recusada (ex: compra cujos animais já saíram do lote) -- a
+                // pesagem volta na próxima leitura do servidor
+                let erro = (await respDel.json().catch(() => ({}))).erro || "exclusão recusada pelo servidor";
+                exclusoesPendentes = exclusoesPendentes.filter(x => x !== id);
+                alert(erro);
             }
         }
         localStorage.setItem("exclusoesPendentes", JSON.stringify(exclusoesPendentes));
