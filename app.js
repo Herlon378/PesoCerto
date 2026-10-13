@@ -3045,14 +3045,66 @@ function atualizarStatusSync(texto){
     if(el) el.innerText = texto;
 }
 
+// ========================================
+// SINCRONIZAÇÃO NO CAMPO (sem internet / sinal fraco)
+// ========================================
+// Tudo é salvo primeiro no aparelho; a sincronização só envia/baixa. No
+// curral o caso comum NÃO é "sem internet" (aí o evento "online" resolve),
+// é sinal fraco: o celular diz que está conectado mas nada passa. Antes,
+// um envio que falhava só era tentado de novo ao salvar outra pesagem ou
+// reabrir o app. Agora: nova tentativa a cada 30s enquanto houver algo
+// guardado, ao voltar pro app, tempo-limite por pedido (pra não ficar
+// travado num sinal morto) e nunca duas sincronizações ao mesmo tempo.
+const SYNC_TEMPO_LIMITE_MS = 30000;
+const SYNC_RETENTATIVA_MS = 30000;
+
+function quantidadeAguardandoEnvio(){
+    let total = 0;
+    ["pesagens", "estoqueSaidas", "nascimentos", "vacasMatriz"].forEach(chave => {
+        try{
+            let lista = JSON.parse(localStorage.getItem(chave) || "[]");
+            if(Array.isArray(lista)) total += lista.filter(item => item && !item.sincronizado && !item.avisoSaldo).length;
+        }catch(e){}
+    });
+    ["exclusoesPendentes", "transferenciasPendentes"].forEach(chave => {
+        try{ total += (JSON.parse(localStorage.getItem(chave) || "[]") || []).length; }catch(e){}
+    });
+    return total;
+}
+
+function textoGuardadosNoAparelho(){
+    let n = quantidadeAguardandoEnvio();
+    return n > 0 ? ` — ${n} registro(s) guardado(s) no aparelho` : "";
+}
+
+let sincronizacaoEmAndamento = null;
+let sincronizarDeNovoAoTerminar = false;
 async function sincronizarAgora(){
+    if(sincronizacaoEmAndamento){
+        sincronizarDeNovoAoTerminar = true;
+        return sincronizacaoEmAndamento;
+    }
+    sincronizacaoEmAndamento = (async () => {
+        try{ await sincronizarUmaVez(); }
+        finally{ sincronizacaoEmAndamento = null; }
+    })();
+    await sincronizacaoEmAndamento;
+    if(sincronizarDeNovoAoTerminar){
+        sincronizarDeNovoAoTerminar = false;
+        return sincronizarAgora();
+    }
+}
+
+async function sincronizarUmaVez(){
+    // tempo-limite em todo pedido desta sincronização
+    const fetch = (url, opcoes) => window.fetch(url, { ...(opcoes || {}), signal: AbortSignal.timeout(SYNC_TEMPO_LIMITE_MS) });
     let token = obterToken();
     if(!token){
         atualizarStatusSync("⚠️ Toque em Entrar pra ativar a sincronização");
         return;
     }
     if(!navigator.onLine){
-        atualizarStatusSync("📴 Offline — sincroniza quando voltar internet");
+        atualizarStatusSync("📴 Sem internet" + textoGuardadosNoAparelho() + ". Envia sozinho quando voltar.");
         return;
     }
 
@@ -3312,12 +3364,27 @@ async function sincronizarAgora(){
             localStorage.removeItem("usuarioNome");
             localStorage.removeItem("usuarioPapel");
             atualizarBotaoLogin();
+            atualizarStatusSync("❌ Erro ao sincronizar (" + e.message + ")");
+        } else if(e.name === "TypeError" || e.name === "AbortError" || e.name === "TimeoutError"){
+            // falha de rede (sinal fraco): nada se perde, tenta de novo sozinho
+            atualizarStatusSync("📶 Sinal fraco" + textoGuardadosNoAparelho() + ". Envia sozinho quando melhorar.");
+        } else {
+            atualizarStatusSync("❌ Erro ao sincronizar (" + e.message + ")");
         }
-        atualizarStatusSync("❌ Erro ao sincronizar (" + e.message + ")");
     }
 }
 
 window.addEventListener("online", () => sincronizarAgora());
+// voltou pro app (estava no WhatsApp, tela apagada...) -- sincroniza
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible" && obterToken()) sincronizarAgora();
+});
+// enquanto tiver algo guardado no aparelho, tenta de novo a cada 30s
+setInterval(() => {
+    if(document.visibilityState === "visible" && obterToken() && navigator.onLine && quantidadeAguardandoEnvio() > 0){
+        sincronizarAgora();
+    }
+}, SYNC_RETENTATIVA_MS);
 
 // ========================================
 // INICIALIZAÇÃO ÚNICA (ONLOAD)
