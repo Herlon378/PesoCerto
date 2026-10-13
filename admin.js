@@ -97,9 +97,9 @@ async function carregarUsuarios() {
                 `}</td>
                 <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
-                    <button onclick='abrirModalUsuario(${JSON.stringify(u)})'>✏️</button>
-                    <button onclick='alternarAtivoUsuario(${JSON.stringify(u.id)}, ${!u.ativo})'>${u.ativo ? "🚫" : "✅"}</button>
-                    <button onclick='excluirUsuario(${JSON.stringify(u.id)}, ${JSON.stringify(u.nome)})'>🗑️</button>
+                    <button onclick='abrirModalUsuario(${jsonAtributo(u)})'>✏️</button>
+                    <button onclick='alternarAtivoUsuario(${jsonAtributo(u.id)}, ${!u.ativo})'>${u.ativo ? "🚫" : "✅"}</button>
+                    <button onclick='excluirUsuario(${jsonAtributo(u.id)}, ${jsonAtributo(u.nome)})'>🗑️</button>
                 </td>
             </tr>
         `).join("");
@@ -367,9 +367,9 @@ async function carregarLotes() {
                 <td><b>${typeof l.saldo === "number" ? l.saldo : "—"}</b></td>
                 <td>${l.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
                 <td class="acoesUsuario">
-                    <button onclick='abrirModalLote(${JSON.stringify(l)})'>✏️</button>
-                    <button onclick='alternarAtivoLote(${JSON.stringify(l.id)}, ${!l.ativo})'>${l.ativo ? "🚫" : "✅"}</button>
-                    <button onclick='excluirLote(${JSON.stringify(l.id)}, ${JSON.stringify(l.nome)})'>🗑️</button>
+                    <button onclick='abrirModalLote(${jsonAtributo(l)})'>✏️</button>
+                    <button onclick='alternarAtivoLote(${jsonAtributo(l.id)}, ${!l.ativo})'>${l.ativo ? "🚫" : "✅"}</button>
+                    <button onclick='excluirLote(${jsonAtributo(l.id)}, ${jsonAtributo(l.nome)})'>🗑️</button>
                 </td>
             </tr>
         `).join("");
@@ -631,7 +631,7 @@ async function carregarHistoricoTransferencias() {
             <td>${t.loteDestino}</td>
             <td>${t.quantidade}${t.kgTotal ? ` <small style="color:var(--ink-muted)">(${formatarPeso(t.kgTotal)} kg)</small>` : ""}</td>
             <td>R$ ${formatarMoeda(t.valorTotal)}${t.modoCusto === "automatico" ? ` <small style="color:var(--ink-muted)" title="Calculado: só o custo que o lote de origem ainda não tinha recuperado">automático</small>` : ""}</td>
-            <td class="acoesUsuario"><button onclick='excluirTransferenciaLote(${JSON.stringify(t.id)})'>🗑️</button></td>
+            <td class="acoesUsuario"><button onclick='excluirTransferenciaLote(${jsonAtributo(t.id)})'>🗑️</button></td>
         </tr>
     `).join("");
 }
@@ -716,8 +716,8 @@ async function carregarDepartamentosModal() {
         <div class="itemDepartamentoModal">
             <span>${d.nome}${d.ativo ? "" : " (inativo)"}</span>
             <span>
-                <button onclick='alternarAtivoDepartamento(${JSON.stringify(d.id)}, ${!d.ativo})'>${d.ativo ? "🚫" : "✅"}</button>
-                <button onclick='excluirDepartamento(${JSON.stringify(d.id)}, ${JSON.stringify(d.nome)})'>🗑️</button>
+                <button onclick='alternarAtivoDepartamento(${jsonAtributo(d.id)}, ${!d.ativo})'>${d.ativo ? "🚫" : "✅"}</button>
+                <button onclick='excluirDepartamento(${jsonAtributo(d.id)}, ${jsonAtributo(d.nome)})'>🗑️</button>
             </span>
         </div>
     `).join("");
@@ -827,7 +827,7 @@ async function mostrarDashboardProdutos() {
         let semEstoqueLinha = (p.saldoAtual || 0) <= 0;
         return `
             <tr>
-                <td>${p.descricao}</td>
+                <td>${escaparHtmlPesagem(p.descricao)}</td>
                 <td>${p.departamentoNome || "—"}</td>
                 <td style="color:${semEstoqueLinha ? '#d03b3b' : 'inherit'}">${formatarPeso(p.saldoAtual)} ${p.unidade}${semEstoqueLinha ? " ⚠️" : ""}</td>
                 <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
@@ -850,7 +850,7 @@ async function carregarProdutos() {
     }
     corpo.innerHTML = produtosCacheAdmin.map(p => `
         <tr>
-            <td>${p.descricao}</td>
+            <td>${escaparHtmlPesagem(p.descricao)}</td>
             <td>${p.codigoBarra || "—"}</td>
             <td>${p.departamentoNome || "—"}</td>
             <td>${p.unidade}</td>
@@ -858,9 +858,9 @@ async function carregarProdutos() {
             <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
             <td>${p.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
             <td class="acoesUsuario">
-                <button onclick='abrirModalProduto(${JSON.stringify(p)})'>✏️</button>
-                <button onclick='alternarAtivoProduto(${JSON.stringify(p.id)}, ${!p.ativo})'>${p.ativo ? "🚫" : "✅"}</button>
-                <button onclick='excluirProduto(${JSON.stringify(p.id)}, ${JSON.stringify(p.descricao)})'>🗑️</button>
+                <button onclick='abrirModalProduto(${jsonAtributo(p)})'>✏️</button>
+                <button onclick='alternarAtivoProduto(${jsonAtributo(p.id)}, ${!p.ativo})'>${p.ativo ? "🚫" : "✅"}</button>
+                <button onclick='excluirProduto(${jsonAtributo(p.id)}, ${jsonAtributo(p.descricao)})'>🗑️</button>
             </td>
         </tr>
     `).join("");
@@ -967,7 +967,7 @@ async function carregarEstoque() {
     } else {
         corpo.innerHTML = ativos.map(p => `
             <tr>
-                <td>${p.descricao}</td>
+                <td>${escaparHtmlPesagem(p.descricao)}</td>
                 <td>${formatarPeso(p.saldoAtual)} ${p.unidade}</td>
                 <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
             </tr>
@@ -994,7 +994,7 @@ function mostrarHistoricoEntradas() {
             <td>R$ ${formatarMoeda(e.valorUnitario)}</td>
             <td>R$ ${formatarMoeda(e.valorTotal)}</td>
             <td>${e.numeroNota || "—"}</td>
-            <td class="acoesUsuario"><button onclick='excluirEntradaEstoque(${JSON.stringify(e.id)}, ${JSON.stringify(e.produtoDescricao)})'>🗑️</button></td>
+            <td class="acoesUsuario"><button onclick='excluirEntradaEstoque(${jsonAtributo(e.id)}, ${jsonAtributo(e.produtoDescricao)})'>🗑️</button></td>
         </tr>
     `).join("");
 }
@@ -1003,7 +1003,7 @@ async function abrirModalEstoqueEntrada() {
     await carregarProdutosAdmin();
     let select = document.getElementById("entradaProdutoInput");
     select.innerHTML = `<option value="">Selecione o produto</option>` +
-        produtosCacheAdmin.filter(p => p.ativo).map(p => `<option value="${p.id}">${p.descricao}</option>`).join("");
+        produtosCacheAdmin.filter(p => p.ativo).map(p => `<option value="${p.id}">${escaparHtmlPesagem(p.descricao)}</option>`).join("");
     document.getElementById("entradaQuantidadeInput").value = "";
     document.getElementById("entradaValorUnitarioInput").value = "";
     document.getElementById("entradaNumeroNotaInput").value = "";
@@ -1085,7 +1085,7 @@ async function abrirTelaSaidaEstoqueDesktop() {
 
     let selectProduto = document.getElementById("saidaProdutoInput");
     selectProduto.innerHTML = `<option value="">Selecione o produto</option>` +
-        produtosCacheAdmin.filter(p => p.ativo).map(p => `<option value="${p.id}">${p.descricao}</option>`).join("");
+        produtosCacheAdmin.filter(p => p.ativo).map(p => `<option value="${p.id}">${escaparHtmlPesagem(p.descricao)}</option>`).join("");
 
     document.getElementById("saidaQuantidadeInput").value = "";
     let erroEl = document.getElementById("saidaErro");
@@ -1158,11 +1158,11 @@ async function carregarHistoricoSaidas() {
         <tr>
             <td>${s.data || "—"}</td>
             <td>${s.produtoDescricao}</td>
-            <td>${s.loteNome}</td>
+            <td>${escaparHtmlPesagem(s.loteNome)}</td>
             <td>${formatarPeso(s.quantidade)}</td>
             <td>R$ ${formatarMoeda(s.valorTotal)}</td>
-            <td>${s.criadoPor || "—"}</td>
-            <td class="acoesUsuario"><button onclick='excluirEstoqueSaida(${JSON.stringify(s.id)})'>🗑️</button></td>
+            <td>${escaparHtmlPesagem(s.criadoPor || "—")}</td>
+            <td class="acoesUsuario"><button onclick='excluirEstoqueSaida(${jsonAtributo(s.id)})'>🗑️</button></td>
         </tr>
     `).join("");
 }
@@ -1374,7 +1374,7 @@ async function mostrarCustoPorLote() {
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
                 <td style="color:${headcount > 0 ? medioFmt.cor : 'inherit'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
                 <td style="color:${kgAtual > 0 ? porKgFmt.cor : 'inherit'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
-                <td class="acoesUsuario"><button onclick='gerarRelatorioLotePDF(${JSON.stringify(nome)})'>📄 Relatório</button></td>
+                <td class="acoesUsuario"><button onclick='gerarRelatorioLotePDF(${jsonAtributo(nome)})'>📄 Relatório</button></td>
             </tr>
         `;
     }).join("");
@@ -2180,8 +2180,8 @@ async function mostrarSubCaixas() {
                 <div class="itemDepartamentoModal">
                     <span>${s.nome}${s.ativo ? "" : " (inativo)"}</span>
                     <span>
-                        <button onclick='alternarAtivoSubCaixa(${JSON.stringify(s.id)}, ${!s.ativo})'>${s.ativo ? "🚫" : "✅"}</button>
-                        <button onclick='excluirSubCaixa(${JSON.stringify(s.id)}, ${JSON.stringify(s.nome)})'>🗑️</button>
+                        <button onclick='alternarAtivoSubCaixa(${jsonAtributo(s.id)}, ${!s.ativo})'>${s.ativo ? "🚫" : "✅"}</button>
+                        <button onclick='excluirSubCaixa(${jsonAtributo(s.id)}, ${jsonAtributo(s.nome)})'>🗑️</button>
                     </span>
                 </div>
             `).join("");
@@ -2345,10 +2345,10 @@ function mostrarFluxoCaixa() {
                     <td>${m.data}</td>
                     <td>${tagTipo}</td>
                     <td>${m.origem}</td>
-                    <td>${m.descricao}</td>
+                    <td>${escaparHtmlPesagem(m.descricao)}</td>
                     <td>R$ ${formatarMoeda(m.valor)}</td>
                     <td>R$ ${formatarMoeda(m.saldoAcumulado)}</td>
-                    <td>${m.excluivel ? `<button onclick='excluirLancamento(${JSON.stringify(m.id)})'>🗑️</button>` : "—"}</td>
+                    <td>${m.excluivel ? `<button onclick='excluirLancamento(${jsonAtributo(m.id)})'>🗑️</button>` : "—"}</td>
                 </tr>
             `;
         }).join("");
@@ -2559,13 +2559,13 @@ function mostrarContasPagar() {
 
     corpo.innerHTML = linhas.map(l => {
         let acoes = l.status.chave === "paga"
-            ? `<button onclick='estornarPagamentoParcela(${JSON.stringify(l.parcela.id)})'>↩️ Estornar</button>`
-            : `<button onclick='abrirModalPagarParcela(${JSON.stringify(l.parcela.id)})'>💰 Pagar</button>`;
+            ? `<button onclick='estornarPagamentoParcela(${jsonAtributo(l.parcela.id)})'>↩️ Estornar</button>`
+            : `<button onclick='abrirModalPagarParcela(${jsonAtributo(l.parcela.id)})'>💰 Pagar</button>`;
         if (l.status.chave !== "paga") {
-            acoes += `<button onclick='abrirModalEditarParcela(${JSON.stringify(l.parcela.id)})'>✏️</button>`;
+            acoes += `<button onclick='abrirModalEditarParcela(${jsonAtributo(l.parcela.id)})'>✏️</button>`;
         }
         if (l.parcela.numero === 1) {
-            acoes += `<button onclick='excluirContaPagar(${JSON.stringify(l.conta.id)}, ${JSON.stringify(l.conta.descricao)})'>🗑️</button>`;
+            acoes += `<button onclick='excluirContaPagar(${jsonAtributo(l.conta.id)}, ${jsonAtributo(l.conta.descricao)})'>🗑️</button>`;
         }
         return `
             <tr>
@@ -2892,7 +2892,7 @@ function mostrarEnergia() {
             <td>${formatarPeso(e.consumoMes)} kWh</td>
             <td>R$ ${formatarMoeda(e.valorPorKwh)}</td>
             <td>R$ ${formatarMoeda(e.valorAPagar)}</td>
-            <td class="acoesUsuario"><button onclick='excluirEnergia(${JSON.stringify(e.id)})'>🗑️</button></td>
+            <td class="acoesUsuario"><button onclick='excluirEnergia(${jsonAtributo(e.id)})'>🗑️</button></td>
         </tr>
     `).join("");
 }
@@ -3103,8 +3103,8 @@ function mostrarFuncionarios() {
             <td>Dia ${f.diaPagamento}</td>
             <td style="color:${f.ativo ? "#0ca30c" : "#d03b3b"}">${f.ativo ? "Ativo" : "Inativo"}</td>
             <td class="acoesUsuario">
-                <button onclick='abrirModalFuncionario(${JSON.stringify(f.id)})'>✏️</button>
-                <button onclick='excluirFuncionario(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'>🗑️</button>
+                <button onclick='abrirModalFuncionario(${jsonAtributo(f.id)})'>✏️</button>
+                <button onclick='excluirFuncionario(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)})'>🗑️</button>
             </td>
         </tr>
     `).join("");
@@ -3230,8 +3230,8 @@ function mostrarFolhaPagamento() {
             let parcela = contaGerada.parcelas[0];
             let status = statusParcela(parcela);
             let acoes = status.chave === "paga"
-                ? `<button onclick='gerarReciboSalario(${JSON.stringify(contaGerada.id)})'>🖨️ Recibo</button><button onclick='estornarPagamentoParcela(${JSON.stringify(parcela.id)})'>↩️ Estornar</button>`
-                : `<button onclick='abrirModalPagarParcela(${JSON.stringify(parcela.id)})'>💰 Pagar</button><button onclick='abrirModalEditarParcela(${JSON.stringify(parcela.id)})'>✏️</button>`;
+                ? `<button onclick='gerarReciboSalario(${jsonAtributo(contaGerada.id)})'>🖨️ Recibo</button><button onclick='estornarPagamentoParcela(${jsonAtributo(parcela.id)})'>↩️ Estornar</button>`
+                : `<button onclick='abrirModalPagarParcela(${jsonAtributo(parcela.id)})'>💰 Pagar</button><button onclick='abrirModalEditarParcela(${jsonAtributo(parcela.id)})'>✏️</button>`;
             return `
                 <tr>
                     <td>${f.nome}</td>
@@ -3307,10 +3307,10 @@ function mostrarAdiantamentos() {
             <td>${nomeFuncionario(a.funcionarioId)}</td>
             <td>${a.competencia}</td>
             <td>R$ ${formatarMoeda(a.valor)}</td>
-            <td>${a.observacoes || "—"}</td>
+            <td>${escaparHtmlPesagem(a.observacoes || "—")}</td>
             <td class="acoesUsuario">
-                <button onclick='gerarReciboVale(${JSON.stringify(a.id)})'>🖨️ Recibo</button>
-                <button onclick='excluirAdiantamento(${JSON.stringify(a.id)}, ${JSON.stringify(nomeFuncionario(a.funcionarioId))})'>🗑️</button>
+                <button onclick='gerarReciboVale(${jsonAtributo(a.id)})'>🖨️ Recibo</button>
+                <button onclick='excluirAdiantamento(${jsonAtributo(a.id)}, ${jsonAtributo(nomeFuncionario(a.funcionarioId))})'>🗑️</button>
             </td>
         </tr>
     `).join("");
@@ -3674,8 +3674,8 @@ async function carregarPastos() {
             <td>${p.nome}</td>
             <td>${p.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
             <td class="acoesUsuario">
-                <button onclick='alternarAtivoPasto(${JSON.stringify(p.id)}, ${!p.ativo})'>${p.ativo ? "🚫" : "✅"}</button>
-                <button onclick='excluirPasto(${JSON.stringify(p.id)}, ${JSON.stringify(p.nome)})'>🗑️</button>
+                <button onclick='alternarAtivoPasto(${jsonAtributo(p.id)}, ${!p.ativo})'>${p.ativo ? "🚫" : "✅"}</button>
+                <button onclick='excluirPasto(${jsonAtributo(p.id)}, ${jsonAtributo(p.nome)})'>🗑️</button>
             </td>
         </tr>
     `).join("");
@@ -3787,14 +3787,14 @@ function mostrarVacas() {
             <tr>
                 <td>${v.numero}</td>
                 <td>${v.apelido || "—"}</td>
-                <td>${v.raca || "—"}</td>
+                <td>${escaparHtmlPesagem(v.raca || "—")}</td>
                 <td>${formatarIdadeAnimal(v.dataNascimento)}</td>
-                <td>${v.pastoNome || "—"}</td>
+                <td>${escaparHtmlPesagem(v.pastoNome || "—")}</td>
                 <td style="color:${st.cor}">${st.texto}</td>
                 <td>${qtdFilhos}</td>
                 <td class="acoesUsuario">
-                    <button onclick='abrirModalVaca(${JSON.stringify(v)})'>✏️</button>
-                    <button onclick='excluirVaca(${JSON.stringify(v.id)}, ${JSON.stringify(v.numero)})'>🗑️</button>
+                    <button onclick='abrirModalVaca(${jsonAtributo(v)})'>✏️</button>
+                    <button onclick='excluirVaca(${jsonAtributo(v.id)}, ${jsonAtributo(v.numero)})'>🗑️</button>
                 </td>
             </tr>
         `;
@@ -3938,13 +3938,13 @@ function mostrarNascimentos() {
         let st = textoStatusNascimento(n);
         let acoes = "";
         if (n.status === "vivo") {
-            acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "apartar")'>✅</button>`;
-            acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "morte")'>⚰️</button>`;
+            acoes += `<button onclick='abrirModalEventoNascimento(${jsonAtributo(n.id)}, "apartar")'>✅</button>`;
+            acoes += `<button onclick='abrirModalEventoNascimento(${jsonAtributo(n.id)}, "morte")'>⚰️</button>`;
         }
         if (avisoVacinaBrucelose(n)) {
-            acoes += `<button onclick='abrirModalEventoNascimento(${JSON.stringify(n.id)}, "vacinar")'>💉</button>`;
+            acoes += `<button onclick='abrirModalEventoNascimento(${jsonAtributo(n.id)}, "vacinar")'>💉</button>`;
         }
-        acoes += `<button onclick='excluirNascimento(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>🗑️</button>`;
+        acoes += `<button onclick='excluirNascimento(${jsonAtributo(n.id)}, ${jsonAtributo(n.numeroBezerro)})'>🗑️</button>`;
         let avisos = [avisoApartacaoNascimento(n), avisoVacinaBrucelose(n)].filter(Boolean);
         let avisosHtml = avisos.length
             ? avisos.map(a => `<div style="color:${a.cor};font-size:.85em">${a.texto}</div>`).join("")
@@ -3956,7 +3956,7 @@ function mostrarNascimentos() {
                 <td>${n.vacaMaeNumero}</td>
                 <td>${n.sexo === "macho" ? "Macho" : n.sexo === "femea" ? "Fêmea" : "—"}</td>
                 <td>${formatarIdadeAnimal(n.dataNascimento)}</td>
-                <td>${n.pastoNome || "—"}</td>
+                <td>${escaparHtmlPesagem(n.pastoNome || "—")}</td>
                 <td style="color:${st.cor}">${st.texto}</td>
                 <td>${avisosHtml}</td>
                 <td class="acoesUsuario">${acoes}</td>
@@ -4242,9 +4242,9 @@ async function carregarFazendasSistema() {
                 <td>${formatarDataHoraCurta(f.ultimoAcesso)}</td>
                 <td>${f.ativo ? "✅ Ativa" : "🚫 Bloqueada"}</td>
                 <td class="acoesUsuario">
-                    <button title="Ver compras, vendas e relatórios" onclick='verDadosFazenda(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'><svg class="iconeVerDados" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
-                    <button title="Renomear" onclick='renomearFazendaSistema(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)})'>✏️</button>
-                    ${f.principal ? "" : `<button title="${f.ativo ? "Bloquear" : "Desbloquear"}" onclick='alternarBloqueioFazenda(${JSON.stringify(f.id)}, ${JSON.stringify(f.nome)}, ${!f.ativo})'>${f.ativo ? "🚫" : "✅"}</button>`}
+                    <button title="Ver compras, vendas e relatórios" onclick='verDadosFazenda(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)})'><svg class="iconeVerDados" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                    <button title="Renomear" onclick='renomearFazendaSistema(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)})'>✏️</button>
+                    ${f.principal ? "" : `<button title="${f.ativo ? "Bloquear" : "Desbloquear"}" onclick='alternarBloqueioFazenda(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)}, ${!f.ativo})'>${f.ativo ? "🚫" : "✅"}</button>`}
                 </td>
             </tr>
         `).join("");
@@ -4391,7 +4391,7 @@ function renderizarDadosFazenda() {
                 <td>${d.totalAnimais}</td>
                 <td>${formatarPeso(Math.round(d.totalKg * 10) / 10)}</td>
                 <td><b>R$ ${formatarMoeda(d.totalRS)}</b></td>
-                <td><button class="btnRelatorioFazenda" onclick='event.stopPropagation(); abrirRelatorioFazenda(${JSON.stringify(p.id)})'>📄 Relatório</button></td>
+                <td><button class="btnRelatorioFazenda" onclick='event.stopPropagation(); abrirRelatorioFazenda(${jsonAtributo(p.id)})'>📄 Relatório</button></td>
             </tr>
             <tr class="linhaPesosFazenda" id="pesosPesagemFazenda${i}" style="display:none">
                 <td colspan="9"><div class="pesosPesagemFazenda">${pesos || "Sem pesos."}</div></td>

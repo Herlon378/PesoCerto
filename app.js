@@ -757,6 +757,14 @@ function converterParaArroba(pesoKg, rendimentoPct){
     return (pesoKg * rendimentoPct / 100) / 15;
 }
 
+// valor dentro de onclick='fn(...)': JSON.stringify sozinho deixava um
+// apóstrofo no texto (ex: brinco "07'A", nome "D'Ávila") fechar o atributo
+// e quebrar o botão -- ou virar código. O navegador desfaz as entidades
+// antes de rodar o onclick, então o valor chega certinho na função.
+function jsonAtributo(valor){
+    return escaparHtmlPesagem(JSON.stringify(valor === undefined ? null : valor));
+}
+
 function escaparHtmlPesagem(texto){
     return String(texto).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -1101,10 +1109,10 @@ function mostrarRelatorios(){
                     <input type="radio" name="relatorioSelecionado" value="${originalIndex}">
                     <div class="infoRelatorio">
                         ${tagTipo} <span class="numeroRelatorio">${numeroTexto}</span> ${tagLotes}<br>
-                        <b>Vendedor:</b> ${primeiro.vendedor || "Não informado"}<br>
-                        <b>${multiplos ? "Lotes" : "Lote/Descrição"}:</b> ${lotesTexto}<br>
-                        <b>Data:</b> ${primeiro.data || "Sem data"}<br>
-                        ${primeiro.criadoPor ? `<b>Lançado por:</b> ${primeiro.criadoPor}<br>` : ""}
+                        <b>Vendedor:</b> ${escaparHtmlPesagem(primeiro.vendedor || "Não informado")}<br>
+                        <b>${multiplos ? "Lotes" : "Lote/Descrição"}:</b> ${escaparHtmlPesagem(lotesTexto)}<br>
+                        <b>Data:</b> ${escaparHtmlPesagem(primeiro.data || "Sem data")}<br>
+                        ${primeiro.criadoPor ? `<b>Lançado por:</b> ${escaparHtmlPesagem(primeiro.criadoPor)}<br>` : ""}
                         <b>Animais:</b> ${totalAnimais} | <b>Total:</b> ${formatarPeso(totalKgGrupo)} kg
                     </div>
                 </label>
@@ -1990,7 +1998,7 @@ function prepararImpressao(){
     let html = `
         <h2>Pesagem ${escaparHtmlPesagem(nomeFazendaAtual())} ${r.numero ? "— Nº " + r.numero : ""}</h2>
         <hr>
-        <p><b>Vendedor:</b> ${r.vendedor || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${calcularDadosCompletos(r).dataHora}</p>
+        <p><b>Vendedor:</b> ${escaparHtmlPesagem(r.vendedor || "-")} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${calcularDadosCompletos(r).dataHora}</p>
     `;
 
     registros.forEach((registro, indiceLote) => {
@@ -2019,7 +2027,7 @@ function prepararImpressao(){
         registro.pesos.forEach((p, i) => {
             let pAtual = p.peso || 0;
             let vInd = d.valorDoItem(pAtual, p);
-            html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${p.obs || "-"}</td></tr>`;
+            html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${escaparHtmlPesagem(p.obs || "-")}</td></tr>`;
         });
 
         html += `</tbody></table>`;
@@ -2830,10 +2838,10 @@ function mostrarMensagensMobile(){
     corpo.innerHTML = mensagensCacheMobile.map(m => `
         <div class="itemMensagem${m.lida ? "" : " itemMensagemNaoLida"}" onclick="marcarMensagemLidaMobile('${m.id}')">
             <div class="itemMensagemTopo">
-                <strong>${m.criadoPor || "Administração"}</strong>
+                <strong>${escaparHtmlPesagem(m.criadoPor || "Administração")}</strong>
                 <span>${m.criadoEm ? new Date(m.criadoEm).toLocaleString("pt-BR") : ""}</span>
             </div>
-            <p>${m.texto}</p>
+            <p>${escaparHtmlPesagem(m.texto)}</p>
         </div>
     `).join("");
 }
@@ -2894,7 +2902,7 @@ function carregarProdutosSelectMobile(){
     let produtos = JSON.parse(localStorage.getItem("produtosCache") || "[]");
     let valorAtual = select.value;
     select.innerHTML = `<option value="">Selecione o produto</option>` +
-        produtos.map(p => `<option value="${p.id}">${p.descricao}</option>`).join("");
+        produtos.map(p => `<option value="${p.id}">${escaparHtmlPesagem(p.descricao)}</option>`).join("");
     select.value = valorAtual;
     atualizarPreviewSaidaMobile();
 }
@@ -4194,12 +4202,12 @@ function mostrarVacasListaMobile(){
         let statusTxt = v.status === "ativa" ? "✅ Ativa" : v.status === "morta" ? "⚰️ Morta" : "➖ Descartada";
         let idade = formatarIdadeAnimal(v.dataNascimento);
         let botoes = podeEditarExcluir ? `
-                <button class="btnExcluirItem" onclick='abrirTelaEditarVacaMobile(${JSON.stringify(v.id)})'>${ICONE_LAPIS_SVG}</button>
-                <button class="btnExcluirItem" onclick='excluirVacaMobile(${JSON.stringify(v.id)}, ${JSON.stringify(v.numero)})'>${ICONE_LIXEIRA_SVG}</button>
+                <button class="btnExcluirItem" onclick='abrirTelaEditarVacaMobile(${jsonAtributo(v.id)})'>${ICONE_LAPIS_SVG}</button>
+                <button class="btnExcluirItem" onclick='excluirVacaMobile(${jsonAtributo(v.id)}, ${jsonAtributo(v.numero)})'>${ICONE_LIXEIRA_SVG}</button>
         ` : "";
         return `
             <div class="itemPesagem">
-                <span><strong>${v.numero}</strong>${v.apelido ? " — " + v.apelido : ""}<br>${idade !== "—" ? idade + " · " : ""}${v.pastoNome || "Sem pasto"} · ${filhos} filho(s)</span>
+                <span><strong>${escaparHtmlPesagem(v.numero)}</strong>${v.apelido ? " — " + escaparHtmlPesagem(v.apelido) : ""}<br>${idade !== "—" ? idade + " · " : ""}${escaparHtmlPesagem(v.pastoNome || "Sem pasto")} · ${filhos} filho(s)</span>
                 <span class="itemPesagemDireita">${statusTxt}${botoes}</span>
             </div>
         `;
@@ -4309,8 +4317,8 @@ function mostrarNascimentosListaMobile(){
         let avisos = [avisoApartacaoNascimento(n), avisoVacinaBrucelose(n)].filter(Boolean);
         let avisosHtml = avisos.map(a => `<br><span style="color:${a.cor}">${a.texto}</span>`).join("");
         let botoes = podeEditarExcluir ? `
-                <button class="btnExcluirItem" onclick='abrirTelaEditarNascimentoMobile(${JSON.stringify(n.id)})'>${ICONE_LAPIS_SVG}</button>
-                <button class="btnExcluirItem" onclick='excluirNascimentoMobile(${JSON.stringify(n.id)}, ${JSON.stringify(n.numeroBezerro)})'>${ICONE_LIXEIRA_SVG}</button>
+                <button class="btnExcluirItem" onclick='abrirTelaEditarNascimentoMobile(${jsonAtributo(n.id)})'>${ICONE_LAPIS_SVG}</button>
+                <button class="btnExcluirItem" onclick='excluirNascimentoMobile(${jsonAtributo(n.id)}, ${jsonAtributo(n.numeroBezerro)})'>${ICONE_LIXEIRA_SVG}</button>
         ` : "";
         return `
             <div class="itemPesagem">
