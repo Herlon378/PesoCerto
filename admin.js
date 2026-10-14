@@ -2495,15 +2495,21 @@ async function carregarContasPagarAdmin() {
 // status é sempre calculado no cliente comparando com hoje — só "paga" é um
 // fato gravado no banco; "vencendo"/"vencida" mudam sozinhas com o tempo,
 // não fazem sentido como algo fixo salvo na parcela.
+// data de hoje no fuso do aparelho (toISOString é UTC: depois das 21h no
+// Brasil já viraria "amanhã" e a parcela de hoje apareceria vencida)
+function cpDataLocalISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function statusParcela(parcela) {
     if (parcela.paga) return { chave: "paga", texto: "✅ Paga", cor: "#3ddc84" };
-    let hojeISO = new Date().toISOString().slice(0, 10);
+    let hojeISO = cpDataLocalISO(new Date());
     let vencISO = extrairDataISO(parcela.dataVencimento);
     if (!vencISO) return { chave: "pendente", texto: "Pendente", cor: "#c3cbdc" };
     if (vencISO < hojeISO) return { chave: "vencida", texto: "🔴 Vencida", cor: "#ff7b72" };
     let limite = new Date();
     limite.setDate(limite.getDate() + CP_DIAS_VENCENDO_EM_BREVE);
-    let limiteISO = limite.toISOString().slice(0, 10);
+    let limiteISO = cpDataLocalISO(limite);
     if (vencISO <= limiteISO) return { chave: "vencendo", texto: "⏰ Vence em breve", cor: "#ffc94d" };
     return { chave: "pendente", texto: "Pendente", cor: "#c3cbdc" };
 }
@@ -2511,6 +2517,85 @@ function statusParcela(parcela) {
 async function abrirTelaContasPagar() {
     await carregarContasPagarAdmin();
     mostrarContasPagar();
+}
+
+// ---------- filtros da tela ----------
+function cpIntervaloPeriodo(periodo) {
+    let hoje = new Date(), ano = hoje.getFullYear(), mes = hoje.getMonth();
+    let iso = cpDataLocalISO;
+    let somarDias = n => { let d = new Date(hoje); d.setDate(d.getDate() + n); return d; };
+    switch (periodo) {
+        case "hoje": return [iso(hoje), iso(hoje)];
+        case "prox7": return [iso(hoje), iso(somarDias(CP_DIAS_VENCENDO_EM_BREVE))];
+        case "ult30": return [iso(somarDias(-30)), iso(hoje)];
+        case "mes": return [iso(new Date(ano, mes, 1)), iso(new Date(ano, mes + 1, 0))];
+        case "proxMes": return [iso(new Date(ano, mes + 1, 1)), iso(new Date(ano, mes + 2, 0))];
+        case "mesPassado": return [iso(new Date(ano, mes - 1, 1)), iso(new Date(ano, mes, 0))];
+        case "ano": return [`${ano}-01-01`, `${ano}-12-31`];
+    }
+    return null;
+}
+
+function cpAplicarPeriodo() {
+    let periodo = document.getElementById("cpFiltroPeriodo").value;
+    let de = document.getElementById("cpFiltroDe"), ate = document.getElementById("cpFiltroAte");
+    let intervalo = cpIntervaloPeriodo(periodo);
+    if (intervalo) { de.value = intervalo[0]; ate.value = intervalo[1]; }
+    else if (periodo === "") { de.value = ""; ate.value = ""; }
+    mostrarContasPagar();
+}
+
+// mexeu nas datas na mão -> período vira "Personalizado"
+function cpDatasManuais() {
+    let de = document.getElementById("cpFiltroDe").value, ate = document.getElementById("cpFiltroAte").value;
+    document.getElementById("cpFiltroPeriodo").value = (de || ate) ? "personalizado" : "";
+    mostrarContasPagar();
+}
+
+function cpLimparFiltros() {
+    ["cpBusca", "cpFiltroStatus", "cpFiltroPeriodo", "cpFiltroDe", "cpFiltroAte", "cpFiltroLote", "cpFiltroSubCaixa"]
+        .forEach(id => { let el = document.getElementById(id); if (el) el.value = ""; });
+    document.getElementById("cpFiltroCampoData").value = "vencimento";
+    mostrarContasPagar();
+}
+
+// clicar num indicador filtra por ele; clicar de novo no mesmo desfaz
+function cpFiltrarPorIndicador(chave) {
+    let status = document.getElementById("cpFiltroStatus");
+    let periodo = document.getElementById("cpFiltroPeriodo");
+    let campo = document.getElementById("cpFiltroCampoData");
+    let jaAtivo = cpIndicadorAtivo() === chave;
+    cpLimparFiltros();
+    if (!jaAtivo) {
+        if (chave === "pagasMes") {
+            status.value = "paga"; campo.value = "pagamento"; periodo.value = "mes";
+            cpAplicarPeriodo();
+            return;
+        }
+        status.value = chave;
+    }
+    mostrarContasPagar();
+}
+
+function cpIndicadorAtivo() {
+    let status = document.getElementById("cpFiltroStatus").value;
+    let periodo = document.getElementById("cpFiltroPeriodo").value;
+    let campo = document.getElementById("cpFiltroCampoData").value;
+    if (status === "paga" && periodo === "mes" && campo === "pagamento") return "pagasMes";
+    if (["aPagar", "vencida", "vencendo"].includes(status) && !periodo) return status;
+    return "";
+}
+
+// preenche lote/sub-caixa com o que existe nas contas, sem perder a escolha atual
+function cpPreencherOpcoes(id, rotuloTodos, valores) {
+    let sel = document.getElementById(id);
+    if (!sel) return;
+    let atual = sel.value;
+    let lista = [...new Set(valores.filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    sel.innerHTML = `<option value="">${rotuloTodos}</option>` +
+        `<option value="__nenhum">(sem nenhum)</option>` +
+        lista.map(v => `<option value="${escaparHtmlPesagem(v)}">${escaparHtmlPesagem(v)}</option>`).join("");
+    sel.value = (atual === "__nenhum" || lista.includes(atual)) ? atual : "";
 }
 
 function mostrarContasPagar() {
@@ -2528,32 +2613,82 @@ function mostrarContasPagar() {
         });
     });
 
-    let totalPendente = 0, totalVencendo = 0, totalVencida = 0;
+    // indicadores: sempre do total (não mudam com o filtro)
+    let [inicioMes, fimMes] = cpIntervaloPeriodo("mes");
+    let soma = { aPagar: [0, 0], vencida: [0, 0], vencendo: [0, 0], pagasMes: [0, 0] };
+    let somar = (chave, valor) => { soma[chave][0] += valor; soma[chave][1]++; };
     linhas.forEach(l => {
-        if (l.status.chave === "paga") return;
-        totalPendente += l.parcela.valor;
-        if (l.status.chave === "vencendo") totalVencendo += l.parcela.valor;
-        if (l.status.chave === "vencida") totalVencida += l.parcela.valor;
+        if (l.status.chave === "paga") {
+            let pagoEm = extrairDataISO(l.parcela.dataPagamento);
+            if (pagoEm && pagoEm >= inicioMes && pagoEm <= fimMes) somar("pagasMes", l.parcela.valor);
+            return;
+        }
+        somar("aPagar", l.parcela.valor);
+        if (l.status.chave === "vencendo") somar("vencendo", l.parcela.valor);
+        if (l.status.chave === "vencida") somar("vencida", l.parcela.valor);
     });
-    let elPendente = document.getElementById("cpTotalPendente");
-    if (elPendente) elPendente.innerText = "R$ " + formatarMoeda(totalPendente);
-    let elVencendo = document.getElementById("cpVencendoBreve");
-    if (elVencendo) elVencendo.innerText = "R$ " + formatarMoeda(totalVencendo);
-    let elVencida = document.getElementById("cpVencidas");
-    if (elVencida) elVencida.innerText = "R$ " + formatarMoeda(totalVencida);
+    let qtdTexto = n => n === 0 ? "nenhuma parcela" : (n === 1 ? "1 parcela" : n + " parcelas");
+    [["aPagar", "cpTotalPendente", "cpQtdPendente"], ["vencida", "cpVencidas", "cpQtdVencidas"],
+     ["vencendo", "cpVencendoBreve", "cpQtdVencendo"], ["pagasMes", "cpPagasMes", "cpQtdPagasMes"]].forEach(([chave, idValor, idQtd]) => {
+        let elValor = document.getElementById(idValor), elQtd = document.getElementById(idQtd);
+        if (elValor) elValor.innerText = "R$ " + formatarMoeda(soma[chave][0]);
+        if (elQtd) elQtd.innerText = qtdTexto(soma[chave][1]);
+    });
 
-    let filtroStatus = document.getElementById("cpFiltroStatus");
-    let statusFiltro = filtroStatus ? filtroStatus.value : "";
-    if (statusFiltro) linhas = linhas.filter(l => l.status.chave === statusFiltro);
+    cpPreencherOpcoes("cpFiltroLote", "Lote: Todos", contasPagarCacheAdmin.map(c => c.loteNome));
+    cpPreencherOpcoes("cpFiltroSubCaixa", "Sub-caixa: Todas", contasPagarCacheAdmin.map(c => c.subCaixaNome));
 
+    let valor = id => { let el = document.getElementById(id); return el ? el.value : ""; };
+    let statusFiltro = valor("cpFiltroStatus");
+    let campoData = valor("cpFiltroCampoData") || "vencimento";
+    let de = valor("cpFiltroDe"), ate = valor("cpFiltroAte");
+    let loteFiltro = valor("cpFiltroLote"), subCaixaFiltro = valor("cpFiltroSubCaixa");
+    let busca = valor("cpBusca").trim().toLowerCase();
+    let dataDaLinha = l => extrairDataISO(campoData === "compra" ? l.conta.dataCompra
+        : campoData === "pagamento" ? l.parcela.dataPagamento : l.parcela.dataVencimento) || "";
+
+    if (statusFiltro === "aPagar") linhas = linhas.filter(l => l.status.chave !== "paga");
+    else if (statusFiltro) linhas = linhas.filter(l => l.status.chave === statusFiltro);
+    if (de || ate) linhas = linhas.filter(l => {
+        let d = dataDaLinha(l);
+        return d && (!de || d >= de) && (!ate || d <= ate);
+    });
+    let confere = (filtro, campo) => !filtro || (filtro === "__nenhum" ? !campo : campo === filtro);
+    linhas = linhas.filter(l => confere(loteFiltro, l.conta.loteNome) && confere(subCaixaFiltro, l.conta.subCaixaNome));
+    if (busca) linhas = linhas.filter(l => [l.conta.descricao, l.conta.categoria, l.conta.loteNome, l.conta.subCaixaNome,
+        formatarMoeda(l.parcela.valor)].some(t => String(t || "").toLowerCase().includes(busca)));
+
+    // agenda: vencimento mais urgente primeiro; olhando por lançamento ou
+    // pagamento, o mais recente primeiro (como um extrato)
+    let crescente = campoData === "vencimento";
     linhas.sort((a, b) => {
-        let da = extrairDataISO(a.parcela.dataVencimento) || "";
-        let db = extrairDataISO(b.parcela.dataVencimento) || "";
-        return da < db ? -1 : (da > db ? 1 : 0);
+        let da = dataDaLinha(a), db = dataDaLinha(b);
+        let r = da < db ? -1 : (da > db ? 1 : 0);
+        return crescente ? r : -r;
     });
+
+    // indicador ativo + resumo do que está na tela
+    let ativo = cpIndicadorAtivo();
+    document.querySelectorAll(".cpKpi").forEach(b => b.classList.toggle("cpKpiAtivo", b.dataset.filtro === ativo));
+    let algumFiltro = statusFiltro || de || ate || loteFiltro || subCaixaFiltro || busca;
+    let topo = document.querySelector(".cpTopo");
+    if (topo) {
+        topo.classList.toggle("cpComFiltro", !!algumFiltro);
+        topo.classList.toggle("cpComPeriodo", !!(valor("cpFiltroPeriodo") || de || ate));
+    }
+    ["cpFiltroStatus", "cpFiltroPeriodo", "cpFiltroLote", "cpFiltroSubCaixa"].forEach(id => {
+        let el = document.getElementById(id); if (el) el.classList.toggle("cpFiltroUsado", !!el.value);
+    });
+    let campo = document.getElementById("cpFiltroCampoData");
+    if (campo) campo.classList.toggle("cpFiltroUsado", campo.value !== "vencimento");
+    let resumo = document.getElementById("cpResumoFiltro");
+    if (resumo) {
+        let total = linhas.reduce((t, l) => t + l.parcela.valor, 0);
+        resumo.innerHTML = `${algumFiltro ? "Filtrado: " : ""}<b>${qtdTexto(linhas.length)}</b> · <b>R$ ${formatarMoeda(total)}</b>`;
+    }
 
     if (linhas.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="9">Nenhuma conta encontrada.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="9">${algumFiltro ? "Nenhuma conta com esses filtros." : "Nenhuma conta encontrada."}</td></tr>`;
         return;
     }
 
@@ -2571,12 +2706,12 @@ function mostrarContasPagar() {
             <tr>
                 <td>${l.conta.dataCompra ? l.conta.dataCompra.split(",")[0] : "—"}</td>
                 <td>${l.parcela.dataVencimento ? l.parcela.dataVencimento.split(",")[0] : "—"}</td>
-                <td>${l.conta.descricao}</td>
+                <td>${escaparHtmlPesagem(l.conta.descricao)}${l.conta.categoria ? `<small class="cpCategoria">${escaparHtmlPesagem(l.conta.categoria)}</small>` : ""}</td>
                 <td>${l.parcela.numero}/${l.conta.numeroParcelas}</td>
                 <td>R$ ${formatarMoeda(l.parcela.valor)}</td>
                 <td style="color:${l.status.cor}">${l.status.texto}</td>
-                <td>${l.conta.loteNome || "—"}</td>
-                <td>${l.conta.subCaixaNome || "—"}</td>
+                <td>${l.conta.loteNome ? escaparHtmlPesagem(l.conta.loteNome) : "—"}</td>
+                <td>${l.conta.subCaixaNome ? escaparHtmlPesagem(l.conta.subCaixaNome) : "—"}</td>
                 <td class="acoesUsuario">${acoes}</td>
             </tr>
         `;

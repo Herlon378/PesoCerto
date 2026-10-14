@@ -1698,3 +1698,68 @@ body.modoDesktop .acoesUsuario button {
 }
 body.modoDesktop .acoesUsuario button:hover { background: rgba(57,135,229,0.22); border-color: rgba(110,170,255,0.5); }
 body.modoDesktop .acaoPdf { background: linear-gradient(180deg, #0f8fc2, #0a6f99); }
+
+/* ========================================
+   CONTAS A PAGAR: topo fixo (mesmo padrão dos Relatórios) com
+   indicadores que também filtram + barra de filtros
+   ======================================== */
+.cpTituloLinha { align-items: center; }
+.cpResumoFiltro { font-size: 13px; color: var(--ink-muted); }
+.cpResumoFiltro b { color: var(--ink); }
+.cpTopo.cpComFiltro .cpResumoFiltro { color: #9cc8ff; }
+body.modoDesktop .cpNovaConta { margin-left: auto; height: 40px; background: linear-gradient(180deg, #2fa654, #1e7d3c); }
+.cpKpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+body.modoDesktop .cpKpi {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    width: auto; margin: 0; padding: 10px 14px; text-align: left; cursor: pointer;
+    border-radius: 12px; border: 1px solid var(--border-strong);
+    border-left: 4px solid var(--corKpi);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--corKpi) 12%, transparent), transparent 70%), var(--surface-sunken);
+    color: var(--ink); box-shadow: none;
+    transition: transform 0.1s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+body.modoDesktop .cpKpi:hover { transform: translateY(-1px); border-color: var(--corKpi); }
+body.modoDesktop .cpKpi.cpKpiAtivo {
+    border-color: var(--corKpi);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--corKpi) 45%, transparent);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--corKpi) 26%, transparent), color-mix(in srgb, var(--corKpi) 6%, transparent)), var(--surface-sunken);
+}
+.cpKpiAPagar { --corKpi: #60a5fa; }
+.cpKpiVencida { --corKpi: #ff7b72; }
+.cpKpiVencendo { --corKpi: #ffc94d; }
+.cpKpiPaga { --corKpi: #3ddc84; }
+.cpKpiRotulo { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.cpKpiValor { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cpKpiQtd { font-size: 11.5px; color: var(--ink-muted); }
+.cpFiltros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cpBusca { flex: 1 1 200px; height: 40px; }
+body.modoDesktop .cpFiltros select,
+body.modoDesktop .cpFiltros input[type="date"] {
+    width: auto; height: 40px; margin: 0; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink);
+    color-scheme: dark; cursor: pointer;
+}
+body.modoDesktop .cpFiltros select:hover,
+body.modoDesktop .cpFiltros input[type="date"]:hover { border-color: rgba(110,170,255,0.5); }
+/* filtro escolhido fica destacado, pra ver de relance o que está filtrando */
+body.modoDesktop .cpFiltros .cpFiltroUsado { border-color: var(--blue-500); background: rgba(57,135,229,0.14); }
+/* De/Até só aparecem quando há um período */
+.cpTopo:not(.cpComPeriodo) .cpDatas { display: none; }
+.cpDatas { display: inline-flex; align-items: center; gap: 6px; }
+.cpDatasAte { font-size: 13px; color: var(--ink-muted); }
+body.modoDesktop .cpLimpar { height: 40px; }
+.cpTopo:not(.cpComFiltro) .cpLimpar { opacity: 0.5; }
+.cpCategoria { display: block; font-size: 11.5px; color: var(--ink-muted); margin-top: 2px; }
+@media (max-width: 1200px) {
+    .cpKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* no celular o topo seria alto demais para ficar preso: rola junto */
+@media (max-width: 900px) {
+    .cpTopo { position: static; }
+    .cpKpis { gap: 8px; }
+    body.modoDesktop .cpKpi { padding: 8px 10px; }
+    .cpKpiValor { font-size: 17px; }
+    body.modoDesktop .cpNovaConta { margin-left: 0; width: 100%; justify-content: center; }
+    body.modoDesktop .cpFiltros select, .cpDatas, .cpBusca { flex: 1 1 100%; }
+    body.modoDesktop .cpDatas input[type="date"] { flex: 1; min-width: 0; }
+}
