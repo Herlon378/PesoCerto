@@ -1626,3 +1626,14 @@ body.modoDesktop .acaoWhats { background: linear-gradient(180deg, #2fd16b, #1ea9
     body.modoDesktop #folhaRelatorio { padding: 20px 16px; font-size: 14px; }
     body.modoDesktop .folhaTopo h1 { font-size: 24px; }
 }
+
+/* painel Fazendas: cadastrar lotes de uma fazenda */
+.fazendaLotesNovo { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+body.modoDesktop .fazendaLotesNovo input {
+    flex: 1 1 260px; min-width: 0; margin: 0; height: 44px; padding: 0 14px; font-size: 15px;
+    background: var(--surface-sunken); color: var(--ink); border: 1px solid var(--border-strong); border-radius: 12px;
+}
+body.modoDesktop .btnAdicionarLoteFazenda {
+    width: auto; margin: 0; height: 44px; padding: 0 18px; border: none; border-radius: 12px;
+    background: linear-gradient(180deg, #2fa654, #1e7d3c); color: #fff; font-weight: 700; cursor: pointer;
+}

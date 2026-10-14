@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=4">
-    <link rel="stylesheet" href="admin.css?v=16">
+    <link rel="stylesheet" href="admin.css?v=17">
 </head>
 <body class="modoDesktop">
 
@@ -197,6 +197,23 @@
                 <button onclick="enviarRelatorioFazendaWhatsApp()" class="btnWhatsRelatorio">Enviar no WhatsApp</button>
             </div>
         </div>
+    </div>
+
+    <div id="fazendaLotesPainel" class="fazendaDadosPainel" style="display:none">
+        <div class="fazendaDadosTopo">
+            <h3 id="fazendaLotesTitulo">Lotes da fazenda</h3>
+            <button onclick="fecharLotesFazenda()">✕ Fechar</button>
+        </div>
+        <p class="loginSubtitulo" style="text-align:left; margin:0 0 12px">Cadastre os lotes pra essa fazenda. Eles aparecem pros usuários dela na próxima sincronização (celular e computador).</p>
+        <div class="fazendaLotesNovo">
+            <input id="fazendaLoteNovoNome" placeholder="Nome do novo lote (ex: Bezerros Nelore)" maxlength="80" onkeydown="if(event.key==='Enter') adicionarLoteFazenda()">
+            <button class="btnAdicionarLoteFazenda" onclick="adicionarLoteFazenda()">➕ Adicionar lote</button>
+        </div>
+        <p id="fazendaLoteErro" class="loginErro" style="display:none"></p>
+        <table class="tabelaUsuarios">
+            <thead><tr><th>Lote</th><th>Animais</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="corpoTabelaLotesFazenda"></tbody>
+        </table>
     </div>
 
     <div id="fazendaDadosPainel" class="fazendaDadosPainel" style="display:none">
@@ -941,7 +958,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=15"></script>
-<script src="admin.js?v=22"></script>
+<script src="admin.js?v=23"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">

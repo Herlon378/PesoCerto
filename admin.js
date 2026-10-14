@@ -4242,6 +4242,7 @@ async function carregarFazendasSistema() {
                 <td>${formatarDataHoraCurta(f.ultimoAcesso)}</td>
                 <td>${f.ativo ? "✅ Ativa" : "🚫 Bloqueada"}</td>
                 <td class="acoesUsuario">
+                    <button title="Lotes dessa fazenda (cadastrar / ativar / desativar)" onclick='abrirLotesFazenda(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)})'>🏷️</button>
                     <button title="Ver compras, vendas e relatórios" onclick='verDadosFazenda(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)})'><svg class="iconeVerDados" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
                     <button title="Renomear" onclick='renomearFazendaSistema(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)})'>✏️</button>
                     ${f.principal ? "" : `<button title="${f.ativo ? "Bloquear" : "Desbloquear"}" onclick='alternarBloqueioFazenda(${jsonAtributo(f.id)}, ${jsonAtributo(f.nome)}, ${!f.ativo})'>${f.ativo ? "🚫" : "✅"}</button>`}
@@ -4449,4 +4450,74 @@ function alternarMenuCelular() {
 }
 function fecharMenuCelular() {
     document.body.classList.remove("menuCelularAberto");
+}
+
+// ========================================
+// PAINEL FAZENDAS: lotes de uma fazenda (o dono cadastra pra ela)
+// ========================================
+let fazendaLotesAberta = { id: null, nome: "" };
+
+async function abrirLotesFazenda(id, nome) {
+    fazendaLotesAberta = { id, nome };
+    document.getElementById("fazendaLotesTitulo").innerText = "🏷️ Lotes · " + nome;
+    document.getElementById("fazendaLoteNovoNome").value = "";
+    document.getElementById("fazendaLoteErro").style.display = "none";
+    let painel = document.getElementById("fazendaLotesPainel");
+    painel.style.display = "block";
+    painel.scrollIntoView({ behavior: "smooth", block: "start" });
+    await carregarLotesFazendaDono();
+    document.getElementById("fazendaLoteNovoNome").focus();
+}
+
+function fecharLotesFazenda() {
+    document.getElementById("fazendaLotesPainel").style.display = "none";
+    fazendaLotesAberta = { id: null, nome: "" };
+}
+
+async function carregarLotesFazendaDono() {
+    let corpo = document.getElementById("corpoTabelaLotesFazenda");
+    corpo.innerHTML = `<tr><td colspan="4">Carregando...</td></tr>`;
+    try {
+        let lotes = await requisicaoSistema("GET", "/api/sistema/fazendas/" + fazendaLotesAberta.id + "/lotes");
+        if (lotes.length === 0) {
+            corpo.innerHTML = `<tr><td colspan="4">Essa fazenda ainda não tem nenhum lote.</td></tr>`;
+            return;
+        }
+        corpo.innerHTML = lotes.map(l => `
+            <tr>
+                <td><b>${escaparHtmlPesagem(l.nome)}</b></td>
+                <td>${typeof l.saldo === "number" ? l.saldo : "—"}</td>
+                <td>${l.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
+                <td class="acoesUsuario"><button title="${l.ativo ? "Desativar (some das listas)" : "Ativar"}" onclick='alternarLoteFazendaDono(${jsonAtributo(l.id)}, ${!l.ativo})'>${l.ativo ? "🚫" : "✅"}</button></td>
+            </tr>
+        `).join("");
+    } catch (e) {
+        corpo.innerHTML = `<tr><td colspan="4">${escaparHtmlPesagem(e.message)}</td></tr>`;
+    }
+}
+
+async function adicionarLoteFazenda() {
+    let campo = document.getElementById("fazendaLoteNovoNome");
+    let erro = document.getElementById("fazendaLoteErro");
+    let nome = campo.value.trim();
+    erro.style.display = "none";
+    if (!nome) { erro.innerText = "Digite o nome do lote."; erro.style.display = "block"; return; }
+    try {
+        await requisicaoSistema("POST", "/api/sistema/fazendas/" + fazendaLotesAberta.id + "/lotes", { nome });
+        campo.value = "";
+        await carregarLotesFazendaDono();
+        campo.focus();
+    } catch (e) {
+        erro.innerText = e.message;
+        erro.style.display = "block";
+    }
+}
+
+async function alternarLoteFazendaDono(loteId, ativar) {
+    try {
+        await requisicaoSistema("PUT", "/api/sistema/fazendas/" + fazendaLotesAberta.id + "/lotes/" + loteId, { ativo: ativar });
+        await carregarLotesFazendaDono();
+    } catch (e) {
+        alertarModerno(e.message, { titulo: "⚠️ Atenção" });
+    }
 }
