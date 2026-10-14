@@ -9,26 +9,29 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=5">
-    <link rel="stylesheet" href="admin.css?v=17">
+    <link rel="stylesheet" href="admin.css?v=18">
 </head>
 <body class="modoDesktop">
 
 <div class="navFundoCelular" onclick="fecharMenuCelular()"></div>
 <div class="navDesktop">
-    <span class="navTitulo">🐂 PesoCerto<small>— Gerenciamento —</small></span>
-    <button data-tela="telaDashboard" onclick="abrirDashboard()">📊 Dashboard</button>
-    <button data-tela="telaResultado" onclick="abrirRelatorios()">📋 Relatórios</button>
-    <button data-tela="telaUsuarios" onclick="trocarTela('telaUsuarios'); carregarUsuarios();">👥 Usuários</button>
-    <button data-tela="telaLotes" onclick="trocarTela('telaLotes'); carregarLotes(); carregarHistoricoTransferencias();">🏷️ Lotes</button>
-    <button data-tela="telaAlmoxarifado" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();">📦 Almoxarifado</button>
-    <button data-tela="telaFluxoCaixa" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();">💵 Fluxo de Caixa</button>
-    <button data-tela="telaContasPagar" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();">🧾 Contas a Pagar</button>
-    <button data-tela="telaEnergia" onclick="trocarTela('telaEnergia'); abrirTelaEnergia();">⚡ Energia</button>
-    <button data-tela="telaSalarios" onclick="trocarTela('telaSalarios'); abrirTelaSalarios();">💰 Salários</button>
-    <button data-tela="telaVacasMatriz" onclick="trocarTela('telaVacasMatriz'); abrirTelaVacasMatriz();">🐄 Vacas Matriz</button>
-    <button data-tela="telaFazendas" style="display:none" onclick="trocarTela('telaFazendas'); carregarFazendasSistema();">🏡 Fazendas</button>
+    <div class="navMarca">
+        <span class="navMarcaLogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span>
+        <span class="navTitulo"><span>Peso<span class="navTituloDestaque">Certo</span></span><small>Gerenciamento</small></span>
+    </div>
+    <button data-tela="telaDashboard" style="--cor:#60a5fa" onclick="abrirDashboard()"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg></span><span class="navTexto">Dashboard</span></button>
+    <button data-tela="telaResultado" style="--cor:#a78bfa" onclick="abrirRelatorios()"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span><span class="navTexto">Relatórios</span></button>
+    <button data-tela="telaUsuarios" style="--cor:#22d3ee" onclick="trocarTela('telaUsuarios'); carregarUsuarios();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><span class="navTexto">Usuários</span></button>
+    <button data-tela="telaLotes" style="--cor:#fbbf24" onclick="trocarTela('telaLotes'); carregarLotes(); carregarHistoricoTransferencias();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg></span><span class="navTexto">Lotes</span></button>
+    <button data-tela="telaAlmoxarifado" style="--cor:#fb923c" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span><span class="navTexto">Almoxarifado</span></button>
+    <button data-tela="telaFluxoCaixa" style="--cor:#34d399" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span><span class="navTexto">Fluxo de Caixa</span></button>
+    <button data-tela="telaContasPagar" style="--cor:#fb7185" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"></path><path d="M8 9h8M8 13h8"></path></svg></span><span class="navTexto">Contas a Pagar</span></button>
+    <button data-tela="telaEnergia" style="--cor:#facc15" onclick="trocarTela('telaEnergia'); abrirTelaEnergia();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span><span class="navTexto">Energia</span></button>
+    <button data-tela="telaSalarios" style="--cor:#2dd4bf" onclick="trocarTela('telaSalarios'); abrirTelaSalarios();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></span><span class="navTexto">Salários</span></button>
+    <button data-tela="telaVacasMatriz" style="--cor:#a3e635" onclick="trocarTela('telaVacasMatriz'); abrirTelaVacasMatriz();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span><span class="navTexto">Vacas Matriz</span></button>
+    <button data-tela="telaFazendas" style="display:none; --cor:#38bdf8" onclick="trocarTela('telaFazendas'); carregarFazendasSistema();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span><span class="navTexto">Fazendas</span></button>
     <div class="navRodape">
-        <span class="navRodapeLogo">🐂</span>
+        <span class="navRodapeLogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-6h6v6"></path></svg></span>
         <strong id="navRodapeFazenda">Estância <span class="navRodapeDestaque">Reis</span></strong>
         <small id="navRodapeSlogan">Trabalho • Disciplina • Resultado</small>
     </div>
@@ -957,8 +960,8 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
-<script src="app.js?v=17"></script>
-<script src="admin.js?v=23"></script>
+<script src="app.js?v=18"></script>
+<script src="admin.js?v=24"></script>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">

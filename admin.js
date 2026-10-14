@@ -2496,16 +2496,16 @@ async function carregarContasPagarAdmin() {
 // fato gravado no banco; "vencendo"/"vencida" mudam sozinhas com o tempo,
 // não fazem sentido como algo fixo salvo na parcela.
 function statusParcela(parcela) {
-    if (parcela.paga) return { chave: "paga", texto: "✅ Paga", cor: "#0ca30c" };
+    if (parcela.paga) return { chave: "paga", texto: "✅ Paga", cor: "#3ddc84" };
     let hojeISO = new Date().toISOString().slice(0, 10);
     let vencISO = extrairDataISO(parcela.dataVencimento);
-    if (!vencISO) return { chave: "pendente", texto: "Pendente", cor: "#52514e" };
-    if (vencISO < hojeISO) return { chave: "vencida", texto: "🔴 Vencida", cor: "#d03b3b" };
+    if (!vencISO) return { chave: "pendente", texto: "Pendente", cor: "#c3cbdc" };
+    if (vencISO < hojeISO) return { chave: "vencida", texto: "🔴 Vencida", cor: "#ff7b72" };
     let limite = new Date();
     limite.setDate(limite.getDate() + CP_DIAS_VENCENDO_EM_BREVE);
     let limiteISO = limite.toISOString().slice(0, 10);
-    if (vencISO <= limiteISO) return { chave: "vencendo", texto: "⏰ Vence em breve", cor: "#b8860b" };
-    return { chave: "pendente", texto: "Pendente", cor: "#52514e" };
+    if (vencISO <= limiteISO) return { chave: "vencendo", texto: "⏰ Vence em breve", cor: "#ffc94d" };
+    return { chave: "pendente", texto: "Pendente", cor: "#c3cbdc" };
 }
 
 async function abrirTelaContasPagar() {

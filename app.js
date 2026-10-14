@@ -1407,7 +1407,12 @@ function mostrarDashboard(){
     if(elSaldo){
         let positivo = saldo >= 0;
         elSaldo.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + formatarMoeda(Math.abs(saldo));
-        elSaldo.style.color = positivo ? "#0ca30c" : "#d03b3b";
+        // o número fica branco; quem muda é o cartão (verde lucro / vermelho prejuízo)
+        let cartaoSaldo = elSaldo.closest(".kpiCard");
+        if(cartaoSaldo){
+            cartaoSaldo.classList.toggle("kpiSaldoPositivo", positivo);
+            cartaoSaldo.classList.toggle("kpiSaldoNegativo", !positivo);
+        }
     }
     set("dashKgTotal", formatarPeso(kgTotal) + " kg");
     set("dashAnimaisTotal", animaisTotal);
@@ -2704,7 +2709,7 @@ function atualizarMarcaFazenda(){
     let slogan = document.getElementById("navRodapeSlogan");
     if(slogan) slogan.style.display = (!logado || schemaDoTokenLocal(obterToken()) === "public") ? "" : "none";
     let navFazendas = document.querySelector('[data-tela="telaFazendas"]');
-    if(navFazendas) navFazendas.style.display = (logado && ehDonoSistemaLocal()) ? "inline-block" : "none";
+    if(navFazendas) navFazendas.style.display = (logado && ehDonoSistemaLocal()) ? "" : "none";
 }
 
 // sessões abertas antes desta versão não têm o nome da fazenda guardado
@@ -2856,7 +2861,7 @@ function atualizarBotaoLogin(){
         let navBtn = document.querySelector(`[data-tela="${id}"]`);
         if(!navBtn) return;
         let podeVer = logado && (!soAdmin || obterPapelLogado() === "admin");
-        navBtn.style.display = podeVer ? "inline-block" : "none";
+        navBtn.style.display = podeVer ? "" : "none";
     });
 
     // Botão de Saída de Almoxarifado no menu do celular: só aparece pra admin
