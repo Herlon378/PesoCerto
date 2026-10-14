@@ -1575,3 +1575,54 @@ body.modoDesktop .cardRelatorio.cardRelatorioSelecionado {
     body.modoDesktop .acaoRel { flex: 1 1 auto; justify-content: center; padding: 0 10px; height: 42px; }
     .relatoriosSeparador { display: none; }
 }
+
+/* ========================================
+   TELA DE IMPRESSÃO (computador): barra fixa + folha maior
+   ======================================== */
+.impressaoTopo {
+    position: sticky;
+    top: 65px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: -28px -24px 22px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-strong);
+    box-shadow: 0 10px 18px -12px rgba(0,0,0,0.6);
+}
+.impressaoTitulo { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.modoDesktop .acaoWhats { background: linear-gradient(180deg, #2fd16b, #1ea952); }
+@media screen {
+    body.modoDesktop #folhaRelatorio { max-width: 1120px; padding: 40px 48px; font-size: 16px; }
+    body.modoDesktop .folhaFazenda { font-size: 15px; }
+    body.modoDesktop .folhaTopo h1 { font-size: 32px; }
+    body.modoDesktop .folhaSelo { font-size: 14px; padding: 5px 16px; }
+    body.modoDesktop .folhaTopoDireita small { font-size: 12.5px; }
+    body.modoDesktop .folhaDados { gap: 14px 22px; margin: 20px 0 10px; }
+    body.modoDesktop .folhaDados span, body.modoDesktop .folhaQuadro span { font-size: 12px; }
+    body.modoDesktop .folhaDados b { font-size: 17px; }
+    body.modoDesktop .folhaResumo { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 18px 0; }
+    body.modoDesktop .folhaQuadro { padding: 12px 14px; border-radius: 10px; }
+    body.modoDesktop .folhaQuadro b { font-size: 19px; margin-top: 4px; }
+    body.modoDesktop .folhaQuadroDestaque b { font-size: 24px; }
+    body.modoDesktop .folhaSecao { font-size: 21px; }
+    body.modoDesktop .folhaTabela { font-size: 15.5px; }
+    body.modoDesktop .folhaTabela th { font-size: 12.5px; padding: 10px 10px; }
+    body.modoDesktop .folhaTabela td { padding: 10px 10px; }
+    body.modoDesktop .folhaTotalGeral b { font-size: 22px; }
+    body.modoDesktop .folhaAssinaturas { font-size: 15px; }
+}
+@media print {
+    .impressaoTopo { display: none !important; }
+}
+@media (max-width: 900px) {
+    .impressaoTopo { top: 61px; margin: -18px -14px 14px; padding: 12px 14px; gap: 10px; }
+    .impressaoTitulo { flex-basis: 100%; order: -1; }
+    .impressaoTopo .relatoriosAcoes { flex: 1; }
+    body.modoDesktop .impressaoTopo .acaoRel { flex: 1 1 auto; justify-content: center; }
+    body.modoDesktop #folhaRelatorio { padding: 20px 16px; font-size: 14px; }
+    body.modoDesktop .folhaTopo h1 { font-size: 24px; }
+}

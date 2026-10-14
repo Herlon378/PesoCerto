@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=4">
-    <link rel="stylesheet" href="admin.css?v=15">
+    <link rel="stylesheet" href="admin.css?v=16">
 </head>
 <body class="modoDesktop">
 
@@ -922,11 +922,16 @@
 </div>
 
 <div id="telaImpressao" class="tela">
-    <div id="folhaRelatorio"></div>
-    <div class="botoes-impressao">
-        <button class="btnGrande" onclick="executarImpressao()">CONFIRMAR IMPRESSÃO / SALVAR PDF</button>
-        <button class="btnGrande" style="background:#666" onclick="trocarTela('telaResultado')">VOLTAR</button>
+    <!-- barra fixa no topo (some na impressão) -->
+    <div class="impressaoTopo">
+        <button class="acaoRel acaoSecundaria" onclick="trocarTela('telaResultado')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg><span>Voltar aos relatórios</span></button>
+        <span class="impressaoTitulo" id="impressaoTitulo">Relatório</span>
+        <div class="relatoriosAcoes">
+            <button class="acaoRel acaoWhats" onclick="enviarImpressaoWhatsApp()" title="Mandar o relatório completo por WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.5A8.4 8.4 0 1 1 21 11.5z"></path></svg><span>WhatsApp</span></button>
+            <button class="acaoRel acaoImprimir" onclick="executarImpressao()" title="Imprimir ou salvar em PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg><span>Imprimir / Salvar PDF</span></button>
+        </div>
     </div>
+    <div id="folhaRelatorio"></div>
 </div>
 
 </div>
@@ -935,7 +940,7 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 <script src="admin.js?v=22"></script>
 
 <div id="modalConfirmacao" class="modal">

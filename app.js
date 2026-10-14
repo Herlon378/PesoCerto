@@ -2109,8 +2109,18 @@ function prepararImpressao(){
 
     let folha = document.getElementById("folhaRelatorio");
     if(folha) folha.innerHTML = html;
+    registrosImpressaoAtual = registros;
+    let titulo = document.getElementById("impressaoTitulo");
+    if(titulo) titulo.innerText = `${ehCompra ? "Compra" : "Venda"}${r.numero ? " nº " + r.numero : ""} · ${r.vendedor || "Sem vendedor"}`;
     trocarTela("telaImpressao");
     window.scrollTo(0, 0);
+}
+
+// o relatório aberto na tela de impressão -- usado pelo botão WhatsApp
+let registrosImpressaoAtual = [];
+function enviarImpressaoWhatsApp(){
+    if(!registrosImpressaoAtual.length) return;
+    window.open("https://wa.me/?text=" + encodeURIComponent(montarMensagemWhatsApp(registrosImpressaoAtual)), "_blank");
 }
 
 function executarImpressao(){
