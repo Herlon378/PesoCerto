@@ -2090,7 +2090,7 @@ function prepararImpressao(){
             html += `<tr><td>${i + 1}</td><td>${formatarPeso(kg)} kg</td>${extra}<td>R$ ${formatarMoeda(valor)}</td><td class="folhaObs">${esc(p.obs || "")}</td></tr>`;
         });
         let extraTotal = d.ehArroba ? `<td>${d.totalArroba.toFixed(2).replace(".", ",")} @</td>` : (d.ehValorAnimal || d.ehFaixas ? `<td>R$ ${formatarMoeda(d.kgImplicitoMedio)}</td>` : "");
-        html += `</tbody><tfoot><tr><td>${d.totalAnimais}</td><td>${formatarPeso(d.totalKg)} kg</td>${extraTotal}<td>R$ ${formatarMoeda(d.totalRS)}</td><td></td></tr></tfoot></table>`;
+        html += `</tbody><tfoot><tr><td>Totais</td><td>${formatarPeso(d.totalKg)} kg</td>${extraTotal}<td>R$ ${formatarMoeda(d.totalRS)}</td><td></td></tr></tfoot></table>`;
     });
 
     if(multiplos){
