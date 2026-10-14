@@ -714,11 +714,15 @@ function finalizarPesagem(){
     // cada critério com pelo menos 1 peso vira uma pesagem salva separada
     // (mesmo formato de sempre) -- salvarPesagem() não muda, só roda uma
     // vez por critério que tiver algo lançado
+    let idsPesagensSalvas = [];
     criteriosPesagem.forEach((c, i) => {
         if(c.pesos.length === 0) return;
         trocarCriterioAtivo(i);
         if(typeof salvarPesagem === "function") salvarPesagem();
+        let salvas = JSON.parse(localStorage.getItem("pesagens") || "[]");
+        idsPesagensSalvas.push(salvas.length ? salvas[salvas.length - 1].id : null);
     });
+    if(compraParaFrete) compraParaFrete.lotes.forEach((l, k) => { l.pesagemId = idsPesagensSalvas[k] || null; });
     // devolve os campos do Critério 1 pro que o operador configurou -- o
     // loop acima deixou neles os valores do último critério salvo
     if(criteriosPesagem.length > 1) trocarCriterioAtivo(0);
@@ -795,7 +799,7 @@ function dividirFretePorLote(valor, lotes){
     return lotes.map((l, i) => {
         let parte = i === lotes.length - 1 ? centavos - usados : Math.round(centavos * l.animais / totalAnimais);
         usados += parte;
-        return { lote: l.lote, animais: l.animais, valor: parte / 100 };
+        return { lote: l.lote, animais: l.animais, pesagemId: l.pesagemId || null, valor: parte / 100 };
     });
 }
 
@@ -826,7 +830,7 @@ function salvarFrete(){
         let descricao = "Frete da compra" + (compra.vendedor ? " — " + compra.vendedor : "")
             + (compra.lotes.length > 1 ? ` (${p.animais} de ${totalAnimais} animais)` : "")
             + (obs ? " — " + obs : "");
-        fila.push({ id: crypto.randomUUID(), valor: p.valor, loteNome: p.lote || null, descricao, data });
+        fila.push({ id: crypto.randomUUID(), valor: p.valor, loteNome: p.lote || null, descricao, data, pesagemId: p.pesagemId });
     });
     localStorage.setItem("despesasFretePendentes", JSON.stringify(fila));
     concluirFrete(`Frete de R$ ${formatarMoeda(valor)} lançado como pago.`);
@@ -2415,9 +2419,10 @@ function excluirSelecionado(){
     let registros = typeof obterRegistrosDaSessao === "function" ? obterRegistrosDaSessao(registro) : [registro];
     let multiplos = registros.length > 1;
 
+    let avisoFrete = (registro && (registro.tipo || "venda") === "compra") ? "\n\nSe teve frete lançado nessa compra, ele também será excluído do caixa." : "";
     let confirmado = multiplos
-        ? confirm(`Essa pesagem tem ${registros.length} lotes lançados na mesma sessão. Deseja excluir TODOS eles permanentemente?`)
-        : confirm("Deseja excluir este relatório permanentemente?");
+        ? confirm(`Essa pesagem tem ${registros.length} lotes lançados na mesma sessão. Deseja excluir TODOS eles permanentemente?` + avisoFrete)
+        : confirm("Deseja excluir este relatório permanentemente?" + avisoFrete);
     if(!confirmado) return;
 
     for(let r of registros){
@@ -2438,6 +2443,9 @@ function excluirSelecionado(){
     });
     relatorios = relatorios.filter(r => !r || !idsParaRemover.has(r.id));
     localStorage.setItem("pesagens", JSON.stringify(relatorios));
+    // frete dessa compra que ainda não tinha subido (sem internet) não sobe mais
+    let fretesPendentes = JSON.parse(localStorage.getItem("despesasFretePendentes") || "[]");
+    localStorage.setItem("despesasFretePendentes", JSON.stringify(fretesPendentes.filter(f => !idsParaRemover.has(f.pesagemId))));
 
     mostrarRelatorios();
 }
@@ -3258,6 +3266,50 @@ function textoGuardadosNoAparelho(){
     return n > 0 ? ` — ${n} registro(s) guardado(s) no aparelho` : "";
 }
 
+// A sincronização demora (rede) e, enquanto isso, o operador pode salvar
+// outra pesagem -- e uma pesagem com 2-3 critérios salva um registro por
+// critério, cada um disparando a sincronização. Por isso ela NUNCA grava de
+// volta a cópia que leu no começo: sempre relê a lista ATUAL do aparelho e
+// só marca como enviado o que foi enviado de fato. (Gravar a cópia antiga
+// apagava do aparelho o que foi salvo no meio do caminho -- perda real de
+// pesagens de 2º/3º critério.)
+function marcarEnviadosNoAparelho(chave, idsAceitos, extra){
+    let aceitos = new Set(idsAceitos);
+    let atual = JSON.parse(localStorage.getItem(chave) || "[]");
+    atual.forEach(item => {
+        if(!item) return;
+        if(aceitos.has(item.id)) item.sincronizado = true;
+        if(extra) extra(item);
+    });
+    localStorage.setItem(chave, JSON.stringify(atual));
+    return atual;
+}
+
+// junta o que veio do servidor com o que AINDA não subiu deste aparelho,
+// lendo o aparelho na hora (não a cópia do começo da sincronização)
+function mesclarComServidor(chave, doServidor, ignorarIds){
+    let ignorar = new Set(ignorarIds || []);
+    let mapa = {};
+    doServidor.forEach(x => { mapa[x.id] = Object.assign({}, x, { sincronizado: true }); });
+    JSON.parse(localStorage.getItem(chave) || "[]").forEach(x => {
+        if(x && !x.sincronizado && x.id && !ignorar.has(x.id)) mapa[x.id] = x;
+    });
+    ignorar.forEach(id => { delete mapa[id]; });
+    let lista = Object.values(mapa);
+    localStorage.setItem(chave, JSON.stringify(lista));
+    return lista;
+}
+
+// filas (exclusões, transferências, fretes): tira só o que foi processado,
+// relendo a fila atual -- o que entrou nela durante o envio continua lá
+function tirarDaFila(chave, lidos, restantes, idDe){
+    idDe = idDe || (x => x);
+    let ficaram = new Set(restantes.map(idDe));
+    let processados = new Set(lidos.map(idDe).filter(id => !ficaram.has(id)));
+    let atual = JSON.parse(localStorage.getItem(chave) || "[]");
+    localStorage.setItem(chave, JSON.stringify(atual.filter(x => !processados.has(idDe(x)))));
+}
+
 let sincronizacaoEmAndamento = null;
 let sincronizarDeNovoAoTerminar = false;
 async function sincronizarAgora(){
@@ -3333,13 +3385,14 @@ async function sincronizarUmaVez(){
             // um HTTP 200 não significa que TODOS os registros do lote foram
             // gravados, já que o servidor descarta silenciosamente pesagens
             // de um tipo que o usuário não tem permissão de lançar
-            naoSincronizados.forEach(r => {
-                if(!idsRejeitadosPermissao.includes(r.id)) r.sincronizado = true;
-            });
-            localStorage.setItem("pesagens", JSON.stringify(lista));
+            let comAvisoSaldo = new Set(naoSincronizados.filter(r => r.avisoSaldo).map(r => r.id));
+            marcarEnviadosNoAparelho("pesagens",
+                naoSincronizados.filter(r => !idsRejeitadosPermissao.includes(r.id)).map(r => r.id),
+                item => { if(comAvisoSaldo.has(item.id)) item.avisoSaldo = true; });
         }
 
         let exclusoesPendentes = JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]");
+        let exclusoesLidas = [...exclusoesPendentes];
         for(let id of [...exclusoesPendentes]){
             let respDel = await fetch(`${API_URL}/api/pesagens/${id}`, {
                 method: "DELETE",
@@ -3355,11 +3408,12 @@ async function sincronizarUmaVez(){
                 alert(erro);
             }
         }
-        localStorage.setItem("exclusoesPendentes", JSON.stringify(exclusoesPendentes));
+        tirarDaFila("exclusoesPendentes", exclusoesLidas, exclusoesPendentes);
 
         // transferências pesadas no celular -- depois das pesagens, porque o
         // servidor confere se o lote de origem tem animais suficientes
         let transfPendentes = JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]");
+        let transfLidas = [...transfPendentes];
         for(let t of [...transfPendentes]){
             let respT = await fetch(`${API_URL}/api/transferencias-lotes`, {
                 method: "POST",
@@ -3379,10 +3433,11 @@ async function sincronizarUmaVez(){
                 alert(`A transferência de ${t.quantidade} animal(is) de "${t.loteOrigem}" para "${t.loteDestino}" não foi aceita: ${erro}`);
             }
         }
-        localStorage.setItem("transferenciasPendentes", JSON.stringify(transfPendentes));
+        tirarDaFila("transferenciasPendentes", transfLidas, transfPendentes, x => x.id);
 
         // fretes lançados ao finalizar uma compra
         let fretesPendentes = JSON.parse(localStorage.getItem("despesasFretePendentes") || "[]");
+        let fretesLidos = [...fretesPendentes];
         for(let f of [...fretesPendentes]){
             let respF = await fetch(`${API_URL}/api/despesas-frete`, {
                 method: "POST",
@@ -3397,7 +3452,7 @@ async function sincronizarUmaVez(){
                 alert(`O frete de R$ ${formatarMoeda(f.valor)} não foi aceito: ${erroFrete}`);
             }
         }
-        localStorage.setItem("despesasFretePendentes", JSON.stringify(fretesPendentes));
+        tirarDaFila("despesasFretePendentes", fretesLidos, fretesPendentes, x => x.id);
 
         let respGet = await fetch(`${API_URL}/api/pesagens`, {
             headers: { "Authorization": "Bearer " + token }
@@ -3437,10 +3492,7 @@ async function sincronizarUmaVez(){
                 if(respSaida.ok){
                     let respostaSaida = await respSaida.json().catch(() => ({}));
                     idsRejeitadosSaidas = respostaSaida.idsRejeitados || [];
-                    naoSincronizadasSaidas.forEach(s => {
-                        if(!idsRejeitadosSaidas.includes(s.id)) s.sincronizado = true;
-                    });
-                    localStorage.setItem("estoqueSaidas", JSON.stringify(listaSaidas));
+                    marcarEnviadosNoAparelho("estoqueSaidas", naoSincronizadasSaidas.filter(x => !idsRejeitadosSaidas.includes(x.id)).map(x => x.id));
                 }
             }
 
@@ -3472,10 +3524,7 @@ async function sincronizarUmaVez(){
                 if(respVacas.ok){
                     let respostaVacas = await respVacas.json().catch(() => ({}));
                     idsRejeitadosVacas = respostaVacas.idsRejeitados || [];
-                    naoSincronizadasVacas.forEach(v => {
-                        if(!idsRejeitadosVacas.includes(v.id)) v.sincronizado = true;
-                    });
-                    localStorage.setItem("vacasMatriz", JSON.stringify(listaVacas));
+                    marcarEnviadosNoAparelho("vacasMatriz", naoSincronizadasVacas.filter(v => !idsRejeitadosVacas.includes(v.id)).map(v => v.id));
                 }
             }
 
@@ -3490,10 +3539,7 @@ async function sincronizarUmaVez(){
                 if(respNasc.ok){
                     let respostaNasc = await respNasc.json().catch(() => ({}));
                     idsRejeitadosNascimentos = respostaNasc.idsRejeitados || [];
-                    naoSincronizadosNascimentos.forEach(n => {
-                        if(!idsRejeitadosNascimentos.includes(n.id)) n.sincronizado = true;
-                    });
-                    localStorage.setItem("nascimentos", JSON.stringify(listaNascimentos));
+                    marcarEnviadosNoAparelho("nascimentos", naoSincronizadosNascimentos.filter(n => !idsRejeitadosNascimentos.includes(n.id)).map(n => n.id));
                 }
             }
 
@@ -3505,33 +3551,19 @@ async function sincronizarUmaVez(){
             let respVacasGet = await fetch(`${API_URL}/api/vacas-matriz`, { headers: { "Authorization": "Bearer " + token } });
             if(respVacasGet.ok){
                 let vacasDoServidor = await respVacasGet.json();
-                let mapaVacas = {};
-                vacasDoServidor.forEach(v => { mapaVacas[v.id] = Object.assign({}, v, { sincronizado: true }); });
-                listaVacas.forEach(v => { if(!v.sincronizado && v.id) mapaVacas[v.id] = v; });
-                localStorage.setItem("vacasMatriz", JSON.stringify(Object.values(mapaVacas)));
+                mesclarComServidor("vacasMatriz", vacasDoServidor);
             }
             let respNascGet = await fetch(`${API_URL}/api/nascimentos`, { headers: { "Authorization": "Bearer " + token } });
             if(respNascGet.ok){
                 let nascimentosDoServidor = await respNascGet.json();
-                let mapaNasc = {};
-                nascimentosDoServidor.forEach(n => { mapaNasc[n.id] = Object.assign({}, n, { sincronizado: true }); });
-                listaNascimentos.forEach(n => { if(!n.sincronizado && n.id) mapaNasc[n.id] = n; });
-                localStorage.setItem("nascimentos", JSON.stringify(Object.values(mapaNasc)));
+                mesclarComServidor("nascimentos", nascimentosDoServidor);
             }
             if(typeof mostrarVacasMatrizMobile === "function") mostrarVacasMatrizMobile();
         }
 
-        let mapa = {};
-        doServidor.forEach(r => { mapa[r.id] = Object.assign({}, r, { sincronizado: true }); });
-        lista.forEach(r => {
-            if(!r.sincronizado && r.id && !exclusoesPendentes.includes(r.id)){
-                mapa[r.id] = r;
-            }
-        });
-        exclusoesPendentes.forEach(id => { delete mapa[id]; });
-
-        relatorios = Object.values(mapa);
-        localStorage.setItem("pesagens", JSON.stringify(relatorios));
+        // exclusões feitas DURANTE a sincronização também valem
+        let exclusoesAgora = JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]");
+        relatorios = mesclarComServidor("pesagens", doServidor, exclusoesAgora);
 
         let telaResultado = document.getElementById("telaResultado");
         if(telaResultado && telaResultado.classList.contains("ativa")){
