@@ -1007,6 +1007,33 @@
     </div>
 </div>
 
+<!-- depois de finalizar uma COMPRA: teve frete? (vira despesa paga no lote) -->
+<div id="modalFrete" class="modal">
+    <div class="modal-box modalFreteBox">
+        <h2>✅ Compra salva!</h2>
+        <div id="freteEtapaPergunta">
+            <p class="freteTexto">Teve despesa com <b>frete</b> nessa compra?</p>
+            <div class="botoes">
+                <button class="btn-nao" onclick="responderFrete(false)">NÃO</button>
+                <button class="btn-sim" onclick="responderFrete(true)">SIM</button>
+            </div>
+        </div>
+        <div id="freteEtapaValor" style="display:none">
+            <label class="freteRotulo" for="freteValor">Valor do frete</label>
+            <input id="freteValor" inputmode="decimal" placeholder="R$ 0,00" oninput="formatarCampoMoedaFrete(this)">
+            <label class="freteRotulo" for="freteObs">Observação (opcional)</label>
+            <input id="freteObs" maxlength="60" placeholder="Ex: caminhão do Zé">
+            <div id="freteDivisao" class="freteDivisao"></div>
+            <p class="freteNota">Vai pro Fluxo de Caixa como despesa <b>paga</b>, no lote da compra.</p>
+            <p id="freteErro" class="loginErro" style="display:none"></p>
+            <div class="botoes">
+                <button class="btn-nao" onclick="concluirFrete()">CANCELAR</button>
+                <button class="btn-sim" onclick="salvarFrete()">LANÇAR FRETE</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="modalConfirmarAcao" class="modal">
     <div class="modal-box">
         <h2 id="modalAcaoTitulo">⚠️ ATENÇÃO</h2>

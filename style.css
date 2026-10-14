@@ -2350,3 +2350,12 @@ textarea {
     line-height: 1.45;
 }
 .avisoTransferencia b { color: #fff; }
+
+/* pergunta do frete ao finalizar uma compra */
+.modalFreteBox { text-align: left; }
+.modalFreteBox h2 { text-align: center; }
+.freteTexto { font-size: 17px; text-align: center; margin: 6px 0 14px; }
+.freteRotulo { display: block; font-size: 13px; font-weight: 700; margin: 10px 0 2px; opacity: 0.8; }
+.modalFreteBox input { margin: 4px 0; }
+.freteDivisao { margin: 10px 0 4px; font-size: 14px; line-height: 1.6; }
+.freteNota { font-size: 12.5px; opacity: 0.75; margin: 6px 0 10px; }

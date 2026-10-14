@@ -705,6 +705,11 @@ function finalizarPesagem(){
     // obterRegistrosDaSessao). Com só 1 critério (o caso comum) fica null,
     // sem efeito nenhum -- continua exatamente como sempre foi.
     sessaoPesagemIdAtual = criteriosUsados.length > 1 ? crypto.randomUUID() : null;
+    let tipoOperacaoFinal = (document.getElementById("tipoOperacao") || {}).value || "venda";
+    let compraParaFrete = tipoOperacaoFinal === "compra" ? {
+        vendedor: (document.getElementById("nomeVendedor") || {}).value || "",
+        lotes: criteriosUsados.map(c => ({ lote: c.descricao || "", animais: c.pesos.length }))
+    } : null;
 
     // cada critério com pelo menos 1 peso vira uma pesagem salva separada
     // (mesmo formato de sempre) -- salvarPesagem() não muda, só roda uma
@@ -736,8 +741,102 @@ function finalizarPesagem(){
     if(boxLog) boxLog.style.display = "none";
     relatorios = JSON.parse(localStorage.getItem("pesagens") || "[]");
 
+    if(compraParaFrete){
+        // a pergunta aparece já em cima dos Relatórios (atrás dela não fica
+        // mais a tela de pesagem com os números da compra que acabou)
+        abrirRelatorios();
+        abrirPerguntaFrete(compraParaFrete);
+        return;
+    }
     alert("Pesagem salva com sucesso!");
     abrirRelatorios();
+}
+
+// ========================================
+// FRETE DA COMPRA
+// ========================================
+// Ao finalizar uma compra: "Teve despesa com frete?". Se sim, o valor vira
+// uma despesa PAGA no Fluxo de Caixa (categoria Frete), no lote da compra --
+// entra no Custo por Lote. Compra com mais de um lote na mesma pesagem
+// (critérios): o frete é dividido pelo número de animais de cada lote.
+// Fica numa fila no aparelho e sobe na sincronização (funciona offline).
+let compraFreteAtual = null;
+
+function abrirPerguntaFrete(compra){
+    compraFreteAtual = compra;
+    document.getElementById("freteEtapaPergunta").style.display = "";
+    document.getElementById("freteEtapaValor").style.display = "none";
+    document.getElementById("freteValor").value = "";
+    document.getElementById("freteObs").value = "";
+    document.getElementById("freteErro").style.display = "none";
+    document.getElementById("freteDivisao").innerHTML = "";
+    document.getElementById("modalFrete").style.display = "flex";
+}
+
+function responderFrete(teve){
+    if(!teve){ concluirFrete(); return; }
+    document.getElementById("freteEtapaPergunta").style.display = "none";
+    document.getElementById("freteEtapaValor").style.display = "";
+    atualizarDivisaoFrete();
+    document.getElementById("freteValor").focus();
+}
+
+function formatarCampoMoedaFrete(input){
+    let numero = Number(input.value.replace(/\D/g, "")) / 100;
+    input.value = numero === 0 ? "" : "R$ " + formatarMoeda(numero);
+    atualizarDivisaoFrete();
+}
+
+// divide em centavos pelo nº de animais; a sobra de arredondamento fica
+// no último lote, pra soma bater exatamente com o valor digitado
+function dividirFretePorLote(valor, lotes){
+    let totalAnimais = lotes.reduce((s, l) => s + l.animais, 0) || 1;
+    let centavos = Math.round(valor * 100), usados = 0;
+    return lotes.map((l, i) => {
+        let parte = i === lotes.length - 1 ? centavos - usados : Math.round(centavos * l.animais / totalAnimais);
+        usados += parte;
+        return { lote: l.lote, animais: l.animais, valor: parte / 100 };
+    });
+}
+
+function atualizarDivisaoFrete(){
+    let el = document.getElementById("freteDivisao");
+    if(!compraFreteAtual || !el) return;
+    let valor = lerNumeroSimulador(document.getElementById("freteValor").value);
+    let lotes = compraFreteAtual.lotes;
+    if(lotes.length === 1){
+        el.innerHTML = `Lote: <b>${escaparHtmlPesagem(lotes[0].lote || "Sem lote")}</b>`;
+        return;
+    }
+    el.innerHTML = "Dividido pelos animais de cada lote:<br>" + dividirFretePorLote(valor, lotes)
+        .map(p => `• ${escaparHtmlPesagem(p.lote || "Sem lote")} (${p.animais} anim.): <b>R$ ${formatarMoeda(p.valor)}</b>`).join("<br>");
+}
+
+function salvarFrete(){
+    let valor = lerNumeroSimulador(document.getElementById("freteValor").value);
+    let erro = document.getElementById("freteErro");
+    if(!(valor > 0)){ erro.innerText = "Digite o valor do frete."; erro.style.display = "block"; return; }
+    let obs = document.getElementById("freteObs").value.trim();
+    let compra = compraFreteAtual;
+    let totalAnimais = compra.lotes.reduce((s, l) => s + l.animais, 0);
+    let data = new Date().toLocaleString("pt-BR");
+    let fila = JSON.parse(localStorage.getItem("despesasFretePendentes") || "[]");
+    dividirFretePorLote(valor, compra.lotes).forEach(p => {
+        if(p.valor <= 0) return;
+        let descricao = "Frete da compra" + (compra.vendedor ? " — " + compra.vendedor : "")
+            + (compra.lotes.length > 1 ? ` (${p.animais} de ${totalAnimais} animais)` : "")
+            + (obs ? " — " + obs : "");
+        fila.push({ id: crypto.randomUUID(), valor: p.valor, loteNome: p.lote || null, descricao, data });
+    });
+    localStorage.setItem("despesasFretePendentes", JSON.stringify(fila));
+    concluirFrete(`Frete de R$ ${formatarMoeda(valor)} lançado como pago.`);
+}
+
+function concluirFrete(mensagemExtra){
+    document.getElementById("modalFrete").style.display = "none";
+    compraFreteAtual = null;
+    if(typeof mensagemExtra === "string") alert("Pesagem salva com sucesso!\n" + mensagemExtra);
+    sincronizarAgora();
 }
 
 // ========================================
@@ -2521,7 +2620,7 @@ function limparDadosVisiveis(){
 // guardado de qual fazenda são os dados locais (pesagens, rascunho, caches)
 // -- se alguém entrar com o login de OUTRA fazenda neste aparelho, esses
 // dados são apagados antes, senão sincronizariam na fazenda errada.
-const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "transferenciasPendentes", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache"];
+const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "transferenciasPendentes", "despesasFretePendentes", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache"];
 
 // "<schema>:<aleatório>"; token sem ":" é de antes do multi-fazenda, e todos
 // eram da fazenda original
@@ -2551,6 +2650,7 @@ function contarPendentesLocais(){
     });
     try{ total += (JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]") || []).length; }catch(e){}
     try{ total += (JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]") || []).length; }catch(e){}
+    try{ total += (JSON.parse(localStorage.getItem("despesasFretePendentes") || "[]") || []).length; }catch(e){}
     if(localStorage.getItem("pesagemAtual")) total += 1;
     return total;
 }
@@ -3147,7 +3247,7 @@ function quantidadeAguardandoEnvio(){
             if(Array.isArray(lista)) total += lista.filter(item => item && !item.sincronizado && !item.avisoSaldo).length;
         }catch(e){}
     });
-    ["exclusoesPendentes", "transferenciasPendentes"].forEach(chave => {
+    ["exclusoesPendentes", "transferenciasPendentes", "despesasFretePendentes"].forEach(chave => {
         try{ total += (JSON.parse(localStorage.getItem(chave) || "[]") || []).length; }catch(e){}
     });
     return total;
@@ -3280,6 +3380,24 @@ async function sincronizarUmaVez(){
             }
         }
         localStorage.setItem("transferenciasPendentes", JSON.stringify(transfPendentes));
+
+        // fretes lançados ao finalizar uma compra
+        let fretesPendentes = JSON.parse(localStorage.getItem("despesasFretePendentes") || "[]");
+        for(let f of [...fretesPendentes]){
+            let respF = await fetch(`${API_URL}/api/despesas-frete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify(f)
+            });
+            if(respF.ok){
+                fretesPendentes = fretesPendentes.filter(x => x.id !== f.id);
+            } else if(respF.status === 400){
+                let erroFrete = (await respF.json().catch(() => ({}))).erro || "recusado pelo servidor";
+                fretesPendentes = fretesPendentes.filter(x => x.id !== f.id);
+                alert(`O frete de R$ ${formatarMoeda(f.valor)} não foi aceito: ${erroFrete}`);
+            }
+        }
+        localStorage.setItem("despesasFretePendentes", JSON.stringify(fretesPendentes));
 
         let respGet = await fetch(`${API_URL}/api/pesagens`, {
             headers: { "Authorization": "Bearer " + token }
