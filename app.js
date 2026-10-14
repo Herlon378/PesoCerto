@@ -1809,13 +1809,13 @@ async function gerarPDF() {
                 pdf.setFontSize(11);
             } else {
                 pdf.text(`Lote/Desc: ${registro.descricao || 'Sem Descrição'}`, 10, y);
-            pdf.text(d.ehFaixas ? "PreÃ§o por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
+            pdf.text(d.ehFaixas ? "Preço por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
                 y += 7;
             }
 
             pdf.setFont("helvetica", "normal");
             if(multiplos){
-                pdf.text(d.ehFaixas ? "PreÃ§o por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 10, y);
+                pdf.text(d.ehFaixas ? "Preço por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 10, y);
                 pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 110, y);
                 y += 7;
                 pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 10, y);
@@ -1988,58 +1988,100 @@ function prepararImpressao(){
     if(!sel){ alert("Selecione um relatório"); return; }
 
     let r = relatorios[sel.value];
-
-    // mesma pesagem, mais de um critério na mesma sessão? junta num recibo
-    // só (ver obterRegistrosDaSessao) -- um único valor a pagar no fim
+    // mesma pesagem, mais de um critério na mesma sessão? junta num
+    // documento só (ver obterRegistrosDaSessao) -- um único valor a pagar
     let registros = obterRegistrosDaSessao(r);
     let multiplos = registros.length > 1;
-    let totalGeral = 0;
+    let ehCompra = (r.tipo || "venda") === "compra";
+    let esc = escaparHtmlPesagem;
+    let totalGeral = 0, animaisGeral = 0, kgGeral = 0;
+
+    function quadro(rotulo, valor, destaque){
+        return `<div class="folhaQuadro${destaque ? " folhaQuadroDestaque" : ""}"><span>${rotulo}</span><b>${valor}</b></div>`;
+    }
+    function textoPreco(d){
+        if(d.ehFaixas) return "Por faixa de peso";
+        if(d.ehValorAnimal) return "R$ " + formatarMoeda(d.valorKgNum) + " por animal";
+        if(d.ehArroba) return "R$ " + formatarMoeda(d.valorKgNum) + " por @ (rend. " + d.rendimentoNum + "%)";
+        return "R$ " + formatarMoeda(d.valorKgNum) + " por kg";
+    }
 
     let html = `
-        <h2>Pesagem ${escaparHtmlPesagem(nomeFazendaAtual())} ${r.numero ? "— Nº " + r.numero : ""}</h2>
-        <hr>
-        <p><b>Vendedor:</b> ${escaparHtmlPesagem(r.vendedor || "-")} &nbsp;&nbsp;&nbsp;&nbsp; <b>Data:</b> ${calcularDadosCompletos(r).dataHora}</p>
+        <header class="folhaTopo">
+            <div>
+                <div class="folhaFazenda">${esc(nomeFazendaAtual())}</div>
+                <h1>Relatório de Pesagem${r.numero ? " Nº " + r.numero : ""}</h1>
+            </div>
+            <div class="folhaTopoDireita">
+                <span class="folhaSelo ${ehCompra ? "folhaSeloCompra" : "folhaSeloVenda"}">${ehCompra ? "COMPRA" : "VENDA"}</span>
+                <small>Emitido em ${new Date().toLocaleString("pt-BR")}</small>
+            </div>
+        </header>
+        <section class="folhaDados">
+            <div><span>${ehCompra ? "Vendedor" : "Comprador / Vendedor"}</span><b>${esc(r.vendedor || "Não informado")}</b></div>
+            <div><span>Data da pesagem</span><b>${esc(calcularDadosCompletos(r).dataHora)}</b></div>
+            <div><span>${multiplos ? "Lotes" : "Lote"}</span><b>${esc(registros.map(x => x.descricao || "Sem lote").join(", "))}</b></div>
+            <div><span>Lançado por</span><b>${esc(r.criadoPor || obterUsuarioLogado() || "—")}</b></div>
+        </section>
     `;
 
-    registros.forEach((registro, indiceLote) => {
+    registros.forEach((registro, indice) => {
         let d = calcularDadosCompletos(registro);
         totalGeral += d.totalRS;
+        animaisGeral += d.totalAnimais;
+        kgGeral += d.totalKg;
+        let pesos = (registro.pesos || []).map(p => Number(p.peso) || 0);
+        let maior = pesos.length ? Math.max(...pesos) : 0;
+        let menor = pesos.length ? Math.min(...pesos) : 0;
+        let valorMedio = d.totalAnimais ? d.totalRS / d.totalAnimais : 0;
 
-        html += multiplos
-            ? `<h3 style="margin-top:16px">Lote ${indiceLote + 1}: ${registro.descricao || "Sem Descrição"}</h3>`
-            : `<p><b>Descrição:</b> ${registro.descricao || "-"} &nbsp;&nbsp;&nbsp;&nbsp; <b>${d.ehValorAnimal ? "Valor por Animal" : "Valor por Kg"}:</b> R$ ${formatarMoeda(d.valorKgNum)}</p>`;
-
-        html += `
-            <p><b>${multiplos ? (d.ehValorAnimal ? "Valor por Animal" : "Valor por Kg") + ":" : "Total Animais:"}</b> ${multiplos ? "R$ " + formatarMoeda(d.valorKgNum) : d.totalAnimais} &nbsp;&nbsp;&nbsp;&nbsp; <b>${multiplos ? "Total Animais:" : "Média Lote:"}</b> ${multiplos ? d.totalAnimais : d.mediaKg.toFixed(2).replace(".", ",") + " kg"}</p>
-            <p><b>Peso Acumulado:</b> ${formatarPeso(d.totalKg)} kg &nbsp;&nbsp;&nbsp;&nbsp; <b>${multiplos ? "Subtotal deste lote:" : "Faturamento Total:"}</b> R$ ${formatarMoeda(d.totalRS)}</p>
-            ${d.ehArroba ? `<p><b>Total em Arrobas:</b> ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rendimento ${d.rendimentoNum}%)</p>` : ""}
-            <br>
-            <table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
-                <thead>
-                    <tr style="background:#eee"><th>Nº</th><th>Peso</th><th>Valor Individual</th><th>Observação</th></tr>
-                </thead>
-                <tbody>
-        `;
-
-        if(d.ehFaixas){
-            html = html.replaceAll(`Valor por Kg:</b> R$ ${formatarMoeda(d.valorKgNum)}`, "PreÃ§o por faixa de peso</b>");
+        if(multiplos){
+            html += `<h2 class="folhaSecao">Lote ${indice + 1}: ${esc(registro.descricao || "Sem lote")} <small>${textoPreco(d)}</small></h2>`;
         }
-        registro.pesos.forEach((p, i) => {
-            let pAtual = p.peso || 0;
-            let vInd = d.valorDoItem(pAtual, p);
-            html += `<tr><td>${i+1}</td><td>${formatarPeso(pAtual)} kg</td><td>R$ ${formatarMoeda(vInd)}</td><td>${escaparHtmlPesagem(p.obs || "-")}</td></tr>`;
-        });
+        html += `<section class="folhaResumo">`;
+        html += quadro("Animais", d.totalAnimais);
+        html += quadro("Peso total", formatarPeso(d.totalKg) + " kg");
+        html += quadro("Peso médio", formatarPeso(Math.round(d.mediaKg * 10) / 10) + " kg");
+        html += quadro("Mais pesado", formatarPeso(maior) + " kg");
+        html += quadro("Mais leve", formatarPeso(menor) + " kg");
+        if(!multiplos) html += quadro("Preço", textoPreco(d));
+        html += quadro("Valor médio / animal", "R$ " + formatarMoeda(valorMedio));
+        html += quadro("R$ médio por kg", "R$ " + formatarMoeda(d.kgImplicitoMedio));
+        if(d.ehArroba) html += quadro("Total em arrobas", d.totalArroba.toFixed(2).replace(".", ",") + " @");
+        html += quadro(multiplos ? "Subtotal deste lote" : "Valor total", "R$ " + formatarMoeda(d.totalRS), true);
+        html += `</section>`;
 
-        html += `</tbody></table>`;
+        let colunaExtra = d.ehArroba ? "<th>Arrobas</th>" : (d.ehValorAnimal || d.ehFaixas ? "<th>R$ / kg</th>" : "");
+        html += `<table class="folhaTabela"><thead><tr><th>Nº</th><th>Peso</th>${colunaExtra}<th>Valor</th><th>Observação</th></tr></thead><tbody>`;
+        (registro.pesos || []).forEach((p, i) => {
+            let kg = Number(p.peso) || 0;
+            let valor = d.valorDoItem(kg, p);
+            let extra = d.ehArroba ? `<td>${d.arrobaDe(kg).toFixed(2).replace(".", ",")} @</td>`
+                : (d.ehValorAnimal || d.ehFaixas ? `<td>R$ ${kg > 0 ? formatarMoeda(valor / kg) : "—"}</td>` : "");
+            html += `<tr><td>${i + 1}</td><td>${formatarPeso(kg)} kg</td>${extra}<td>R$ ${formatarMoeda(valor)}</td><td class="folhaObs">${esc(p.obs || "")}</td></tr>`;
+        });
+        let extraTotal = d.ehArroba ? `<td>${d.totalArroba.toFixed(2).replace(".", ",")} @</td>` : (d.ehValorAnimal || d.ehFaixas ? `<td>R$ ${formatarMoeda(d.kgImplicitoMedio)}</td>` : "");
+        html += `</tbody><tfoot><tr><td>${d.totalAnimais}</td><td>${formatarPeso(d.totalKg)} kg</td>${extraTotal}<td>R$ ${formatarMoeda(d.totalRS)}</td><td></td></tr></tfoot></table>`;
     });
 
     if(multiplos){
-        html += `<h2 style="margin-top:20px; text-align:right">TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}</h2>`;
+        html += `<section class="folhaTotalGeral"><span>${animaisGeral} animais · ${formatarPeso(kgGeral)} kg</span><b>TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}</b></section>`;
     }
+
+    html += `
+        <footer class="folhaRodape">
+            <div class="folhaAssinaturas">
+                <div><span></span>${ehCompra ? "Vendedor" : "Comprador"}</div>
+                <div><span></span>${esc(nomeFazendaAtual())}</div>
+            </div>
+            <small>Relatório gerado pelo PesoCerto</small>
+        </footer>
+    `;
 
     let folha = document.getElementById("folhaRelatorio");
     if(folha) folha.innerHTML = html;
     trocarTela("telaImpressao");
+    window.scrollTo(0, 0);
 }
 
 function executarImpressao(){

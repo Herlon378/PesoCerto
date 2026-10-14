@@ -1926,12 +1926,74 @@ textarea {
 
 /* FOLHA DE IMPRESSÃO */
 
+/* Folha do relatório: SEMPRE papel branco com texto escuro, mesmo dentro
+   das telas escuras do app/gerenciamento -- antes ela herdava a cor clara
+   do tema escuro e o texto sumia no fundo branco (e saía cinza na impressão) */
 #folhaRelatorio {
-    background: white;
-    padding: 20px;
-    margin: 10px;
+    background: #fff;
+    color: #1d2433;
+    padding: 28px 30px;
+    margin: 10px auto;
+    max-width: 900px;
+    width: 100%;
+    box-sizing: border-box;
     border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    font-size: 14px;
+    line-height: 1.4;
 }
+#folhaRelatorio * { color: inherit; }
+.folhaTopo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 3px solid #1d2433; padding-bottom: 12px; }
+.folhaFazenda { font-size: 13px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #2b5aa3 !important; }
+.folhaTopo h1 { margin: 2px 0 0; font-size: 24px; font-weight: 800; }
+.folhaTopoDireita { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.folhaTopoDireita small { color: #6b7280 !important; font-size: 11px; }
+.folhaSelo { font-size: 12px; font-weight: 800; letter-spacing: 1px; padding: 4px 12px; border-radius: 999px; border: 2px solid; }
+.folhaSeloCompra { color: #b45309 !important; border-color: #f59e0b; background: #fff7e6; }
+.folhaSeloVenda { color: #1d4ed8 !important; border-color: #60a5fa; background: #eef5ff; }
+.folhaDados { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; margin: 14px 0 6px; }
+.folhaDados div, .folhaQuadro { display: flex; flex-direction: column; min-width: 0; }
+.folhaDados span, .folhaQuadro span { font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #6b7280 !important; }
+.folhaDados b { font-size: 14px; overflow-wrap: anywhere; }
+.folhaSecao { margin: 20px 0 6px; font-size: 17px; border-left: 4px solid #2b5aa3; padding-left: 10px; }
+.folhaSecao small { font-size: 12px; font-weight: 600; color: #6b7280 !important; margin-left: 6px; }
+.folhaResumo { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0; }
+.folhaQuadro { border: 1px solid #dfe3ea; border-radius: 8px; padding: 8px 10px; background: #f8fafc; }
+.folhaQuadro b { font-size: 15px; margin-top: 2px; }
+.folhaQuadroDestaque { background: #ecfdf3; border-color: #34d399; }
+.folhaQuadroDestaque b { color: #047857 !important; font-size: 18px; }
+.folhaTabela { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 13px; }
+.folhaTabela th { background: #1d2433; color: #fff !important; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; padding: 7px 8px; text-align: center; }
+.folhaTabela td { border-bottom: 1px solid #e5e7eb; padding: 6px 8px; text-align: center; }
+.folhaTabela tbody tr:nth-child(even) td { background: #f6f8fb; }
+.folhaTabela .folhaObs { text-align: left; color: #4b5563 !important; }
+.folhaTabela tfoot td { font-weight: 800; border-top: 2px solid #1d2433; border-bottom: none; background: #eef2f7; }
+.folhaTotalGeral { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: #1d2433; }
+.folhaTotalGeral span { color: #cbd5e1 !important; }
+.folhaTotalGeral b { color: #fff !important; font-size: 18px; }
+.folhaRodape { margin-top: 34px; text-align: center; }
+.folhaAssinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 16px; font-size: 13px; }
+.folhaAssinaturas span { display: block; border-top: 1px solid #1d2433; margin: 46px 0 6px; height: 0; }
+.folhaRodape small { color: #9ca3af !important; font-size: 11px; }
+.botoes-impressao { max-width: 900px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+@media (max-width: 640px) {
+    #folhaRelatorio { padding: 18px 14px; margin: 6px 0; font-size: 13px; }
+    .folhaTopo { flex-direction: column; }
+    .folhaTopoDireita { align-items: flex-start; }
+    .folhaDados { grid-template-columns: 1fr 1fr; }
+    .folhaResumo { grid-template-columns: 1fr 1fr; }
+    .folhaTabela { font-size: 12px; }
+    .folhaTabela th, .folhaTabela td { padding: 5px 4px; }
+}
+@media print {
+    #folhaRelatorio { box-shadow: none; margin: 0; max-width: none; padding: 0; border-radius: 0; }
+    #telaImpressao { padding: 0 !important; }
+    .folhaTabela th, .folhaTotalGeral, .folhaQuadro, .folhaTabela tbody tr:nth-child(even) td, .folhaTabela tfoot td {
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .folhaTabela tr { page-break-inside: avoid; }
+}
+@page { size: A4; margin: 12mm; }
 
 /* estilo tipo folha A4 */
 @media print {
