@@ -1502,3 +1502,76 @@ body.modoDesktop .tela {
     overflow: visible;
     overscroll-behavior: auto;
 }
+
+/* ========================================
+   RELATÓRIOS (computador): topo fixo com pesquisa + ações
+   ======================================== */
+.relatoriosTopo {
+    position: sticky;
+    top: 65px; /* logo abaixo da barra de cima, que também é fixa */
+    z-index: 30;
+    margin: -28px -24px 18px;
+    padding: 18px 24px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-strong);
+    box-shadow: 0 10px 18px -12px rgba(0,0,0,0.6);
+}
+.relatoriosTituloLinha { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+body.modoDesktop .relatoriosTopo h2 { margin: 0; }
+.relatorioSelecionadoInfo { font-size: 13px; color: #9cc8ff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.relatoriosTopo.semSelecao .relatorioSelecionadoInfo { color: var(--ink-muted); }
+.relatorioSelecionadoInfo b { color: #fff; }
+.relatoriosBarra { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.buscaRelatorioDesk {
+    flex: 1 1 280px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.buscaRelatorioDesk:focus-within { border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(57,135,229,0.2); }
+.buscaRelatorioDesk svg { width: 18px; height: 18px; color: var(--ink-muted); flex-shrink: 0; }
+body.modoDesktop .buscaRelatorioDesk input {
+    flex: 1; min-width: 0; margin: 0; padding: 0; height: 100%;
+    border: none; background: transparent; color: var(--ink); font-size: 14.5px; box-shadow: none;
+}
+body.modoDesktop .buscaRelatorioDesk input:focus { outline: none; }
+.relatoriosAcoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+body.modoDesktop .acaoRel {
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 44px; width: auto; margin: 0; padding: 0 14px;
+    border-radius: 12px; border: 1px solid transparent;
+    font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    transition: filter 0.15s ease, opacity 0.15s ease, transform 0.08s ease;
+}
+.acaoRel svg { width: 17px; height: 17px; flex-shrink: 0; }
+body.modoDesktop .acaoImprimir { background: linear-gradient(180deg, #3d8cf0, #2468c8); }
+body.modoDesktop .acaoPdf { background: linear-gradient(180deg, #19a4d8, #0b7fae); }
+body.modoDesktop .acaoExcel { background: linear-gradient(180deg, #2fa654, #1e7d3c); }
+body.modoDesktop .acaoExcluir { background: rgba(229,83,75,0.12); border-color: rgba(229,83,75,0.55); color: #ff8a83; box-shadow: none; }
+body.modoDesktop .acaoExcluir:hover { background: #d93f37; color: #fff; }
+body.modoDesktop .acaoSecundaria { background: var(--surface-sunken); border-color: var(--border-strong); color: var(--ink); box-shadow: none; }
+.relatoriosSeparador { width: 1px; height: 28px; background: var(--border-strong); margin: 0 4px; }
+/* sem relatório marcado: as ações que dependem da seleção ficam apagadas */
+.relatoriosTopo.semSelecao .acaoSelecao { opacity: 0.45; }
+/* cartão marcado */
+body.modoDesktop .cardRelatorio.cardRelatorioSelecionado {
+    border-color: var(--blue-500) !important;
+    box-shadow: 0 0 0 2px rgba(57,135,229,0.45), 0 8px 20px rgba(0,0,0,0.3);
+    background: rgba(57,135,229,0.08);
+}
+@media (max-width: 900px) {
+    .relatoriosTopo { top: 61px; margin: -18px -14px 14px; padding: 14px; }
+    .relatoriosBarra { gap: 10px; }
+    .buscaRelatorioDesk { flex-basis: 100%; }
+    .relatoriosAcoes { width: 100%; }
+    body.modoDesktop .acaoRel { flex: 1 1 auto; justify-content: center; padding: 0 10px; height: 42px; }
+    .relatoriosSeparador { display: none; }
+}

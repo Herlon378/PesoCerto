@@ -1106,7 +1106,7 @@ function mostrarRelatorios(){
         html += `
             <div class="cardRelatorio">
                 <label>
-                    <input type="radio" name="relatorioSelecionado" value="${originalIndex}">
+                    <input type="radio" name="relatorioSelecionado" value="${originalIndex}" data-id="${escaparHtmlPesagem(primeiro.id || "")}">
                     <div class="infoRelatorio">
                         ${tagTipo} <span class="numeroRelatorio">${numeroTexto}</span> ${tagLotes}<br>
                         <b>Vendedor:</b> ${escaparHtmlPesagem(primeiro.vendedor || "Não informado")}<br>
@@ -1119,8 +1119,37 @@ function mostrarRelatorios(){
             </div>
         `;
     });
+    // a lista é redesenhada a cada sincronização automática (no computador,
+    // a cada 60s) -- sem isso a seleção e o filtro da pesquisa sumiam no meio
+    // do uso (selecionava, ia clicar em Imprimir e não tinha mais nada marcado)
+    let marcadoAntes = document.querySelector("input[name='relatorioSelecionado']:checked");
+    let idMarcado = marcadoAntes ? marcadoAntes.dataset.id : null;
     container.innerHTML = html;
+    if(idMarcado){
+        let radio = [...container.querySelectorAll("input[name='relatorioSelecionado']")].find(r => r.dataset.id === idMarcado);
+        if(radio) radio.checked = true;
+    }
+    let buscaEl = document.getElementById("buscarVendedor");
+    if(buscaEl && buscaEl.value) filtrarRelatorios();
+    atualizarSelecaoRelatorio();
 }
+
+// cartão marcado em destaque + resumo do selecionado no topo (computador)
+function atualizarSelecaoRelatorio() {
+    let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
+    document.querySelectorAll(".cardRelatorio").forEach(card => card.classList.toggle("cardRelatorioSelecionado", !!sel && card.contains(sel)));
+    let info = document.getElementById("relatorioSelecionadoInfo");
+    let topo = document.querySelector(".relatoriosTopo");
+    if(topo) topo.classList.toggle("semSelecao", !sel);
+    if(!info) return;
+    let r = sel ? relatorios[sel.value] : null;
+    if(!r){ info.textContent = "Selecione um relatório na lista"; return; }
+    let tipo = (r.tipo || "venda") === "compra" ? "Compra" : "Venda";
+    info.innerHTML = `Selecionado: <b>${tipo}${r.numero ? " nº " + r.numero : ""}</b> · ${escaparHtmlPesagem(r.vendedor || "Sem vendedor")} · ${escaparHtmlPesagem(r.descricao || "Sem lote")}`;
+}
+document.addEventListener("change", e => {
+    if(e.target && e.target.name === "relatorioSelecionado") atualizarSelecaoRelatorio();
+});
 
 function filtrarRelatorios() {
     let buscaEl = document.getElementById("buscarVendedor");
