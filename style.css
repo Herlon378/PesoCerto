@@ -1970,6 +1970,24 @@ textarea {
 .folhaTabela tbody tr:nth-child(even) td { background: #f6f8fb; }
 .folhaTabela .folhaObs { text-align: left; color: #4b5563 !important; }
 .folhaTabela tfoot td { font-weight: 800; border-top: 2px solid #1d2433; border-bottom: none; background: #eef2f7; }
+/* lista de pesos: duas colunas na folha (impressão e tela larga), uma no celular */
+.folhaTabela .folhaDivisor { width: 14px; padding: 0 !important; background: #fff !important; border-bottom: none !important; }
+.folhaTabela th.folhaDivisor { background: #fff !important; }
+.folhaTabela .folhaNum { color: #6b7280 !important; font-weight: 700; }
+.folhaTabela td.folhaSubtotal { text-align: right; font-weight: 600; padding: 9px 10px; }
+.folhaTabela td.folhaSubtotal b { font-weight: 800; }
+.folhaTabelaSimples { display: none; }
+@media print {
+    /* linhas mais baixas no papel: ~35 animais cabem numa folha só */
+    .folhaTabelaDupla td { padding: 3px 6px; font-size: 12px; }
+    .folhaTabelaDupla th { padding: 5px 6px; }
+    /* assinatura nunca fica com a linha numa página e o nome na outra */
+    .folhaRodape, .folhaTotalGeral { break-inside: avoid; page-break-inside: avoid; }
+}
+@media screen and (max-width: 640px) {
+    .folhaTabelaDupla { display: none !important; }
+    .folhaTabelaSimples { display: table !important; }
+}
 .folhaTotalGeral { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: #1d2433; }
 .folhaTotalGeral span { color: #cbd5e1 !important; }
 .folhaTotalGeral b { color: #fff !important; font-size: 18px; }

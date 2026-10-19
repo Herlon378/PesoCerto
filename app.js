@@ -2188,17 +2188,32 @@ function prepararImpressao(){
         html += quadro(multiplos ? "Subtotal deste lote" : "Valor total", "R$ " + formatarMoeda(d.totalRS), true);
         html += `</section>`;
 
+        // lista de pesos em DUAS colunas lado a lado (1|2, 3|4...) pra usar a
+        // folha inteira -- numa tabela só, que quebra de página certinho e
+        // repete o cabeçalho. Em tela estreita (celular) aparece a versão de
+        // uma coluna. Totais: só no resumo de cima; com mais de um lote, cada
+        // lote mostra o subtotal dele embaixo da lista.
         let colunaExtra = d.ehArroba ? "<th>Arrobas</th>" : (d.ehValorAnimal || d.ehFaixas ? "<th>R$ / kg</th>" : "");
-        html += `<table class="folhaTabela"><thead><tr><th>Nº</th><th>Peso</th>${colunaExtra}<th>Valor</th><th>Observação</th></tr></thead><tbody>`;
-        (registro.pesos || []).forEach((p, i) => {
+        let celulas = (p, i) => {
+            if(!p) return `<td></td><td></td>${colunaExtra ? "<td></td>" : ""}<td></td><td class="folhaObs"></td>`;
             let kg = Number(p.peso) || 0;
             let valor = d.valorDoItem(kg, p);
             let extra = d.ehArroba ? `<td>${d.arrobaDe(kg).toFixed(2).replace(".", ",")} @</td>`
                 : (d.ehValorAnimal || d.ehFaixas ? `<td>R$ ${kg > 0 ? formatarMoeda(valor / kg) : "—"}</td>` : "");
-            html += `<tr><td>${i + 1}</td><td>${formatarPeso(kg)} kg</td>${extra}<td>R$ ${formatarMoeda(valor)}</td><td class="folhaObs">${esc(p.obs || "")}</td></tr>`;
-        });
-        let extraTotal = d.ehArroba ? `<td>${d.totalArroba.toFixed(2).replace(".", ",")} @</td>` : (d.ehValorAnimal || d.ehFaixas ? `<td>R$ ${formatarMoeda(d.kgImplicitoMedio)}</td>` : "");
-        html += `</tbody><tfoot><tr><td>Totais</td><td>${formatarPeso(d.totalKg)} kg</td>${extraTotal}<td>R$ ${formatarMoeda(d.totalRS)}</td><td></td></tr></tfoot></table>`;
+            return `<td class="folhaNum">${i + 1}</td><td>${formatarPeso(kg)} kg</td>${extra}<td>R$ ${formatarMoeda(valor)}</td><td class="folhaObs">${esc(p.obs || "")}</td>`;
+        };
+        let lista = registro.pesos || [];
+        let nColunas = 4 + (colunaExtra ? 1 : 0);
+        let cabecalho = `<th>Nº</th><th>Peso</th>${colunaExtra}<th>Valor</th><th>Obs.</th>`;
+        let subtotal = multiplos
+            ? `<tfoot><tr><td colspan="__COLS__" class="folhaSubtotal">Subtotal deste lote: ${d.totalAnimais} animais · ${formatarPeso(d.totalKg)} kg · <b>R$ ${formatarMoeda(d.totalRS)}</b></td></tr></tfoot>`
+            : "";
+        let linhasDupla = "";
+        for(let i = 0; i < lista.length; i += 2){
+            linhasDupla += `<tr>${celulas(lista[i], i)}<td class="folhaDivisor"></td>${celulas(lista[i + 1], i + 1)}</tr>`;
+        }
+        html += `<table class="folhaTabela folhaTabelaDupla"><thead><tr>${cabecalho}<th class="folhaDivisor"></th>${cabecalho}</tr></thead><tbody>${linhasDupla}</tbody>${subtotal.replace("__COLS__", nColunas * 2 + 1)}</table>`;
+        html += `<table class="folhaTabela folhaTabelaSimples"><thead><tr>${cabecalho}</tr></thead><tbody>${lista.map((p, i) => `<tr>${celulas(p, i)}</tr>`).join("")}</tbody>${subtotal.replace("__COLS__", nColunas)}</table>`;
     });
 
     if(multiplos){

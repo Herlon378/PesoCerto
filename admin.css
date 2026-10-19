@@ -1463,8 +1463,16 @@ body.modoDesktop .tela.telaAcesso.ativa {
         -webkit-overflow-scrolling: touch;
     }
     body.modoDesktop th, body.modoDesktop td { white-space: nowrap; }
+    /* menos a folha de impressão: ela é papel, ocupa a largura toda */
+    body.modoDesktop #folhaRelatorio table { display: table; overflow: visible; max-width: none; }
+    body.modoDesktop #folhaRelatorio .folhaTabelaSimples { display: none; }
+    body.modoDesktop #folhaRelatorio th, body.modoDesktop #folhaRelatorio td { white-space: normal; }
 
     .botoesRelatorio { flex-wrap: wrap; }
+}
+@media print {
+    body.modoDesktop #folhaRelatorio table.folhaTabelaDupla, body.modoDesktop #folhaRelatorio table.folhaExtrato { display: table !important; width: 100% !important; }
+    body.modoDesktop #folhaRelatorio .folhaTabelaSimples { display: none !important; }
 }
 
 /* botões de ação das telas (Novo Usuário, Excluir, Exportar...): tinham só a
