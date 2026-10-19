@@ -1690,6 +1690,8 @@ textarea {
 .modal {
     display: none;
     position: fixed;
+    /* acima dos topos fixos das telas (z-index 30) e do relatório do lote (960) */
+    z-index: 980;
     top: 0;
     left: 0;
     width: 100%;
