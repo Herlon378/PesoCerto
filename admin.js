@@ -2135,7 +2135,8 @@ async function carregarCachesFinanceirasDashboard() {
         carregarEstoqueEntradasAdmin(),
         carregarProdutosAdmin(),
         carregarSaldoInicial(),
-        carregarTransferenciasLotesAdmin()
+        carregarTransferenciasLotesAdmin(),
+        carregarBensAdmin()
     ]);
     atualizarInfoSaldoInicial();
 }
@@ -2293,21 +2294,27 @@ async function mostrarPatrimonio() {
         return soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0);
     }, 0);
 
-    let patrimonioTotal = caixaAcumulado + valorRebanho + valorEstoqueAlmoxarifado;
+    // bens da fazenda em uso (veículos, máquinas, terra...) pelo valor atual
+    let valorBens = valorBensNaData();
 
+    let patrimonioTotal = caixaAcumulado + valorRebanho + valorEstoqueAlmoxarifado + valorBens;
+
+    let elBens = document.getElementById("patrimonioBens");
+    if (elBens) elBens.innerText = "R$ " + formatarMoeda(valorBens);
     document.getElementById("patrimonioCaixa").innerText = "R$ " + formatarMoeda(caixaAcumulado);
     document.getElementById("patrimonioRebanho").innerText = "R$ " + formatarMoeda(valorRebanho);
     document.getElementById("patrimonioEstoque").innerText = "R$ " + formatarMoeda(valorEstoqueAlmoxarifado);
     elTotal.innerText = "R$ " + formatarMoeda(patrimonioTotal);
 
-    atualizarDonutPatrimonio(caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, patrimonioTotal);
+    atualizarDonutPatrimonio(caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, patrimonioTotal, valorBens);
 }
 
 // Desenha o gráfico de rosca "Composição do Patrimônio" a partir dos mesmos
 // 3 valores que já aparecem nas submétricas acima -- cada fatia é o mesmo
 // círculo com um traço parcial (stroke-dasharray/-dashoffset), técnica
 // padrão de donut em SVG sem precisar de nenhuma biblioteca de gráfico.
-function atualizarDonutPatrimonio(caixa, rebanho, estoque, total) {
+function atualizarDonutPatrimonio(caixa, rebanho, estoque, total, bens) {
+    bens = bens || 0;
     let elRebanho = document.getElementById("donutFatiaRebanho");
     if (!elRebanho) return; // defensivo -- só existe na tela do Dashboard
 
@@ -2319,8 +2326,9 @@ function atualizarDonutPatrimonio(caixa, rebanho, estoque, total) {
     let fatias = [
         { chave: "rebanho", valor: rebanho, el: elRebanho },
         { chave: "caixa", valor: caixa, el: document.getElementById("donutFatiaCaixa") },
-        { chave: "estoque", valor: estoque, el: document.getElementById("donutFatiaEstoque") }
-    ];
+        { chave: "estoque", valor: estoque, el: document.getElementById("donutFatiaEstoque") },
+        { chave: "bens", valor: bens, el: document.getElementById("donutFatiaBens") }
+    ].filter(f => f.el);
 
     let acumulado = 0;
     fatias.forEach(f => {
@@ -2341,6 +2349,8 @@ function atualizarDonutPatrimonio(caixa, rebanho, estoque, total) {
     if (legRebanho) legRebanho.innerText = `R$ ${formatarMoeda(rebanho)} (${pct(rebanho)}%)`;
     if (legCaixa) legCaixa.innerText = `R$ ${formatarMoeda(caixa)} (${pct(caixa)}%)`;
     if (legEstoque) legEstoque.innerText = `R$ ${formatarMoeda(estoque)} (${pct(estoque)}%)`;
+    let legBens = document.getElementById("donutLegendaBens");
+    if (legBens) legBens.innerText = `R$ ${formatarMoeda(bens)} (${pct(bens)}%)`;
 }
 
 const NOMES_MESES_RESULTADO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -2498,7 +2508,7 @@ async function mostrarEvolucaoPatrimonio() {
             ? produtosCacheAdmin.reduce((soma, p) => soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0), 0)
             : 0;
 
-        m.patrimonio = caixa + rebanho + estoqueAlmox;
+        m.patrimonio = caixa + rebanho + estoqueAlmox + valorBensNaData(corteISO);
     }
 
     for (let i = 0; i < meses.length; i++) {
@@ -2656,6 +2666,330 @@ async function mostrarSubCaixas() {
         let r = porSubCaixa[n]; let saldo = r.entradas - r.saidas;
         return `<b>${esc(n)}</b> (${saldo >= 0 ? "" : "−"}R$ ${formatarMoeda(Math.abs(saldo))})`;
     }).join(", ")}</p>`;
+}
+
+// ========================================
+// PATRIMÔNIO — BENS (veículos, caminhões, máquinas, terra...)
+// ========================================
+// O valor atual de cada bem em uso entra no Patrimônio Total do Dashboard.
+// Cadastrar/vender um bem NÃO mexe no caixa: o dinheiro da compra ou da venda
+// continua sendo lançado no Fluxo de Caixa / Contas a Pagar.
+const CATEGORIAS_BEM = {
+    "veiculo": {
+        "nome": "Veículo (carro, moto)",
+        "cor": "#60a5fa",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 17h14v-5l-2-5H7l-2 5z\"></path><path d=\"M5 12h14\"></path><circle cx=\"8\" cy=\"17\" r=\"2\"></circle><circle cx=\"16\" cy=\"17\" r=\"2\"></circle></svg>"
+    },
+    "caminhao": {
+        "nome": "Caminhão",
+        "cor": "#fb923c",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2 6h12v10H2z\"></path><path d=\"M14 9h4l3 3v4h-7z\"></path><circle cx=\"6\" cy=\"17.5\" r=\"2\"></circle><circle cx=\"17\" cy=\"17.5\" r=\"2\"></circle></svg>"
+    },
+    "maquina": {
+        "nome": "Trator / máquina",
+        "cor": "#fbbf24",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"7\" cy=\"16\" r=\"4\"></circle><circle cx=\"18\" cy=\"17\" r=\"3\"></circle><path d=\"M7 12V6h6l2 6\"></path><path d=\"M11 12h7v2\"></path><path d=\"M13 6V4\"></path></svg>"
+    },
+    "implemento": {
+        "nome": "Implemento (grade, plantadeira...)",
+        "cor": "#a78bfa",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 8h18\"></path><path d=\"M6 8v9M10 8v9M14 8v9M18 8v9\"></path><path d=\"M12 8V4\"></path></svg>"
+    },
+    "imovel": {
+        "nome": "Terra / imóvel",
+        "cor": "#34d399",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 20l6-12 4 7 3-4 5 9z\"></path><circle cx=\"17\" cy=\"6\" r=\"2\"></circle></svg>"
+    },
+    "benfeitoria": {
+        "nome": "Benfeitoria (curral, galpão, cerca)",
+        "cor": "#2dd4bf",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 21V10l9-6 9 6v11\"></path><path d=\"M3 21h18\"></path><path d=\"M8 21v-6h8v6\"></path><path d=\"M8 18h8\"></path></svg>"
+    },
+    "equipamento": {
+        "nome": "Equipamento (balança, gerador...)",
+        "cor": "#22d3ee",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z\"></path></svg>"
+    },
+    "outro": {
+        "nome": "Outro",
+        "cor": "#94a3b8",
+        "icone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"></path></svg>"
+    }
+};
+const ICONES_BENS = {
+    "predio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 21h18\"></path><path d=\"M5 21V10l7-5 7 5v11\"></path><path d=\"M9 21v-5h6v5\"></path><path d=\"M10 10h4\"></path></svg>",
+    "mais": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg>",
+    "busca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>",
+    "editar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 20h9\"></path><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z\"></path></svg>",
+    "lixeira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"></path><path d=\"M8 6V4h8v2\"></path><path d=\"M19 6l-1 14H6L5 6\"></path><path d=\"M10 11v6M14 11v6\"></path></svg>",
+    "tendencia": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 17l6-6 4 4 8-8\"></path><path d=\"M15 7h6v6\"></path></svg>",
+    "calendario": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"></rect><path d=\"M16 2v4M8 2v4M3 10h18\"></path></svg>",
+    "moeda": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5\"></path><path d=\"M12 6v2M12 16v2\"></path></svg>",
+    "vendido": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"></path><path d=\"M7 7h.01\"></path></svg>"
+};
+let bensCacheAdmin = [];
+let filtroSituacaoBens = "ativo";
+let bemEditandoId = null;
+let categoriaBemEscolhida = "veiculo";
+let situacaoBemEscolhida = "ativo";
+
+async function carregarBensAdmin() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/bens`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return [];
+        bensCacheAdmin = await resp.json();
+        return bensCacheAdmin;
+    } catch (e) {
+        return [];
+    }
+}
+
+// valor dos bens que a fazenda TINHA numa data ("yyyy-mm-dd"; sem data = hoje):
+// comprado até ali (ou sem data de compra) e ainda não vendido/baixado nela
+function valorBensNaData(dataISO) {
+    return bensCacheAdmin.reduce((soma, b) => {
+        if (dataISO && b.dataAquisicao && b.dataAquisicao > dataISO) return soma;
+        let saiu = b.situacao !== "ativo" && (!dataISO || !b.dataBaixa || b.dataBaixa <= dataISO);
+        return saiu ? soma : soma + (Number(b.valorAtual) || 0);
+    }, 0);
+}
+
+// "1.234,56" / "1234,56" / "1234.56" / "R$ 80" -> número
+function lerValorBR(texto) {
+    let s = String(texto || "").replace(/[R$\s]/g, "");
+    if (!s) return null;
+    if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+    // "172.000" / "1.500.000" sem vírgula: no Brasil o ponto é de milhar
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+    let n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+}
+
+async function abrirTelaPatrimonio() {
+    await carregarBensAdmin();
+    mostrarBens();
+}
+
+function filtrarSituacaoBens(situacao) {
+    filtroSituacaoBens = situacao;
+    document.querySelectorAll("#telaPatrimonio .ptChipsSituacao .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.situacao === situacao));
+    mostrarBens();
+}
+
+function mostrarBens() {
+    let grade = document.getElementById("ptGrade");
+    if (!grade) return;
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_BENS;
+    let rs = v => "R$ " + formatarMoeda(v);
+    let emUso = bensCacheAdmin.filter(b => b.situacao === "ativo");
+    let total = emUso.reduce((s, b) => s + b.valorAtual, 0);
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
+
+    set("ptValorTotal", rs(total));
+    set("ptResumo", `${emUso.length} ${emUso.length === 1 ? "bem em uso" : "bens em uso"} · ${rs(total)}`);
+    let comCompra = emUso.filter(b => b.valorAquisicao !== null && b.valorAquisicao !== undefined);
+    let pago = comCompra.reduce((s, b) => s + b.valorAquisicao, 0);
+    let variacao = comCompra.reduce((s, b) => s + b.valorAtual - b.valorAquisicao, 0);
+    set("ptValorPago", comCompra.length ? rs(pago) : "—");
+    let elVar = document.getElementById("ptVariacao");
+    if (elVar) {
+        elVar.innerText = comCompra.length ? (variacao >= 0 ? "+ " : "− ") + rs(Math.abs(variacao)) : "—";
+        elVar.className = comCompra.length ? (variacao >= 0 ? "fcEntrada" : "fcSaida") : "";
+    }
+    let linhaVar = document.querySelector("#ptLinhaVariacao span");
+    if (linhaVar) linhaVar.innerText = comCompra.length && variacao < 0 ? "Depreciação" : "Valorização";
+    set("ptQtdBaixados", bensCacheAdmin.length - emUso.length);
+
+    // composição por categoria (barra empilhada + legenda)
+    let porCategoria = {};
+    emUso.forEach(b => { porCategoria[b.categoria] = (porCategoria[b.categoria] || 0) + b.valorAtual; });
+    let cats = Object.keys(porCategoria).sort((a, b) => porCategoria[b] - porCategoria[a]);
+    let cat = c => CATEGORIAS_BEM[c] || CATEGORIAS_BEM.outro;
+    let barra = document.getElementById("ptBarraEmpilhada");
+    if (barra) barra.innerHTML = total > 0
+        ? cats.map(c => `<i style="width:${porCategoria[c] / total * 100}%; background:${cat(c).cor}" title="${esc(cat(c).nome)}"></i>`).join("")
+        : "";
+    let legenda = document.getElementById("ptLegenda");
+    if (legenda) legenda.innerHTML = cats.length
+        ? cats.map(c => `<span><i style="background:${cat(c).cor}"></i>${esc(cat(c).nome.split(" (")[0])} <b>${Math.round(porCategoria[c] / total * 100)}%</b></span>`).join("")
+        : `<span class="ptLegendaVazia">Cadastre o primeiro bem para ver a divisão.</span>`;
+
+    // filtro de categoria: só as que existem
+    let sel = document.getElementById("ptFiltroCategoria");
+    if (sel) {
+        let atual = sel.value;
+        let existentes = Object.keys(CATEGORIAS_BEM).filter(c => bensCacheAdmin.some(b => b.categoria === c));
+        sel.innerHTML = `<option value="">Categoria: Todas</option>` + existentes.map(c => `<option value="${c}">${esc(CATEGORIAS_BEM[c].nome)}</option>`).join("");
+        sel.value = existentes.includes(atual) ? atual : "";
+        sel.classList.toggle("ltFiltroUsado", !!sel.value);
+    }
+    let filtroCat = sel ? sel.value : "";
+    let busca = (document.getElementById("ptBusca")?.value || "").trim().toLowerCase();
+    let lista = bensCacheAdmin.filter(b => {
+        if (filtroSituacaoBens === "ativo" && b.situacao !== "ativo") return false;
+        if (filtroSituacaoBens === "baixados" && b.situacao === "ativo") return false;
+        if (filtroCat && b.categoria !== filtroCat) return false;
+        if (busca && ![b.nome, b.marca, b.modelo, b.identificacao, b.observacoes, cat(b.categoria).nome].some(t => String(t || "").toLowerCase().includes(busca))) return false;
+        return true;
+    }).sort((a, b) => (a.situacao === "ativo" ? 0 : 1) - (b.situacao === "ativo" ? 0 : 1) || b.valorAtual - a.valorAtual);
+
+    if (bensCacheAdmin.length === 0) {
+        grade.innerHTML = `
+            <div class="ptVazio">
+                <span class="ptVazioIcone">${I.predio}</span>
+                <b>Nenhum bem cadastrado ainda</b>
+                <span>Cadastre caminhões, carros, tratores, terra, curral... com o valor de cada um — ele passa a contar no Patrimônio Total.</span>
+                <button class="acaoRel almBtnEntrada" onclick="abrirModalBem()">${I.mais}Cadastrar o primeiro bem</button>
+            </div>`;
+        return;
+    }
+    if (lista.length === 0) {
+        grade.innerHTML = `<p class="ltVazio">Nenhum bem nesse filtro.</p>`;
+        return;
+    }
+    let dataBR = iso => iso ? iso.split("-").reverse().join("/") : "";
+    grade.innerHTML = lista.map(b => {
+        let c = cat(b.categoria);
+        let emUsoBem = b.situacao === "ativo";
+        let detalhes = [b.marca, b.modelo, b.ano].filter(Boolean).map(esc).join(" · ");
+        let temCompra = b.valorAquisicao !== null && b.valorAquisicao !== undefined;
+        let dif = temCompra ? b.valorAtual - b.valorAquisicao : 0;
+        let pct = temCompra && b.valorAquisicao > 0 ? dif / b.valorAquisicao * 100 : null;
+        let parte = emUsoBem && total > 0 ? b.valorAtual / total * 100 : 0;
+        let selo = emUsoBem ? `<span class="ltStatus ltStatusAtivo">Em uso</span>`
+            : `<span class="ltStatus ptStatusBaixado">${b.situacao === "vendido" ? "Vendido" : "Baixado"}</span>`;
+        return `
+        <article class="ptCartao${emUsoBem ? "" : " ptCartaoBaixado"}" style="--corBem:${c.cor}">
+            <header class="ptCartaoTopo">
+                <span class="ptCartaoIcone">${c.icone}</span>
+                <div class="ptCartaoNome">
+                    <h4 title="${esc(b.nome)}">${esc(b.nome)}</h4>
+                    <small>${esc(c.nome.split(" (")[0])}${detalhes ? " · " + detalhes : ""}</small>
+                </div>
+                ${selo}
+            </header>
+            ${b.identificacao ? `<span class="ptPlaca" title="Placa / identificação">${esc(b.identificacao)}</span>` : ""}
+            <div class="ptValorBloco">
+                <span class="ptValorRotulo">${emUsoBem ? "Valor atual" : (b.situacao === "vendido" ? "Valor quando vendido" : "Último valor")}</span>
+                <b class="ptValor">${rs(b.valorAtual)}</b>
+                ${emUsoBem && total > 0 ? `<div class="ptParte"><div class="almBarra"><i style="width:${Math.max(2, parte)}%; background:${c.cor}"></i></div><small>${Math.round(parte)}% dos bens</small></div>` : ""}
+            </div>
+            <div class="ptInfos">
+                ${temCompra || b.dataAquisicao ? `<div><span>${I.calendario}Compra</span><b>${b.dataAquisicao ? dataBR(b.dataAquisicao) : "—"}${temCompra ? " · " + rs(b.valorAquisicao) : ""}</b></div>` : ""}
+                ${pct !== null ? `<div><span>${I.tendencia}${dif >= 0 ? "Valorizou" : "Desvalorizou"}</span><b class="${dif >= 0 ? "fcEntrada" : "fcSaida"}">${dif >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(0)}% (${rs(Math.abs(dif))})</b></div>` : ""}
+                ${!emUsoBem ? `<div><span>${I.vendido}${b.situacao === "vendido" ? "Vendido em" : "Baixado em"}</span><b>${dataBR(b.dataBaixa)}${b.valorBaixa !== null && b.valorBaixa !== undefined ? " · " + rs(b.valorBaixa) : ""}</b></div>` : ""}
+            </div>
+            ${b.observacoes ? `<p class="ptObs">${esc(b.observacoes)}</p>` : ""}
+            <footer class="ltCartaoAcoes">
+                <button class="usBtnEditar" onclick='abrirModalBem(${jsonAtributo(b.id)})'>${I.editar}<span>Editar</span></button>
+                <button class="ltBtnIcone ltBtnExcluir" onclick='excluirBem(${jsonAtributo(b.id)}, ${jsonAtributo(b.nome)})' title="Excluir do cadastro" aria-label="Excluir do cadastro">${I.lixeira}</button>
+            </footer>
+        </article>`;
+    }).join("");
+}
+
+function escolherCategoriaBem(categoria) {
+    categoriaBemEscolhida = categoria;
+    document.querySelectorAll("#ptCategoriasEscolha .ptCategoria").forEach(b => b.classList.toggle("ptCategoriaAtiva", b.dataset.categoria === categoria));
+}
+
+function escolherSituacaoBem(situacao) {
+    situacaoBemEscolhida = situacao;
+    document.querySelectorAll("#modalBem .ptSituacaoEscolha .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.situacao === situacao));
+    let baixa = situacao !== "ativo";
+    document.getElementById("bemBaixaCampos").style.display = baixa ? "" : "none";
+    document.getElementById("bemAvisoBaixa").style.display = baixa ? "" : "none";
+    document.getElementById("bemDataBaixaRotulo").innerText = situacao === "vendido" ? "Data da venda" : "Data da baixa";
+    document.getElementById("bemValorBaixaBloco").style.display = situacao === "vendido" ? "" : "none";
+    if (baixa && !document.getElementById("bemDataBaixaInput").value) document.getElementById("bemDataBaixaInput").value = cpDataLocalISO(new Date());
+}
+
+function abrirModalBem(id) {
+    let b = id ? bensCacheAdmin.find(x => x.id === id) : null;
+    bemEditandoId = b ? b.id : null;
+    let valorCampo = v => v === null || v === undefined ? "" : formatarMoeda(v);
+    document.getElementById("modalBemTitulo").innerText = b ? "Editar bem" : "Cadastrar bem";
+    document.getElementById("ptCategoriasEscolha").innerHTML = Object.entries(CATEGORIAS_BEM).map(([chave, c]) => `
+        <button type="button" class="ptCategoria" data-categoria="${chave}" style="--corBem:${c.cor}" onclick="escolherCategoriaBem('${chave}')">
+            <span>${c.icone}</span><small>${escaparHtmlPesagem(c.nome.split(" (")[0])}</small>
+        </button>`).join("");
+    escolherCategoriaBem(b ? b.categoria : "veiculo");
+    document.getElementById("bemNomeInput").value = b ? b.nome : "";
+    document.getElementById("bemMarcaInput").value = b && b.marca ? b.marca : "";
+    document.getElementById("bemModeloInput").value = b && b.modelo ? b.modelo : "";
+    document.getElementById("bemAnoInput").value = b && b.ano ? b.ano : "";
+    document.getElementById("bemIdentificacaoInput").value = b && b.identificacao ? b.identificacao : "";
+    document.getElementById("bemDataAquisicaoInput").value = b && b.dataAquisicao ? b.dataAquisicao : "";
+    document.getElementById("bemValorAquisicaoInput").value = b ? valorCampo(b.valorAquisicao) : "";
+    document.getElementById("bemValorAtualInput").value = b ? valorCampo(b.valorAtual) : "";
+    document.getElementById("bemDataBaixaInput").value = b && b.dataBaixa ? b.dataBaixa : "";
+    document.getElementById("bemValorBaixaInput").value = b ? valorCampo(b.valorBaixa) : "";
+    document.getElementById("bemObservacoesInput").value = b && b.observacoes ? b.observacoes : "";
+    escolherSituacaoBem(b ? b.situacao : "ativo");
+    let erroEl = document.getElementById("bemErro");
+    erroEl.style.display = "none"; erroEl.innerText = "";
+    novaChaveIdempotencia("modalBem");
+    document.getElementById("modalBem").style.display = "flex";
+    setTimeout(() => document.getElementById("bemNomeInput").focus(), 50);
+}
+
+function fecharModalBem() {
+    document.getElementById("modalBem").style.display = "none";
+    bemEditandoId = null;
+}
+
+async function salvarBem() {
+    let erroEl = document.getElementById("bemErro");
+    let mostrarErro = msg => { erroEl.innerText = msg; erroEl.style.display = "block"; };
+    let token = obterToken();
+    if (!token) { mostrarErro("Sua sessão expirou."); return; }
+    let valor = id => document.getElementById(id).value.trim();
+    let valorAtual = lerValorBR(valor("bemValorAtualInput"));
+    let valorAquisicao = lerValorBR(valor("bemValorAquisicaoInput"));
+    let valorBaixa = lerValorBR(valor("bemValorBaixaInput"));
+    if (!valor("bemNomeInput")) { mostrarErro("Informe o nome do bem."); return; }
+    if (valorAtual === null || Number.isNaN(valorAtual)) { mostrarErro("Informe quanto o bem vale hoje (valor atual)."); return; }
+    if (Number.isNaN(valorAquisicao) || Number.isNaN(valorBaixa)) { mostrarErro("Confira os valores digitados."); return; }
+    let corpo = {
+        id: bemEditandoId ? undefined : obterChaveIdempotencia("modalBem"),
+        categoria: categoriaBemEscolhida, nome: valor("bemNomeInput"), marca: valor("bemMarcaInput"), modelo: valor("bemModeloInput"),
+        ano: valor("bemAnoInput") || null, identificacao: valor("bemIdentificacaoInput"),
+        dataAquisicao: valor("bemDataAquisicaoInput") || null, valorAquisicao,
+        valorAtual, situacao: situacaoBemEscolhida,
+        dataBaixa: situacaoBemEscolhida !== "ativo" ? (valor("bemDataBaixaInput") || null) : null,
+        valorBaixa: situacaoBemEscolhida === "vendido" ? valorBaixa : null,
+        observacoes: valor("bemObservacoesInput")
+    };
+    try {
+        let resp = await fetch(`${API_URL}/api/bens${bemEditandoId ? "/" + bemEditandoId : ""}`, {
+            method: bemEditandoId ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify(corpo)
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { mostrarErro(dados.erro || `Erro ao salvar (HTTP ${resp.status}).`); return; }
+        fecharModalBem();
+        await abrirTelaPatrimonio();
+        if (typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+    } catch (e) {
+        mostrarErro("Erro de conexão: " + e.message);
+    }
+}
+
+async function excluirBem(id, nome) {
+    if (!await confirmarModerno(`Excluir "${nome}" do cadastro? Se ele foi vendido ou perdido, prefira Editar e marcar como Vendido/Baixado — assim o histórico do patrimônio continua certo.`)) return;
+    try {
+        let resp = await fetch(`${API_URL}/api/bens/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + obterToken() } });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { await alertarModerno(dados.erro || `Erro ao excluir (HTTP ${resp.status}).`); return; }
+        await abrirTelaPatrimonio();
+        if (typeof mostrarPatrimonio === "function") mostrarPatrimonio();
+    } catch (e) {
+        await alertarModerno("Erro de conexão: " + e.message);
+    }
 }
 
 // ========================================

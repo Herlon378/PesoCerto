@@ -2857,6 +2857,7 @@ function atualizarBotaoLogin(){
         { id: "telaUsuarios", soAdmin: true },
         { id: "telaLotes", soAdmin: true },
         { id: "telaAlmoxarifado", soAdmin: true },
+        { id: "telaPatrimonio", soAdmin: true },
         { id: "telaFluxoCaixa", soAdmin: true },
         { id: "telaContasPagar", soAdmin: true },
         { id: "telaEnergia", soAdmin: true },

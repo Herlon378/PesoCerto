@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=6">
-    <link rel="stylesheet" href="admin.css?v=27">
+    <link rel="stylesheet" href="admin.css?v=28">
 </head>
 <body class="modoDesktop">
 
@@ -24,6 +24,7 @@
     <button data-tela="telaUsuarios" style="--cor:#22d3ee" onclick="trocarTela('telaUsuarios'); carregarUsuarios();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><span class="navTexto">Usuários</span></button>
     <button data-tela="telaLotes" style="--cor:#fbbf24" onclick="trocarTela('telaLotes'); carregarLotes(); carregarHistoricoTransferencias();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg></span><span class="navTexto">Lotes</span></button>
     <button data-tela="telaAlmoxarifado" style="--cor:#fb923c" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span><span class="navTexto">Almoxarifado</span></button>
+    <button data-tela="telaPatrimonio" style="--cor:#818cf8" onclick="trocarTela('telaPatrimonio'); abrirTelaPatrimonio();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-5h6v5"></path><path d="M10 10h4"></path></svg></span><span class="navTexto">Patrimônio</span></button>
     <button data-tela="telaFluxoCaixa" style="--cor:#34d399" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span><span class="navTexto">Fluxo de Caixa</span></button>
     <button data-tela="telaContasPagar" style="--cor:#fb7185" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"></path><path d="M8 9h8M8 13h8"></path></svg></span><span class="navTexto">Contas a Pagar</span></button>
     <button data-tela="telaEnergia" style="--cor:#facc15" onclick="trocarTela('telaEnergia'); abrirTelaEnergia();"><span class="navIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span><span class="navTexto">Energia</span></button>
@@ -370,6 +371,10 @@
                         <span class="statTileLabel">📦 Insumos no almoxarifado</span>
                         <span class="statTileValor" id="patrimonioEstoque">R$ 0,00</span>
                     </div>
+                    <button class="statTile statTileBens" onclick="trocarTela('telaPatrimonio'); abrirTelaPatrimonio();" title="Ver os bens">
+                        <span class="statTileLabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-5h6v5"></path><path d="M10 10h4"></path></svg>Bens (veículos, máquinas...)</span>
+                        <span class="statTileValor" id="patrimonioBens">R$ 0,00</span>
+                    </button>
                 </div>
             </div>
             <div class="painelPatrimonioDireita">
@@ -379,11 +384,13 @@
                     <circle id="donutFatiaRebanho" class="donutFatia donutCorRebanho" cx="60" cy="60" r="50"></circle>
                     <circle id="donutFatiaCaixa" class="donutFatia donutCorCaixa" cx="60" cy="60" r="50"></circle>
                     <circle id="donutFatiaEstoque" class="donutFatia donutCorEstoque" cx="60" cy="60" r="50"></circle>
+                    <circle id="donutFatiaBens" class="donutFatia donutCorBens" cx="60" cy="60" r="50"></circle>
                 </svg>
                 <div class="donutLegenda">
                     <div class="donutLegendaItem"><span class="donutDot donutCorRebanho"></span>Rebanho <b id="donutLegendaRebanho">R$ 0,00 (0%)</b></div>
                     <div class="donutLegendaItem"><span class="donutDot donutCorCaixa"></span>Caixa <b id="donutLegendaCaixa">R$ 0,00 (0%)</b></div>
                     <div class="donutLegendaItem"><span class="donutDot donutCorEstoque"></span>Insumos <b id="donutLegendaEstoque">R$ 0,00 (0%)</b></div>
+                    <div class="donutLegendaItem"><span class="donutDot donutCorBens"></span>Bens <b id="donutLegendaBens">R$ 0,00 (0%)</b></div>
                 </div>
             </div>
         </div>
@@ -683,6 +690,51 @@
         </thead>
         <tbody id="corpoTabelaSaidas"></tbody>
     </table>
+</div>
+
+<div id="telaPatrimonio" class="tela">
+    <div class="almCabecalho">
+        <div>
+            <h2>Patrimônio</h2>
+            <span class="almResumo" id="ptResumo">Veículos, máquinas, terra e benfeitorias da fazenda</span>
+        </div>
+        <div class="almAcoesRapidas">
+            <button class="acaoRel almBtnEntrada" onclick="abrirModalBem()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Cadastrar bem</button>
+        </div>
+    </div>
+
+    <section class="ptHero">
+        <div class="ptHeroPrincipal">
+            <span class="fcHeroRotulo ptRotulo"><span class="fcHeroIcone ptIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-5h6v5"></path><path d="M10 10h4"></path></svg></span>Valor dos bens em uso</span>
+            <span class="fcHeroValor" id="ptValorTotal">R$ 0,00</span>
+            <span class="fcHeroNota">Entra no Patrimônio Total do Dashboard. Cadastrar um bem não mexe no caixa.</span>
+        </div>
+        <div class="ptHeroComposicao">
+            <span class="ptComposicaoTitulo">Por categoria</span>
+            <div class="ptBarraEmpilhada" id="ptBarraEmpilhada"></div>
+            <div class="ptLegenda" id="ptLegenda"></div>
+        </div>
+        <div class="fcHeroMes ptHeroNumeros">
+            <div class="fcHeroMesLinha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5"></path><path d="M12 6v2M12 16v2"></path></svg><span>Pago pelos bens</span><b id="ptValorPago">—</b></div>
+            <div class="fcHeroMesLinha" id="ptLinhaVariacao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg><span>Valorização</span><b id="ptVariacao">—</b></div>
+            <div class="fcHeroMesLinha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><path d="M7 7h.01"></path></svg><span>Vendidos / baixados</span><b id="ptQtdBaixados">0</b></div>
+        </div>
+    </section>
+
+    <div class="ltFiltros ptFiltros">
+        <label class="buscaRelatorioDesk ltBusca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="search" id="ptBusca" placeholder="Buscar nome, marca, placa..." oninput="mostrarBens()">
+        </label>
+        <select id="ptFiltroCategoria" onchange="mostrarBens()" title="Categoria"></select>
+        <div class="ltChips ptChipsSituacao" role="group" aria-label="Situação">
+            <button class="ltChip ltChipAtivo" data-situacao="ativo" onclick="filtrarSituacaoBens('ativo')">Em uso</button>
+            <button class="ltChip" data-situacao="baixados" onclick="filtrarSituacaoBens('baixados')">Vendidos / baixados</button>
+            <button class="ltChip" data-situacao="" onclick="filtrarSituacaoBens('')">Todos</button>
+        </div>
+    </div>
+
+    <div class="ptGrade" id="ptGrade"></div>
 </div>
 
 <div id="telaFluxoCaixa" class="tela">
@@ -1095,8 +1147,8 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
-<script src="app.js?v=19"></script>
-<script src="admin.js?v=32"></script>
+<script src="app.js?v=20"></script>
+<script src="admin.js?v=33"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">
@@ -1347,6 +1399,47 @@
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalEditarParcela()">Cancelar</button>
             <button class="btn-sim" onclick="confirmarEditarParcela()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalBem" class="modal">
+    <div class="modal-box ptModal">
+        <h2 id="modalBemTitulo">Cadastrar bem</h2>
+        <span class="ptCampoRotulo">Categoria</span>
+        <div class="ptCategorias" id="ptCategoriasEscolha"></div>
+        <span class="ptCampoRotulo">Nome do bem</span>
+        <input id="bemNomeInput" placeholder="Ex: Caminhão Mercedes 1113 boiadeiro" maxlength="120">
+        <div class="ptLinhaCampos">
+            <div><span class="ptCampoRotulo">Marca</span><input id="bemMarcaInput" placeholder="Ex: Mercedes-Benz"></div>
+            <div><span class="ptCampoRotulo">Modelo</span><input id="bemModeloInput" placeholder="Ex: 1113"></div>
+            <div class="ptCampoCurto"><span class="ptCampoRotulo">Ano</span><input id="bemAnoInput" placeholder="Ex: 1985" inputmode="numeric" maxlength="4"></div>
+        </div>
+        <span class="ptCampoRotulo">Placa / chassi / matrícula / nº de série (opcional)</span>
+        <input id="bemIdentificacaoInput" placeholder="Ex: ABC-1D23">
+        <div class="ptLinhaCampos">
+            <div><span class="ptCampoRotulo">Data da compra (opcional)</span><input id="bemDataAquisicaoInput" type="date"></div>
+            <div><span class="ptCampoRotulo">Valor pago (opcional)</span><input id="bemValorAquisicaoInput" placeholder="R$ 0,00" inputmode="decimal"></div>
+        </div>
+        <span class="ptCampoRotulo">Valor atual (quanto vale hoje) — entra no Patrimônio Total</span>
+        <input id="bemValorAtualInput" class="ptCampoDestaque" placeholder="R$ 0,00" inputmode="decimal">
+        <span class="ptCampoRotulo">Situação</span>
+        <div class="ltChips ptSituacaoEscolha" role="group" aria-label="Situação do bem">
+            <button type="button" class="ltChip ltChipAtivo" data-situacao="ativo" onclick="escolherSituacaoBem('ativo')">Em uso</button>
+            <button type="button" class="ltChip" data-situacao="vendido" onclick="escolherSituacaoBem('vendido')">Vendido</button>
+            <button type="button" class="ltChip" data-situacao="baixado" onclick="escolherSituacaoBem('baixado')">Baixado (perda, sucata)</button>
+        </div>
+        <div class="ptLinhaCampos" id="bemBaixaCampos" style="display:none">
+            <div><span class="ptCampoRotulo" id="bemDataBaixaRotulo">Data da venda</span><input id="bemDataBaixaInput" type="date"></div>
+            <div id="bemValorBaixaBloco"><span class="ptCampoRotulo">Valor da venda (opcional)</span><input id="bemValorBaixaInput" placeholder="R$ 0,00" inputmode="decimal"></div>
+        </div>
+        <p class="ptAvisoBaixa" id="bemAvisoBaixa" style="display:none">Vendido ou baixado, o bem sai do Patrimônio Total a partir dessa data. O dinheiro de uma venda entra no caixa pelo Fluxo de Caixa (Novo lançamento).</p>
+        <span class="ptCampoRotulo">Observações (opcional)</span>
+        <input id="bemObservacoesInput" placeholder="Ex: financiado, seguro até 03/2027...">
+        <p id="bemErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharModalBem()">Cancelar</button>
+            <button class="btn-sim" onclick="salvarBem()">Salvar</button>
         </div>
     </div>
 </div>

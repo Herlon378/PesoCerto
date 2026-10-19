@@ -2321,3 +2321,124 @@ body.modoDesktop .fcSubNovo .acaoRel { height: 40px; }
     .fcSubNumeros { grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; }
     .fcSubNovo { flex-direction: column; }
 }
+
+/* ========================================
+   PATRIMÔNIO (bens): resumo, cartões e cadastro
+   ======================================== */
+.donutCorBens { stroke: #818cf8; }
+.donutDot.donutCorBens { background: #818cf8; }
+body.modoDesktop button.statTileBens { width: auto; margin: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.statTileBens .statTileLabel { display: inline-flex; align-items: center; gap: 6px; }
+.statTileBens .statTileLabel svg { width: 14px; height: 14px; color: #818cf8; }
+.ptHero {
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
+    margin-bottom: 16px; border-radius: 20px; overflow: hidden;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(129,140,248,0.25), transparent 55%), linear-gradient(135deg, #15193a, #0e1530);
+    border: 1px solid rgba(129,140,248,0.35); box-shadow: 0 18px 40px -22px rgba(0,0,0,0.8);
+}
+.ptHero > div { padding: 22px 24px; min-width: 0; }
+.ptHero > div + div { border-left: 1px solid rgba(255,255,255,0.08); }
+.ptHeroPrincipal { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.ptRotulo { color: #c7cbff; }
+.ptIcone { color: #a5b4fc !important; background: rgba(129,140,248,0.18) !important; border-color: rgba(129,140,248,0.4) !important; }
+.ptHeroComposicao { display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.ptComposicaoTitulo { font-size: 12.5px; font-weight: 700; color: #93a4c0; }
+.ptBarraEmpilhada { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: rgba(255,255,255,0.06); gap: 2px; }
+.ptBarraEmpilhada i { display: block; height: 100%; }
+.ptLegenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: #c9d3e6; }
+.ptLegenda span { display: inline-flex; align-items: center; gap: 6px; }
+.ptLegenda i { width: 9px; height: 9px; border-radius: 3px; }
+.ptLegenda b { color: #fff; }
+.ptLegendaVazia { color: var(--ink-muted); }
+.ptHeroNumeros .fcHeroMesLinha svg { color: #a5b4fc; }
+.ptFiltros { margin-bottom: 14px; }
+body.modoDesktop #ptFiltroCategoria {
+    width: auto; min-width: 200px; height: 40px; margin: 0; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); color-scheme: dark; cursor: pointer;
+}
+body.modoDesktop #ptFiltroCategoria.ltFiltroUsado { border-color: var(--blue-500); background: rgba(57,135,229,0.14); }
+.ptGrade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.ptCartao {
+    min-width: 0;
+    display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--corBem) 10%, transparent), transparent 50%), var(--surface);
+    border: 1px solid var(--border-strong);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ptCartao:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--corBem) 55%, transparent); box-shadow: 0 12px 28px -14px rgba(0,0,0,0.7); }
+.ptCartaoBaixado { opacity: 0.65; }
+.ptCartaoBaixado:hover { opacity: 0.95; }
+.ptCartaoTopo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ptCartaoIcone {
+    width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    color: var(--corBem); background: color-mix(in srgb, var(--corBem) 16%, transparent); border: 1px solid color-mix(in srgb, var(--corBem) 35%, transparent);
+}
+.ptCartaoIcone svg { width: 24px; height: 24px; }
+.ptCartaoNome { flex: 1; min-width: 0; }
+.ptCartaoNome h4 { margin: 0; font-size: 16px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ptCartaoNome small { display: block; font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ptStatusBaixado { color: #ffc94d; background: rgba(255,201,77,0.1); border: 1px solid rgba(255,201,77,0.35); }
+.ptPlaca {
+    align-self: flex-start; font-family: ui-monospace, Consolas, monospace; font-size: 13px; font-weight: 800; letter-spacing: 1.5px;
+    padding: 3px 10px; border-radius: 6px; color: #0d1426; background: #e8edf6; border: 2px solid #9fb0cc; text-transform: uppercase;
+}
+.ptValorBloco { display: flex; flex-direction: column; gap: 2px; }
+.ptValorRotulo { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.ptValor { font-size: 26px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.ptParte { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.ptParte .almBarra { flex: 1; }
+.ptParte small { font-size: 12px; font-weight: 700; color: #c9d3e6; white-space: nowrap; }
+.ptInfos { display: flex; flex-direction: column; gap: 4px; }
+.ptInfos div { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.ptInfos span { display: inline-flex; align-items: center; gap: 6px; color: #c9d3e6; }
+.ptInfos span svg { width: 14px; height: 14px; color: var(--ink-muted); }
+.ptInfos b { color: #fff; text-align: right; font-variant-numeric: tabular-nums; }
+.ptObs { margin: 0; font-size: 12.5px; color: #c9d3e6; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
+.ptVazio {
+    grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 20px; text-align: center;
+    border: 1px dashed rgba(129,140,248,0.45); border-radius: 18px; background: rgba(129,140,248,0.05);
+}
+.ptVazio b { font-size: 17px; color: #fff; }
+.ptVazio span { max-width: 460px; font-size: 13.5px; color: var(--ink-muted); }
+.ptVazioIcone { width: 56px; height: 56px; border-radius: 16px; display: flex !important; align-items: center; justify-content: center; color: #a5b4fc !important; background: rgba(129,140,248,0.16); border: 1px solid rgba(129,140,248,0.4); }
+.ptVazioIcone svg { width: 28px; height: 28px; }
+body.modoDesktop .ptVazio .acaoRel { height: 42px; }
+
+/* janela de cadastro */
+body.modoDesktop .modal-box.ptModal { max-width: 620px; }
+.ptCampoRotulo { display: block; margin: 10px 0 4px; font-size: 12.5px; font-weight: 700; color: #c9d3e6; }
+.ptCategorias { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+body.modoDesktop .ptCategoria {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; width: auto; margin: 0; padding: 10px 6px; cursor: pointer;
+    border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); box-shadow: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.ptCategoria span { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--corBem); background: color-mix(in srgb, var(--corBem) 14%, transparent); }
+.ptCategoria span svg { width: 20px; height: 20px; }
+.ptCategoria small { font-size: 11.5px; font-weight: 700; text-align: center; line-height: 1.2; }
+body.modoDesktop .ptCategoria:hover { border-color: color-mix(in srgb, var(--corBem) 55%, transparent); }
+body.modoDesktop .ptCategoria.ptCategoriaAtiva { border-color: var(--corBem); background: color-mix(in srgb, var(--corBem) 16%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--corBem) 35%, transparent); }
+.ptLinhaCampos { display: flex; gap: 10px; }
+.ptLinhaCampos > div { flex: 1; min-width: 0; }
+.ptLinhaCampos > .ptCampoCurto { flex: 0 0 110px; }
+.ptLinhaCampos input { width: 100%; box-sizing: border-box; }
+body.modoDesktop .ptModal input.ptCampoDestaque { font-size: 18px; font-weight: 800; border-color: rgba(129,140,248,0.6); }
+.ptSituacaoEscolha { margin-bottom: 4px; }
+.ptAvisoBaixa { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; color: #ffd479; background: rgba(255,201,77,0.08); border: 1px solid rgba(255,201,77,0.3); }
+
+@media (max-width: 1200px) {
+    .ptHero { grid-template-columns: 1fr 1fr; }
+    .ptHeroPrincipal { grid-column: 1 / -1; }
+    .ptHero > div + div { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
+    .ptHeroNumeros { border-left: 1px solid rgba(255,255,255,0.08) !important; }
+}
+@media (max-width: 900px) {
+    .ptHero { grid-template-columns: 1fr; }
+    .ptHeroNumeros { border-left: none !important; }
+    .ptHero > div { padding: 16px; }
+    .ptGrade { grid-template-columns: minmax(0, 1fr); }
+    body.modoDesktop #ptFiltroCategoria { width: 100%; }
+    .ptCategorias { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ptLinhaCampos { flex-wrap: wrap; }
+    .ptLinhaCampos > div { flex: 1 1 140px; }
+}
