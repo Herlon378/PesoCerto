@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=5">
-    <link rel="stylesheet" href="admin.css?v=24">
+    <link rel="stylesheet" href="admin.css?v=25">
 </head>
 <body class="modoDesktop">
 
@@ -476,17 +476,35 @@
 </div>
 
 <div id="telaUsuarios" class="tela">
-    <h2>Usuários</h2>
-    <div class="botoesRelatorio">
-        <button onclick="abrirModalUsuario()" style="background:#2e7d32">➕ Novo Usuário</button>
-        <button onclick="abrirModalMensagem()" style="background:#1c5aa8">📢 Enviar Mensagem</button>
+    <div class="relatoriosTopo usTopo">
+        <div class="relatoriosTituloLinha usTituloLinha">
+            <h2>Usuários</h2>
+            <span class="usResumo" id="usResumo"></span>
+            <div class="usBotoesTopo">
+                <button class="acaoRel acaoSecundaria usBtnMensagem" onclick="abrirModalMensagem()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></svg>Enviar mensagem</button>
+                <button class="acaoRel usBtnNovo" onclick="abrirModalUsuario()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>Novo usuário</button>
+            </div>
+        </div>
+        <div class="ltKpis usKpis">
+            <div class="ltKpi" style="--corKpi:#22d3ee"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><div><span class="ltKpiRotulo">Usuários ativos</span><b id="usKpiAtivos">0</b></div></div>
+            <div class="ltKpi" style="--corKpi:#fbbf24"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"></path><path d="M9.5 12l2 2 3.5-4"></path></svg></span><div><span class="ltKpiRotulo">Administradores</span><b id="usKpiAdmins">0</b></div></div>
+            <div class="ltKpi" style="--corKpi:#60a5fa"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path></svg></span><div><span class="ltKpiRotulo">Operadores</span><b id="usKpiOperadores">0</b></div></div>
+        </div>
+        <div class="ltFiltros">
+            <label class="buscaRelatorioDesk ltBusca">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="search" id="usBusca" placeholder="Buscar nome ou usuário..." oninput="mostrarUsuariosTela()">
+            </label>
+            <div class="ltChips usChips" role="group" aria-label="Filtrar usuários">
+                <button class="ltChip ltChipAtivo" data-filtro="todos" onclick="filtrarUsuariosTela('todos')">Todos</button>
+                <button class="ltChip" data-filtro="admin" onclick="filtrarUsuariosTela('admin')">Administradores</button>
+                <button class="ltChip" data-filtro="operador" onclick="filtrarUsuariosTela('operador')">Operadores</button>
+                <button class="ltChip" data-filtro="inativos" onclick="filtrarUsuariosTela('inativos')">Inativos</button>
+            </div>
+        </div>
     </div>
-    <table class="tabelaUsuarios">
-        <thead>
-            <tr><th>Nome</th><th>Usuário</th><th>Papel</th><th>Permissões</th><th>Status</th><th>Ações</th></tr>
-        </thead>
-        <tbody id="corpoTabelaUsuarios"></tbody>
-    </table>
+
+    <div class="usGrade" id="corpoTabelaUsuarios"></div>
 </div>
 
 <div id="telaLotes" class="tela">
@@ -1025,7 +1043,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=18"></script>
-<script src="admin.js?v=29"></script>
+<script src="admin.js?v=30"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

@@ -2026,3 +2026,64 @@ body.modoDesktop .ltBtnDesfazer:hover { color: #ff8a83; background: rgba(229,83,
     .ltEventoMarcador::after { left: 1px; }
     .ltBtnDesfazer { grid-column: 3; justify-self: start; }
 }
+
+/* ========================================
+   USUÁRIOS: topo fixo + cartões por pessoa (reaproveita .lt* da tela de Lotes)
+   ======================================== */
+.usTituloLinha { align-items: center; }
+.usResumo { font-size: 13px; color: var(--ink-muted); }
+.usBotoesTopo { margin-left: auto; display: flex; gap: 8px; }
+body.modoDesktop .usBotoesTopo .acaoRel { height: 40px; }
+body.modoDesktop .usBtnNovo { background: linear-gradient(180deg, #2fa654, #1e7d3c); }
+.usGrade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.usCartao {
+    display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px;
+    background: linear-gradient(160deg, rgba(34,211,238,0.06), transparent 45%), var(--surface);
+    border: 1px solid var(--border-strong);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.usCartaoAdmin { background: linear-gradient(160deg, rgba(251,191,36,0.07), transparent 45%), var(--surface); }
+.usCartao:hover { transform: translateY(-2px); border-color: rgba(34,211,238,0.45); box-shadow: 0 12px 28px -14px rgba(0,0,0,0.7); }
+.usCartaoAdmin:hover { border-color: rgba(251,191,36,0.45); }
+.usCartaoInativo { opacity: 0.6; }
+.usCartaoInativo:hover { opacity: 0.9; }
+.usCartaoTopo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.usAvatar {
+    width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; letter-spacing: 0.5px; color: #0d1426;
+    background: linear-gradient(135deg, var(--corAvatar), color-mix(in srgb, var(--corAvatar) 60%, #0d1426));
+    box-shadow: 0 6px 16px -6px var(--corAvatar);
+}
+.usIdentidade { flex: 1; min-width: 0; }
+.usIdentidade h4 { margin: 0; font-size: 16px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.usLogin { font-size: 12.5px; color: var(--ink-muted); }
+.usVoce { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 7px; border-radius: 999px; color: #22d3ee; background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.35); vertical-align: middle; }
+.usPapel { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; font-size: 12.5px; font-weight: 800; padding: 5px 11px; border-radius: 9px; }
+.usPapel svg { width: 15px; height: 15px; }
+.usPapelAdmin { color: #fbbf24; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); }
+.usPapelOperador { color: #60a5fa; background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.35); }
+.usPermissoes { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.usPerm { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13.5px; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.usPermIcone { display: inline-flex; color: var(--ink-muted); }
+.usPermIcone svg { width: 15px; height: 15px; }
+.usPermRotulo { color: #c9d3e6; }
+.usPerm b { margin-left: auto; color: #fff; font-weight: 700; text-align: right; }
+.usModulos { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+.usModulo { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; color: #a3e635; background: rgba(163,230,53,0.1); border: 1px solid rgba(163,230,53,0.3); }
+.usModulo svg { width: 13px; height: 13px; }
+.usAcessoTotal { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600; color: #ffd479; background: rgba(251,191,36,0.07); border: 1px dashed rgba(251,191,36,0.3); }
+.usAcessoTotal svg { width: 16px; height: 16px; }
+body.modoDesktop .usBtnEditar {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap;
+    width: auto; height: 36px; margin: 0; padding: 0 10px; border-radius: 9px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: #fff; border: none;
+    background: linear-gradient(180deg, #3d8cf0, #2468c8); box-shadow: 0 3px 10px -3px rgba(57,135,229,0.6);
+}
+body.modoDesktop .usBtnEditar:hover { background: linear-gradient(180deg, #4f9bff, #2a74dc); }
+.usBtnEditar svg { width: 16px; height: 16px; }
+@media (max-width: 900px) {
+    .usTopo { position: static; }
+    .usBotoesTopo { margin-left: 0; width: 100%; }
+    body.modoDesktop .usBotoesTopo .acaoRel { flex: 1; justify-content: center; }
+    .usGrade { grid-template-columns: 1fr; }
+}

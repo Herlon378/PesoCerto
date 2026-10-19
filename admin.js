@@ -67,6 +67,31 @@ function _resolverModalConfirmacaoModerna(valor) {
 // ========================================
 let usuarioEditandoId = null;
 
+// ícones próprios da tela de Usuários (traço fino, mesmo estilo do menu)
+const ICONES_USUARIOS = {
+    "maisUsuario": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle><path d=\"M19 8v6M22 11h-6\"></path></svg>",
+    "megafone": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z\"></path><path d=\"M15.5 8.5a5 5 0 0 1 0 7\"></path><path d=\"M18.5 5.5a9 9 0 0 1 0 13\"></path></svg>",
+    "usuarios": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle><path d=\"M23 21v-2a4 4 0 0 0-3-3.87\"></path><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"></path></svg>",
+    "escudo": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z\"></path><path d=\"M9.5 12l2 2 3.5-4\"></path></svg>",
+    "operador": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"4\"></circle><path d=\"M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1\"></path></svg>",
+    "busca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>",
+    "editar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 20h9\"></path><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z\"></path></svg>",
+    "desativar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M5.6 5.6l12.8 12.8\"></path></svg>",
+    "ativar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M8.5 12l2.5 2.5 4.5-5\"></path></svg>",
+    "lixeira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"></path><path d=\"M8 6V4h8v2\"></path><path d=\"M19 6l-1 14H6L5 6\"></path><path d=\"M10 11v6M14 11v6\"></path></svg>",
+    "balanca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v18\"></path><path d=\"M5 7h14\"></path><path d=\"M5 7l-3 7a3 3 0 0 0 6 0z\"></path><path d=\"M19 7l-3 7a3 3 0 0 0 6 0z\"></path><path d=\"M8 21h8\"></path></svg>",
+    "grafico": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"1.5\"></rect><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1.5\"></rect><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1.5\"></rect></svg>",
+    "relatorio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline><line x1=\"16\" y1=\"13\" x2=\"8\" y2=\"13\"></line><line x1=\"16\" y1=\"17\" x2=\"8\" y2=\"17\"></line></svg>",
+    "dinheiro": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"></rect><circle cx=\"12\" cy=\"12\" r=\"2.5\"></circle><path d=\"M6 12h.01M18 12h.01\"></path></svg>",
+    "caixa": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"></path><polyline points=\"3.27 6.96 12 12.01 20.73 6.96\"></polyline><line x1=\"12\" y1=\"22.08\" x2=\"12\" y2=\"12\"></line></svg>",
+    "boi": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5\"></path><path d=\"M7 8.5v5a5 5 0 0 0 10 0v-5\"></path><path d=\"M9.5 17.5h5\"></path><circle cx=\"10\" cy=\"12\" r=\".7\" fill=\"currentColor\"></circle><circle cx=\"14\" cy=\"12\" r=\".7\" fill=\"currentColor\"></circle></svg>",
+    "lapis": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z\"></path></svg>",
+    "estrela": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polygon points=\"12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2\"></polygon></svg>"
+};
+
+let usuariosCacheTela = [];
+let filtroUsuariosTela = "todos";
+
 async function carregarUsuarios() {
     let token = obterToken();
     let corpo = document.getElementById("corpoTabelaUsuarios");
@@ -77,35 +102,103 @@ async function carregarUsuarios() {
             headers: { "Authorization": "Bearer " + token }
         });
         if (!resp.ok) {
-            corpo.innerHTML = `<tr><td colspan="5">Acesso restrito a administradores, ou sessão expirada.</td></tr>`;
+            corpo.innerHTML = `<p class="ltVazio">Acesso restrito a administradores, ou sessão expirada.</p>`;
             return;
         }
-        let usuarios = await resp.json();
-        corpo.innerHTML = usuarios.map(u => `
-            <tr>
-                <td>${u.nome}</td>
-                <td>${u.usuario}</td>
-                <td>${u.papel === "admin" ? "Administrador" : "Operador"}</td>
-                <td>${u.papel === "admin" ? "—" : `
-                    <span class="tagPermissao">${rotuloPermTipo(u.permissaoTipoPesagem)}</span>
-                    <span class="tagPermissao">Dash: ${rotuloPermEscopo(u.permissaoDashboard)}</span>
-                    <span class="tagPermissao">Rel: ${rotuloPermEscopo(u.permissaoRelatorios)}</span>
-                    ${u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined ? `<span class="tagPermissao">Máx compra: ${formatarValorReais(u.valorMaximoCompra)}</span>` : ""}
-                    ${u.permissaoAlmoxarifado ? `<span class="tagPermissao">📦 Almoxarifado</span>` : ""}
-                    ${u.permissaoVacasMatriz ? `<span class="tagPermissao">🐄 Vacas Matriz</span>` : ""}
-                    ${u.permissaoEditarNascimentos ? `<span class="tagPermissao">✏️ Editar Vacas/Nascimentos</span>` : ""}
-                `}</td>
-                <td>${u.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
-                <td class="acoesUsuario">
-                    <button onclick='abrirModalUsuario(${jsonAtributo(u)})'>✏️</button>
-                    <button onclick='alternarAtivoUsuario(${jsonAtributo(u.id)}, ${!u.ativo})'>${u.ativo ? "🚫" : "✅"}</button>
-                    <button onclick='excluirUsuario(${jsonAtributo(u.id)}, ${jsonAtributo(u.nome)})'>🗑️</button>
-                </td>
-            </tr>
-        `).join("");
+        usuariosCacheTela = await resp.json();
+        mostrarUsuariosTela();
     } catch (e) {
-        corpo.innerHTML = `<tr><td colspan="6">Erro ao carregar usuários.</td></tr>`;
+        corpo.innerHTML = `<p class="ltVazio">Erro ao carregar usuários.</p>`;
     }
+}
+
+function filtrarUsuariosTela(filtro) {
+    filtroUsuariosTela = filtro;
+    document.querySelectorAll("#telaUsuarios .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.filtro === filtro));
+    mostrarUsuariosTela();
+}
+
+// iniciais + cor fixa por pessoa (a mesma cor sempre, calculada do login)
+function avatarUsuario(u) {
+    // só palavras que começam com letra (ignora símbolos e números soltos)
+    let partes = String(u.nome || u.usuario || "").trim().split(/\s+/).filter(p => /^\p{L}/u.test(p));
+    let iniciais = partes.length
+        ? (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase()
+        : "?";
+    let cores = ["#60a5fa", "#a78bfa", "#22d3ee", "#34d399", "#fbbf24", "#fb923c", "#fb7185", "#a3e635"];
+    let h = 0;
+    for (let c of String(u.usuario || u.nome || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return { iniciais, cor: cores[h % cores.length] };
+}
+
+function mostrarUsuariosTela() {
+    let corpo = document.getElementById("corpoTabelaUsuarios");
+    if (!corpo) return;
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_USUARIOS;
+    let usuarios = usuariosCacheTela;
+
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
+    let ativos = usuarios.filter(u => u.ativo);
+    set("usKpiAtivos", ativos.length);
+    set("usKpiAdmins", ativos.filter(u => u.papel === "admin").length);
+    set("usKpiOperadores", ativos.filter(u => u.papel !== "admin").length);
+    set("usResumo", `${usuarios.length} ${usuarios.length === 1 ? "pessoa cadastrada" : "pessoas cadastradas"}`);
+
+    let busca = (document.getElementById("usBusca")?.value || "").trim().toLowerCase();
+    let lista = usuarios.filter(u => {
+        if (busca && !(String(u.nome).toLowerCase().includes(busca) || String(u.usuario).toLowerCase().includes(busca))) return false;
+        if (filtroUsuariosTela === "admin") return u.papel === "admin";
+        if (filtroUsuariosTela === "operador") return u.papel !== "admin";
+        if (filtroUsuariosTela === "inativos") return !u.ativo;
+        return true;
+    });
+    // ativos primeiro, depois administradores, depois por nome
+    lista.sort((a, b) => (b.ativo - a.ativo) || ((b.papel === "admin") - (a.papel === "admin")) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+
+    if (lista.length === 0) {
+        corpo.innerHTML = `<p class="ltVazio">${usuarios.length ? "Ninguém nesse filtro." : "Nenhum usuário cadastrado ainda."}</p>`;
+        return;
+    }
+    let eu = localStorage.getItem("usuarioNome") || "";
+
+    corpo.innerHTML = lista.map(u => {
+        let admin = u.papel === "admin";
+        let { iniciais, cor } = avatarUsuario(u);
+        let perm = (icone, rotulo, valor) => `<div class="usPerm"><span class="usPermIcone">${I[icone]}</span><span class="usPermRotulo">${rotulo}</span><b>${valor}</b></div>`;
+        let modulos = [
+            u.permissaoAlmoxarifado ? `<span class="usModulo">${I.caixa}Almoxarifado</span>` : "",
+            u.permissaoVacasMatriz ? `<span class="usModulo">${I.boi}Vacas Matriz</span>` : "",
+            u.permissaoEditarNascimentos ? `<span class="usModulo">${I.lapis}Editar vacas/nascimentos</span>` : ""
+        ].join("");
+        let temLimite = u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined;
+        return `
+        <article class="usCartao${u.ativo ? "" : " usCartaoInativo"}${admin ? " usCartaoAdmin" : ""}">
+            <header class="usCartaoTopo">
+                <span class="usAvatar" style="--corAvatar:${cor}">${esc(iniciais)}</span>
+                <div class="usIdentidade">
+                    <h4 title="${esc(u.nome)}">${esc(u.nome)}${u.nome === eu ? ` <span class="usVoce">você</span>` : ""}</h4>
+                    <span class="usLogin">@${esc(u.usuario)}</span>
+                </div>
+                <span class="ltStatus ${u.ativo ? "ltStatusAtivo" : "ltStatusInativo"}">${u.ativo ? "Ativo" : "Inativo"}</span>
+            </header>
+            <div class="usPapel ${admin ? "usPapelAdmin" : "usPapelOperador"}">${admin ? I.escudo : I.operador}<span>${admin ? "Administrador" : "Operador"}</span></div>
+            <div class="usPermissoes">
+                ${admin
+                    ? `<p class="usAcessoTotal">${I.estrela}Acesso total ao sistema</p>`
+                    : perm("balanca", "Pesagem", rotuloPermTipo(u.permissaoTipoPesagem))
+                      + perm("grafico", "Dashboard", rotuloPermEscopo(u.permissaoDashboard))
+                      + perm("relatorio", "Relatórios", rotuloPermEscopo(u.permissaoRelatorios))
+                      + perm("dinheiro", "Máx. compra", temLimite ? formatarValorReais(u.valorMaximoCompra) : "sem limite")
+                      + (modulos ? `<div class="usModulos">${modulos}</div>` : "")}
+            </div>
+            <footer class="ltCartaoAcoes">
+                <button class="usBtnEditar" onclick='abrirModalUsuario(${jsonAtributo(u)})'>${I.editar}<span>Editar</span></button>
+                <button class="ltBtnIcone ${u.ativo ? "ltBtnDesativar" : "ltBtnAtivar"}" onclick='alternarAtivoUsuario(${jsonAtributo(u.id)}, ${!u.ativo})' title="${u.ativo ? "Desativar acesso" : "Reativar acesso"}" aria-label="${u.ativo ? "Desativar acesso" : "Reativar acesso"}">${u.ativo ? I.desativar : I.ativar}</button>
+                <button class="ltBtnIcone ltBtnExcluir" onclick='excluirUsuario(${jsonAtributo(u.id)}, ${jsonAtributo(u.nome)})' title="Excluir usuário" aria-label="Excluir usuário">${I.lixeira}</button>
+            </footer>
+        </article>`;
+    }).join("");
 }
 
 function rotuloPermTipo(v) {
@@ -386,7 +479,7 @@ async function carregarLotes() {
 
 function filtrarLotesTela(filtro) {
     filtroLotesTela = filtro;
-    document.querySelectorAll(".ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.filtro === filtro));
+    document.querySelectorAll("#telaLotes .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.filtro === filtro));
     mostrarLotesTela();
 }
 
