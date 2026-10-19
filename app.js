@@ -2217,6 +2217,11 @@ function prepararImpressao(){
 
     let folha = document.getElementById("folhaRelatorio");
     if(folha) folha.innerHTML = html;
+    // a mesma tela também imprime o extrato do Fluxo de Caixa (computador)
+    let telaImp = document.getElementById("telaImpressao");
+    if(telaImp) telaImp.classList.remove("modoExtrato");
+    let voltarTexto = document.getElementById("impressaoVoltarTexto");
+    if(voltarTexto) voltarTexto.innerText = "Voltar aos relatórios";
     registrosImpressaoAtual = registros;
     let titulo = document.getElementById("impressaoTitulo");
     if(titulo) titulo.innerText = `${ehCompra ? "Compra" : "Venda"}${r.numero ? " nº " + r.numero : ""} · ${r.vendedor || "Sem vendedor"}`;

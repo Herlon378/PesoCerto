@@ -2176,3 +2176,148 @@ body.modoDesktop #almFiltroDepto.ltFiltroUsado { border-color: var(--blue-500); 
     .almSaldo::before, .almCusto::before, .almValor::before { content: attr(data-rotulo); display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-muted); margin-bottom: 2px; }
     body.modoDesktop #almFiltroDepto { width: 100%; }
 }
+
+/* ========================================
+   FLUXO DE CAIXA: saldo, filtros fixos, extrato por dia, sub-caixas
+   ======================================== */
+.fcHero {
+    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 0.9fr); gap: 0;
+    margin-bottom: 16px; border-radius: 20px; overflow: hidden;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(52,211,153,0.22), transparent 55%), linear-gradient(135deg, #10233f, #0d1a30);
+    border: 1px solid rgba(52,211,153,0.3); box-shadow: 0 18px 40px -22px rgba(0,0,0,0.8);
+}
+.fcHero > div { padding: 22px 24px; min-width: 0; }
+.fcHero > div + div { border-left: 1px solid rgba(255,255,255,0.08); }
+.fcHeroPrincipal { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.fcHeroRotulo { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #9fe7c9; }
+.fcHeroIcone { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #34d399; background: rgba(52,211,153,0.16); border: 1px solid rgba(52,211,153,0.35); }
+.fcHeroIcone svg { width: 18px; height: 18px; }
+.fcHeroValor { font-size: 42px; font-weight: 800; letter-spacing: -0.02em; color: #fff; font-variant-numeric: tabular-nums; line-height: 1.1; white-space: nowrap; }
+.fcHeroValor.fcNegativo { color: #ff9a92; }
+.fcHeroNota { font-size: 12.5px; color: #93a4c0; }
+.fcHeroGrafico { display: flex; flex-direction: column; gap: 8px; }
+.fcHeroGraficoTopo { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: #93a4c0; font-weight: 600; }
+.fcHeroGraficoTopo b { font-size: 14px; }
+#fcSparkline { width: 100%; height: 86px; display: block; }
+.fcHeroMes { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.fcHeroMesTitulo { font-size: 12.5px; font-weight: 700; color: #93a4c0; }
+.fcHeroMesLinha { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.fcHeroMesLinha svg { width: 16px; height: 16px; flex-shrink: 0; }
+.fcHeroMesLinha span { color: #c9d3e6; }
+.fcHeroMesLinha b { margin-left: auto; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fcEntrada, .fcEntrada svg { color: #3ddc84; }
+.fcSaida, .fcSaida svg { color: #ff7b72; }
+.fcUltimo svg { color: #93a4c0; }
+b.fcEntrada, span.fcEntrada { color: #3ddc84 !important; }
+b.fcSaida, span.fcSaida { color: #ff7b72 !important; }
+
+.fcBarraFixa {
+    position: sticky; top: 65px; z-index: 30; display: flex; flex-direction: column; gap: 10px;
+    margin: 0 -24px 16px; padding: 12px 24px; background: var(--surface);
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border-strong);
+    box-shadow: 0 10px 18px -12px rgba(0,0,0,0.6);
+}
+.fcFiltrosLinha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fcDatas { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--ink-muted); font-size: 13px; }
+.fcDatas svg { width: 17px; height: 17px; }
+body.modoDesktop .fcDatas input[type="date"] {
+    width: auto; height: 38px; margin: 0; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); color-scheme: dark;
+}
+.fcBusca { flex: 1 1 260px; }
+body.modoDesktop .fcLimpar { height: 40px; }
+.fcKpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+.fcKpis .ltKpi b { font-size: 19px; white-space: nowrap; }
+
+.fcExtrato { border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); margin-bottom: 16px; overflow: hidden; }
+.fcExtratoTopo { display: flex; align-items: baseline; gap: 12px; padding: 16px 18px 6px; }
+.fcExtratoTopo h3 { margin: 0; font-size: 17px; }
+.fcExtratoTopo span { font-size: 13px; color: var(--ink-muted); }
+.fcLinha { display: grid; grid-template-columns: 38px minmax(0, 1fr) 150px 150px 44px; align-items: center; gap: 14px; padding: 10px 18px; }
+.fcLinhaCabecalho { padding-top: 6px; padding-bottom: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--border-strong); }
+.fcLinhaCabecalho span:nth-child(3), .fcLinhaCabecalho span:nth-child(4) { text-align: right; }
+.fcDia + .fcDia { border-top: 1px solid var(--border-strong); }
+.fcDiaTopo { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px 6px; font-size: 12.5px; font-weight: 700; color: #9cc8ff; background: rgba(255,255,255,0.02); }
+.fcDiaTopo b { font-size: 12.5px; text-transform: none; }
+.fcLinha + .fcLinha { border-top: 1px dashed rgba(255,255,255,0.05); }
+.fcDia .fcLinha:hover { background: rgba(255,255,255,0.025); }
+.fcIconeTipo { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.fcIconeTipo svg { width: 18px; height: 18px; }
+.fcLinhaEntrada .fcIconeTipo { color: #3ddc84; background: rgba(61,220,132,0.12); border: 1px solid rgba(61,220,132,0.3); }
+.fcLinhaSaida .fcIconeTipo { color: #ff7b72; background: rgba(255,123,114,0.12); border: 1px solid rgba(255,123,114,0.3); }
+.fcTextos { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fcTextos b { font-size: 14.5px; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fcTextos small { font-size: 12.5px; color: var(--ink-muted); }
+.fcEtiqueta { display: inline-flex; align-items: center; gap: 3px; color: #c9d3e6; }
+.fcEtiqueta svg { width: 12px; height: 12px; }
+.fcValor { text-align: right; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fcLinhaEntrada .fcValor { color: #3ddc84; }
+.fcLinhaSaida .fcValor { color: #ff7b72; }
+.fcSaldoApos { text-align: right; font-size: 13.5px; color: #c9d3e6; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fcAcao { display: flex; justify-content: flex-end; }
+.fcVazio { margin: 16px; }
+
+.fcSubCaixas { border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); }
+.fcSubCaixas summary { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; }
+.fcSubCaixas summary::-webkit-details-marker { display: none; }
+.fcSubIcone { color: #fbbf24 !important; background: rgba(251,191,36,0.14) !important; border-color: rgba(251,191,36,0.3) !important; }
+.fcSubTitulo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fcSubTitulo b { font-size: 16px; color: #fff; }
+.fcSubTitulo small { font-size: 12.5px; color: var(--ink-muted); }
+.fcSubSeta { display: inline-flex; color: var(--ink-muted); transition: transform 0.2s ease; }
+.fcSubSeta svg { width: 20px; height: 20px; }
+.fcSubCaixas[open] .fcSubSeta { transform: rotate(180deg); }
+.fcSubConteudo { padding: 0 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+.fcSubNovo { display: flex; gap: 8px; }
+body.modoDesktop .fcSubNovo input {
+    flex: 1; min-width: 0; margin: 0; height: 40px; padding: 0 12px; border-radius: 10px; font-size: 14px;
+    background: var(--surface-sunken); color: var(--ink); border: 1px solid var(--border-strong);
+}
+body.modoDesktop .fcSubNovo .acaoRel { height: 40px; }
+.fcSubLista { display: flex; flex-direction: column; gap: 8px; }
+.fcSubItem { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px; padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border); }
+.fcSubItemInativo { opacity: 0.6; }
+.fcSubNome { min-width: 0; display: flex; flex-direction: column; }
+.fcSubNome b { color: #fff; font-size: 14.5px; }
+.fcSubNome small { font-size: 12px; color: var(--ink-muted); }
+.fcSubNumeros { display: flex; align-items: baseline; gap: 14px; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fcSubNumeros b { font-size: 15px; }
+.fcSubAcoes { display: flex; gap: 6px; }
+.fcVazioPequeno { margin: 0; font-size: 13px; color: var(--ink-muted); }
+
+/* tela de impressão no modo extrato: sem WhatsApp */
+#telaImpressao.modoExtrato .acaoWhats { display: none; }
+.folhaAviso { margin: 8px 0; padding: 8px 12px; border-radius: 8px; font-size: 12.5px; background: #fff8e6; border: 1px solid #f5c26b; color: #7a4b00 !important; }
+.folhaExtrato td:nth-child(n+4), .folhaExtrato th:nth-child(n+4) { text-align: right; white-space: nowrap; }
+.folhaExtrato td:first-child { white-space: nowrap; }
+.folhaExtrato tbody td:nth-child(4) { color: #047857 !important; }
+.folhaExtrato tbody td:nth-child(5) { color: #b91c1c !important; }
+.folhaExtrato .folhaLinhaSaldo td { font-weight: 700; background: #eef2f7 !important; }
+.folhaExtrato small { color: #6b7280 !important; }
+
+@media (max-width: 1200px) {
+    .fcHero { grid-template-columns: 1fr 1fr; }
+    .fcHeroPrincipal { grid-column: 1 / -1; }
+    .fcHero > div + div { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
+    .fcHeroMes { border-left: 1px solid rgba(255,255,255,0.08) !important; }
+    .fcKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+    .fcHero { grid-template-columns: 1fr; }
+    .fcHeroMes { border-left: none !important; }
+    .fcHero > div { padding: 16px; }
+    .fcHeroValor { font-size: 32px; }
+    .fcBarraFixa { position: static; margin: 0 0 14px; padding: 12px; border-radius: 14px; border: 1px solid var(--border-strong); }
+    .fcDatas { margin-left: 0; width: 100%; }
+    body.modoDesktop .fcDatas input[type="date"] { flex: 1; min-width: 0; }
+    .fcLinhaCabecalho { display: none; }
+    .fcLinha { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 12px; }
+    .fcValor { grid-column: 3; grid-row: 1; }
+    .fcSaldoApos { grid-column: 2; grid-row: 2; text-align: left; font-size: 12px; }
+    .fcSaldoApos::before { content: "Saldo após: "; color: var(--ink-muted); }
+    .fcAcao { grid-column: 3; grid-row: 2; }
+    .fcDiaTopo { padding: 10px 12px 6px; }
+    .fcSubItem { grid-template-columns: 1fr auto; }
+    .fcSubNumeros { grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; }
+    .fcSubNovo { flex-direction: column; }
+}

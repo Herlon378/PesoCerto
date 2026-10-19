@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=6">
-    <link rel="stylesheet" href="admin.css?v=26">
+    <link rel="stylesheet" href="admin.css?v=27">
 </head>
 <body class="modoDesktop">
 
@@ -686,67 +686,100 @@
 </div>
 
 <div id="telaFluxoCaixa" class="tela">
-    <h2>💵 Fluxo de Caixa</h2>
-    <div class="botoesRelatorio">
-        <button onclick="abrirModalLancamento()" style="background:#2e7d32">➕ Novo Lançamento</button>
-    </div>
-
-    <div class="dashHero" style="margin-bottom:16px">
-        <span class="dashHeroLabel">💰 Saldo em Caixa (hoje)</span>
-        <span class="dashHeroValor" id="caixaSaldoAtual">R$ 0,00</span>
-    </div>
-    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-        Esse é o saldo real, com todo o histórico — não muda com o filtro de período abaixo. Os três números a seguir (Entradas, Saídas, Saldo do Período) é que respondem só pela janela de datas selecionada.
-    </p>
-
-    <div class="dashComparativo" style="margin-bottom:20px">
-        <span class="dashSecaoTitulo">🗂️ Sub-caixas</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            Centros de custo pra controle separado (ex: "Caixa do Caminhão") — marque um lançamento com um sub-caixa na hora de criá-lo pra ele entrar nessa visão. Isso é só uma reorganização visual dos mesmos lançamentos: nunca muda o Caixa Acumulado, o Patrimônio Total ou qualquer outro número geral do sistema.
-        </p>
-        <div class="linhaComBotao" style="margin-bottom:10px">
-            <input id="novoSubCaixaInput" placeholder="Nome do novo sub-caixa (ex: Caixa do Caminhão)">
-            <button class="btnPequeno" onclick="criarSubCaixaRapido()">➕ Criar</button>
+    <div class="almCabecalho">
+        <div>
+            <h2>Fluxo de Caixa</h2>
+            <span class="almResumo">Entradas e saídas de dinheiro, com extrato por período</span>
         </div>
-        <p id="subCaixaErro" class="loginErro" style="display:none"></p>
-        <div class="listaDepartamentosModal" id="listaSubCaixasCadastro" style="margin-bottom:16px"></div>
-
-        <table class="tabelaUsuarios">
-            <thead>
-                <tr><th>Sub-caixa</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr>
-            </thead>
-            <tbody id="corpoTabelaSubCaixas"></tbody>
-        </table>
-    </div>
-
-    <div class="dashFiltros">
-        <input type="date" id="caixaDataInicio" onchange="mostrarFluxoCaixa()">
-        <span class="caixaFiltroAte">até</span>
-        <input type="date" id="caixaDataFim" onchange="mostrarFluxoCaixa()">
-        <button class="dashBtnLimparFiltros" onclick="limparFiltrosCaixa()">Limpar filtros</button>
-    </div>
-
-    <div class="dashKpiRow">
-        <div class="statTile">
-            <span class="statTileLabel">Total de Entradas</span>
-            <span class="statTileValor" id="caixaTotalEntradas">R$ 0,00</span>
-        </div>
-        <div class="statTile">
-            <span class="statTileLabel">Total de Saídas</span>
-            <span class="statTileValor" id="caixaTotalSaidas">R$ 0,00</span>
-        </div>
-        <div class="statTile">
-            <span class="statTileLabel">Saldo do Período</span>
-            <span class="statTileValor" id="caixaSaldoPeriodo">R$ 0,00</span>
+        <div class="almAcoesRapidas">
+            <button class="acaoRel acaoImprimir fcBtnExtrato" onclick="imprimirExtratoCaixa()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>Imprimir extrato</button>
+            <button class="acaoRel almBtnEntrada" onclick="abrirModalLancamento()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Novo lançamento</button>
         </div>
     </div>
 
-    <table class="tabelaUsuarios">
-        <thead>
-            <tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Descrição</th><th>Valor</th><th>Saldo Acumulado</th><th>Ações</th></tr>
-        </thead>
-        <tbody id="corpoTabelaFluxoCaixa"></tbody>
-    </table>
+    <!-- saldo de verdade (todo o histórico) -- não muda com o filtro -->
+    <section class="fcHero">
+        <div class="fcHeroPrincipal">
+            <span class="fcHeroRotulo"><span class="fcHeroIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-4a2 2 0 0 0 0 4h4v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"></path><circle cx="17" cy="14" r=".6" fill="currentColor"></circle></svg></span>Saldo em caixa hoje</span>
+            <span class="fcHeroValor" id="caixaSaldoAtual">R$ 0,00</span>
+            <span class="fcHeroNota">Todo o histórico, com o saldo inicial — não muda com o filtro de período.</span>
+        </div>
+        <div class="fcHeroGrafico">
+            <div class="fcHeroGraficoTopo"><span>Últimos 30 dias</span><b id="fcVariacao30"></b></div>
+            <svg id="fcSparkline" viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+        <div class="fcHeroMes">
+            <span class="fcHeroMesTitulo" id="fcMesTitulo">Este mês</span>
+            <div class="fcHeroMesLinha fcEntrada"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M5 12l7 7 7-7"></path></svg><span>Entrou</span><b id="fcMesEntradas">R$ 0,00</b></div>
+            <div class="fcHeroMesLinha fcSaida"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12l7-7 7 7"></path></svg><span>Saiu</span><b id="fcMesSaidas">R$ 0,00</b></div>
+            <div class="fcHeroMesLinha fcUltimo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg><span>Último</span><b id="fcUltimoLancamento">—</b></div>
+        </div>
+    </section>
+
+    <!-- filtros do extrato: ficam presos no topo ao rolar -->
+    <div class="fcBarraFixa">
+        <div class="fcFiltrosLinha">
+            <div class="ltChips fcChipsPeriodo" role="group" aria-label="Período">
+                <button class="ltChip" data-periodo="mes" onclick="aplicarPeriodoCaixa('mes')">Este mês</button>
+                <button class="ltChip" data-periodo="mesPassado" onclick="aplicarPeriodoCaixa('mesPassado')">Mês passado</button>
+                <button class="ltChip" data-periodo="ult30" onclick="aplicarPeriodoCaixa('ult30')">Últimos 30 dias</button>
+                <button class="ltChip" data-periodo="ano" onclick="aplicarPeriodoCaixa('ano')">Este ano</button>
+                <button class="ltChip ltChipAtivo" data-periodo="" onclick="aplicarPeriodoCaixa('')">Tudo</button>
+            </div>
+            <span class="fcDatas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+                <input type="date" id="caixaDataInicio" onchange="datasCaixaManuais()" title="De">
+                <span>até</span>
+                <input type="date" id="caixaDataFim" onchange="datasCaixaManuais()" title="Até">
+            </span>
+        </div>
+        <div class="fcFiltrosLinha">
+            <label class="buscaRelatorioDesk ltBusca fcBusca">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="search" id="caixaBusca" placeholder="Buscar descrição, origem, lote..." oninput="mostrarFluxoCaixa()">
+            </label>
+            <div class="ltChips fcChipsTipo" role="group" aria-label="Tipo">
+                <button class="ltChip ltChipAtivo" data-tipo="" onclick="filtrarTipoCaixa('')">Todos</button>
+                <button class="ltChip" data-tipo="entrada" onclick="filtrarTipoCaixa('entrada')">Entradas</button>
+                <button class="ltChip" data-tipo="saida" onclick="filtrarTipoCaixa('saida')">Saídas</button>
+            </div>
+            <button class="acaoRel acaoSecundaria fcLimpar" onclick="limparFiltrosCaixa()">Limpar</button>
+        </div>
+    </div>
+
+    <div class="ltKpis fcKpis">
+        <div class="ltKpi" style="--corKpi:#94a3b8"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg></span><div><span class="ltKpiRotulo">Saldo anterior</span><b id="fcSaldoAnterior">R$ 0,00</b></div></div>
+        <div class="ltKpi" style="--corKpi:#34d399"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M5 12l7 7 7-7"></path></svg></span><div><span class="ltKpiRotulo">Entradas no período</span><b id="caixaTotalEntradas">R$ 0,00</b></div></div>
+        <div class="ltKpi" style="--corKpi:#ff7b72"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12l7-7 7 7"></path></svg></span><div><span class="ltKpiRotulo">Saídas no período</span><b id="caixaTotalSaidas">R$ 0,00</b></div></div>
+        <div class="ltKpi" style="--corKpi:#60a5fa"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><path d="M5 7h14"></path><path d="M5 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M19 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M8 21h8"></path></svg></span><div><span class="ltKpiRotulo">Resultado do período</span><b id="caixaSaldoPeriodo">R$ 0,00</b></div></div>
+    </div>
+
+    <section class="fcExtrato">
+        <div class="fcExtratoTopo">
+            <h3>Extrato</h3>
+            <span id="fcResumoExtrato"></span>
+        </div>
+        <div class="fcLinha fcLinhaCabecalho" aria-hidden="true">
+            <span></span><span>Lançamento</span><span>Valor</span><span>Saldo após</span><span></span>
+        </div>
+        <div id="corpoTabelaFluxoCaixa"></div>
+    </section>
+
+    <details class="fcSubCaixas" id="fcSubCaixas">
+        <summary>
+            <span class="almListaIcone fcSubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+            <span class="fcSubTitulo"><b>Sub-caixas</b><small>Centros de custo (ex: Caixa do Caminhão) — só uma visão separada, não muda nenhum total</small></span>
+            <span class="fcSubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span>
+        </summary>
+        <div class="fcSubConteudo">
+            <div class="fcSubNovo">
+                <input id="novoSubCaixaInput" placeholder="Nome do novo sub-caixa (ex: Caixa do Caminhão)">
+                <button class="acaoRel almBtnEntrada" onclick="criarSubCaixaRapido()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Criar</button>
+            </div>
+            <p id="subCaixaErro" class="loginErro" style="display:none"></p>
+            <div id="listaSubCaixasCadastro" class="fcSubLista"></div>
+            <div id="corpoTabelaSubCaixas" class="fcSubResumo"></div>
+        </div>
+    </details>
 </div>
 
 <div id="telaContasPagar" class="tela">
@@ -1046,7 +1079,7 @@
 <div id="telaImpressao" class="tela">
     <!-- barra fixa no topo (some na impressão) -->
     <div class="impressaoTopo">
-        <button class="acaoRel acaoSecundaria" onclick="trocarTela('telaResultado')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg><span>Voltar aos relatórios</span></button>
+        <button class="acaoRel acaoSecundaria" onclick="trocarTela(document.getElementById('telaImpressao').classList.contains('modoExtrato') ? 'telaFluxoCaixa' : 'telaResultado')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg><span id="impressaoVoltarTexto">Voltar aos relatórios</span></button>
         <span class="impressaoTitulo" id="impressaoTitulo">Relatório</span>
         <div class="relatoriosAcoes">
             <button class="acaoRel acaoWhats" onclick="enviarImpressaoWhatsApp()" title="Mandar o relatório completo por WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.5A8.4 8.4 0 1 1 21 11.5z"></path></svg><span>WhatsApp</span></button>
@@ -1062,8 +1095,8 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
-<script src="app.js?v=18"></script>
-<script src="admin.js?v=31"></script>
+<script src="app.js?v=19"></script>
+<script src="admin.js?v=32"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

@@ -2616,47 +2616,46 @@ async function mostrarSubCaixas() {
 
     await Promise.all([carregarSubCaixasAdmin(), carregarCaixaLancamentosAdmin()]);
 
-    if (lista) {
-        lista.innerHTML = subCaixasCacheAdmin.length === 0
-            ? `<p style="font-size:13px;color:#999;padding:8px 0">Nenhum sub-caixa cadastrado ainda.</p>`
-            : subCaixasCacheAdmin.map(s => `
-                <div class="itemDepartamentoModal">
-                    <span>${s.nome}${s.ativo ? "" : " (inativo)"}</span>
-                    <span>
-                        <button onclick='alternarAtivoSubCaixa(${jsonAtributo(s.id)}, ${!s.ativo})'>${s.ativo ? "🚫" : "✅"}</button>
-                        <button onclick='excluirSubCaixa(${jsonAtributo(s.id)}, ${jsonAtributo(s.nome)})'>🗑️</button>
-                    </span>
-                </div>
-            `).join("");
-    }
-
-    if (!corpo) return;
+    let I = ICONES_CAIXA;
+    let esc = escaparHtmlPesagem;
     let porSubCaixa = {};
     caixaLancamentosCacheAdmin.forEach(l => {
         if (!l.subCaixaNome) return;
-        if (!porSubCaixa[l.subCaixaNome]) porSubCaixa[l.subCaixaNome] = { entradas: 0, saidas: 0 };
+        if (!porSubCaixa[l.subCaixaNome]) porSubCaixa[l.subCaixaNome] = { entradas: 0, saidas: 0, qtd: 0 };
         if (l.tipo === "saida") porSubCaixa[l.subCaixaNome].saidas += l.valor;
         else porSubCaixa[l.subCaixaNome].entradas += l.valor;
+        porSubCaixa[l.subCaixaNome].qtd++;
     });
 
-    let nomes = Object.keys(porSubCaixa).sort();
-    if (nomes.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="4">Nenhum lançamento marcado com sub-caixa ainda.</td></tr>`;
-        return;
+    if (lista) {
+        lista.innerHTML = subCaixasCacheAdmin.length === 0
+            ? `<p class="fcVazioPequeno">Nenhum sub-caixa cadastrado ainda.</p>`
+            : subCaixasCacheAdmin.map(s => {
+                let r = porSubCaixa[s.nome] || { entradas: 0, saidas: 0, qtd: 0 };
+                let saldo = r.entradas - r.saidas;
+                return `
+                <div class="fcSubItem${s.ativo ? "" : " fcSubItemInativo"}">
+                    <div class="fcSubNome"><b>${esc(s.nome)}</b><small>${r.qtd} ${r.qtd === 1 ? "lançamento" : "lançamentos"}${s.ativo ? "" : " · inativo"}</small></div>
+                    <div class="fcSubNumeros">
+                        <span class="fcEntrada">+ R$ ${formatarMoeda(r.entradas)}</span>
+                        <span class="fcSaida">− R$ ${formatarMoeda(r.saidas)}</span>
+                        <b class="${saldo >= 0 ? "fcEntrada" : "fcSaida"}">${saldo >= 0 ? "" : "− "}R$ ${formatarMoeda(Math.abs(saldo))}</b>
+                    </div>
+                    <div class="fcSubAcoes">
+                        <button class="ltBtnIcone ${s.ativo ? "ltBtnDesativar" : "ltBtnAtivar"}" onclick='alternarAtivoSubCaixa(${jsonAtributo(s.id)}, ${!s.ativo})' title="${s.ativo ? "Desativar" : "Reativar"}" aria-label="${s.ativo ? "Desativar" : "Reativar"}">${s.ativo ? I.desativar : I.ativar}</button>
+                        <button class="ltBtnIcone ltBtnExcluir" onclick='excluirSubCaixa(${jsonAtributo(s.id)}, ${jsonAtributo(s.nome)})' title="Excluir" aria-label="Excluir">${I.lixeira}</button>
+                    </div>
+                </div>`;
+            }).join("");
     }
-    corpo.innerHTML = nomes.map(nome => {
-        let s = porSubCaixa[nome];
-        let saldo = s.entradas - s.saidas;
-        let positivo = saldo >= 0;
-        return `
-            <tr>
-                <td>${nome}</td>
-                <td>R$ ${formatarMoeda(s.entradas)}</td>
-                <td>R$ ${formatarMoeda(s.saidas)}</td>
-                <td style="color:${positivo ? '#0ca30c' : '#d03b3b'}">${positivo ? '▲' : '▼'} R$ ${formatarMoeda(Math.abs(saldo))}</td>
-            </tr>
-        `;
-    }).join("");
+
+    if (!corpo) return;
+    // sub-caixa excluído que ainda tem lançamentos marcados com o nome dele
+    let orfaos = Object.keys(porSubCaixa).filter(n => !subCaixasCacheAdmin.some(s => s.nome === n)).sort();
+    corpo.innerHTML = orfaos.length === 0 ? "" : `<p class="fcVazioPequeno">Lançamentos marcados com sub-caixas que não existem mais: ${orfaos.map(n => {
+        let r = porSubCaixa[n]; let saldo = r.entradas - r.saidas;
+        return `<b>${esc(n)}</b> (${saldo >= 0 ? "" : "−"}R$ ${formatarMoeda(Math.abs(saldo))})`;
+    }).join(", ")}</p>`;
 }
 
 // ========================================
@@ -2697,24 +2696,64 @@ async function abrirTelaFluxoCaixa() {
     mostrarSubCaixas();
 }
 
+const ICONES_CAIXA = {
+    "carteira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-4a2 2 0 0 0 0 4h4v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5\"></path><circle cx=\"17\" cy=\"14\" r=\".6\" fill=\"currentColor\"></circle></svg>",
+    "imprimir": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polyline points=\"6 9 6 2 18 2 18 9\"></polyline><path d=\"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2\"></path><rect x=\"6\" y=\"14\" width=\"12\" height=\"8\"></rect></svg>",
+    "mais": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg>",
+    "entrada": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 19V5\"></path><path d=\"M5 12l7 7 7-7\"></path></svg>",
+    "saida": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14\"></path><path d=\"M5 12l7-7 7 7\"></path></svg>",
+    "historico": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"></path><path d=\"M3 4v5h5\"></path><path d=\"M12 7v5l3 2\"></path></svg>",
+    "balanca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v18\"></path><path d=\"M5 7h14\"></path><path d=\"M5 7l-3 7a3 3 0 0 0 6 0z\"></path><path d=\"M19 7l-3 7a3 3 0 0 0 6 0z\"></path><path d=\"M8 21h8\"></path></svg>",
+    "busca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>",
+    "lixeira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"></path><path d=\"M8 6V4h8v2\"></path><path d=\"M19 6l-1 14H6L5 6\"></path><path d=\"M10 11v6M14 11v6\"></path></svg>",
+    "pasta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"></path></svg>",
+    "desativar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M5.6 5.6l12.8 12.8\"></path></svg>",
+    "ativar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M8.5 12l2.5 2.5 4.5-5\"></path></svg>",
+    "seta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\"></path></svg>",
+    "calendario": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"></rect><path d=\"M16 2v4M8 2v4M3 10h18\"></path></svg>",
+    "tag": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"></path><circle cx=\"7\" cy=\"7\" r=\"1.3\" fill=\"currentColor\"></circle></svg>"
+};
+let filtroTipoCaixa = "";
+
 function limparFiltrosCaixa() {
     document.getElementById("caixaDataInicio").value = "";
     document.getElementById("caixaDataFim").value = "";
+    let busca = document.getElementById("caixaBusca");
+    if (busca) busca.value = "";
+    filtroTipoCaixa = "";
+    marcarChipsCaixa("");
     mostrarFluxoCaixa();
 }
 
-function mostrarFluxoCaixa() {
-    let corpo = document.getElementById("corpoTabelaFluxoCaixa");
-    if (!corpo) return;
+function marcarChipsCaixa(periodo) {
+    document.querySelectorAll("#telaFluxoCaixa .fcChipsPeriodo .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.periodo === periodo));
+    document.querySelectorAll("#telaFluxoCaixa .fcChipsTipo .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.tipo === filtroTipoCaixa));
+}
 
-    let dataInicio = document.getElementById("caixaDataInicio").value; // "" ou "yyyy-mm-dd"
-    let dataFim = document.getElementById("caixaDataFim").value;
+// período pronto (usa o mesmo cálculo de datas do Contas a Pagar)
+function aplicarPeriodoCaixa(periodo) {
+    let intervalo = cpIntervaloPeriodo(periodo);
+    document.getElementById("caixaDataInicio").value = intervalo ? intervalo[0] : "";
+    document.getElementById("caixaDataFim").value = intervalo ? intervalo[1] : "";
+    marcarChipsCaixa(periodo);
+    mostrarFluxoCaixa();
+}
 
-    // monta a lista COMPLETA (sem filtro) primeiro — o saldo acumulado é
-    // sempre sobre todo o histórico, igual um extrato bancário; o filtro de
-    // período só decide quais linhas aparecem na tela, não "zera" o saldo.
+function datasCaixaManuais() {
+    marcarChipsCaixa(document.getElementById("caixaDataInicio").value || document.getElementById("caixaDataFim").value ? "personalizado" : "");
+    mostrarFluxoCaixa();
+}
+
+function filtrarTipoCaixa(tipo) {
+    filtroTipoCaixa = tipo;
+    document.querySelectorAll("#telaFluxoCaixa .fcChipsTipo .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.tipo === tipo));
+    mostrarFluxoCaixa();
+}
+
+// todos os movimentos (histórico inteiro) com o saldo acumulado de cada um --
+// usado pela tela e pelo extrato impresso, então os dois nunca divergem
+function montarMovimentosCaixa() {
     let movimentos = [];
-
     if (saldoInicialCache.valor) {
         let dataISO = extrairDataISO(saldoInicialCache.data);
         if (dataISO) {
@@ -2726,7 +2765,6 @@ function mostrarFluxoCaixa() {
             });
         }
     }
-
     relatorios.forEach(r => {
         let dataISO = extrairDataISO(r.data);
         if (!dataISO) return;
@@ -2734,78 +2772,223 @@ function mostrarFluxoCaixa() {
         let tipo = (r.tipo || "venda") === "compra" ? "saida" : "entrada";
         movimentos.push({
             dataISO, data: r.data, tipo,
-            origem: "Pesagem" + (r.numero ? " Nº " + r.numero : ""),
+            origem: "Pesagem" + (r.numero ? " Nº " + r.numero : "") + (tipo === "saida" ? " (compra)" : " (venda)"),
             descricao: (r.vendedor || "Não informado") + (r.descricao && r.descricao !== "Sem descrição" ? " — " + r.descricao : ""),
             valor: d.totalRS
         });
     });
-
     // Entrada de estoque não aparece aqui de propósito: ela é só a chegada
     // física do produto, não uma saída de dinheiro (a compra pode ter sido
-    // parcelada). O gasto real vira caixa quando é de fato pago — um
-    // lançamento manual, ou uma parcela de Contas a Pagar paga — e só
-    // nesse momento aparece nesse extrato. Ver histórico/excluir uma
-    // entrada errada agora é feito na tela Estoque, não aqui.
+    // parcelada). O gasto real vira caixa quando é de fato pago.
     caixaLancamentosCacheAdmin.forEach(l => {
         let dataISO = extrairDataISO(l.data);
         if (!dataISO) return;
         movimentos.push({
             dataISO, data: l.data, tipo: l.tipo,
-            origem: "Manual" + (l.categoria ? " — " + l.categoria : ""),
-            descricao: (l.descricao || l.categoria || "—") + (l.loteNome ? " (Lote: " + l.loteNome + ")" : ""),
+            origem: l.categoria || "Lançamento manual",
+            descricao: l.descricao || l.categoria || "—",
+            lote: l.loteNome || "", subCaixa: l.subCaixaNome || "",
             valor: l.valor,
             id: l.id, excluivel: true
         });
     });
-
-    movimentos.sort((a, b) => (a.dataISO < b.dataISO ? -1 : (a.dataISO > b.dataISO ? 1 : 0)));
-
+    // ordem pela data E hora (antes era só o dia -- lançamentos do mesmo dia
+    // ficavam fora de ordem no saldo acumulado)
+    movimentos.forEach(m => { m.chave = chaveOrdenacaoLote(m.data) || m.dataISO; });
+    movimentos.sort((a, b) => (a.chave < b.chave ? -1 : (a.chave > b.chave ? 1 : 0)));
     let saldoCorrente = 0;
     movimentos.forEach(m => {
         saldoCorrente += (m.tipo === "entrada" ? m.valor : -m.valor);
         m.saldoAcumulado = saldoCorrente;
     });
+    return movimentos;
+}
+
+// o que está filtrado na tela (período + tipo + busca)
+function filtrarMovimentosCaixa(movimentos) {
+    let de = document.getElementById("caixaDataInicio").value;
+    let ate = document.getElementById("caixaDataFim").value;
+    let busca = (document.getElementById("caixaBusca")?.value || "").trim().toLowerCase();
+    let noPeriodo = movimentos.filter(m => (!de || m.dataISO >= de) && (!ate || m.dataISO <= ate));
+    let anteriores = de ? movimentos.filter(m => m.dataISO < de) : [];
+    let saldoAnterior = anteriores.length ? anteriores[anteriores.length - 1].saldoAcumulado : 0;
+    let visiveis = noPeriodo.filter(m => (!filtroTipoCaixa || m.tipo === filtroTipoCaixa) &&
+        (!busca || [m.descricao, m.origem, m.lote, m.subCaixa, formatarMoeda(m.valor)].some(t => String(t || "").toLowerCase().includes(busca))));
+    return { de, ate, busca, noPeriodo, visiveis, saldoAnterior };
+}
+
+function desenharSparklineCaixa(movimentos) {
+    let el = document.getElementById("fcSparkline");
+    if (!el) return;
+    let hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    let pontos = [];
+    let i = 0, saldo = 0;
+    for (let d = 29; d >= 0; d--) {
+        let dia = new Date(hoje); dia.setDate(dia.getDate() - d);
+        let iso = cpDataLocalISO(dia);
+        while (i < movimentos.length && movimentos[i].dataISO <= iso) { saldo = movimentos[i].saldoAcumulado; i++; }
+        pontos.push(saldo);
+    }
+    let min = Math.min(...pontos), max = Math.max(...pontos);
+    let faixa = max - min || 1;
+    let xy = pontos.map((v, k) => [k / 29 * 300, 72 - (v - min) / faixa * 62]);
+    let linha = xy.map(([x, y], k) => (k ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join(" ");
+    el.innerHTML = `<defs><linearGradient id="fcGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity="0.35"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>
+        <path d="${linha} L300 80 L0 80 Z" fill="url(#fcGrad)"/><path d="${linha}" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+    let variacao = pontos[29] - pontos[0];
+    let elVar = document.getElementById("fcVariacao30");
+    if (elVar) {
+        elVar.innerText = (variacao >= 0 ? "+ " : "− ") + "R$ " + formatarMoeda(Math.abs(variacao));
+        elVar.className = variacao >= 0 ? "fcEntrada" : "fcSaida";
+    }
+}
+
+function mostrarFluxoCaixa() {
+    let corpo = document.getElementById("corpoTabelaFluxoCaixa");
+    if (!corpo) return;
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_CAIXA;
+    let movimentos = montarMovimentosCaixa();
+    let saldoAtual = movimentos.length ? movimentos[movimentos.length - 1].saldoAcumulado : 0;
 
     // saldo de verdade, com TODO o histórico — não se mexe com o filtro de
-    // período abaixo, senão passa a impressão errada de que o dinheiro
-    // "sumiu" só porque a tela está filtrada numa janela de datas.
+    // período, senão passa a impressão errada de que o dinheiro "sumiu"
     let elSaldoAtual = document.getElementById("caixaSaldoAtual");
-    if (elSaldoAtual) elSaldoAtual.innerText = "R$ " + formatarMoeda(saldoCorrente);
-
-    let visiveis = movimentos.filter(m =>
-        (!dataInicio || m.dataISO >= dataInicio) && (!dataFim || m.dataISO <= dataFim)
-    );
-
-    if (visiveis.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7">Nenhuma movimentação no período.</td></tr>`;
-    } else {
-        corpo.innerHTML = [...visiveis].reverse().map(m => {
-            let tagTipo = m.tipo === "entrada"
-                ? `<span class="tagTipo tagTipoVenda">ENTRADA</span>`
-                : `<span class="tagTipo tagTipoCompra">SAÍDA</span>`;
-            return `
-                <tr>
-                    <td>${m.data}</td>
-                    <td>${tagTipo}</td>
-                    <td>${m.origem}</td>
-                    <td>${escaparHtmlPesagem(m.descricao)}</td>
-                    <td>R$ ${formatarMoeda(m.valor)}</td>
-                    <td>R$ ${formatarMoeda(m.saldoAcumulado)}</td>
-                    <td>${m.excluivel ? `<button onclick='excluirLancamento(${jsonAtributo(m.id)})'>🗑️</button>` : "—"}</td>
-                </tr>
-            `;
-        }).join("");
+    if (elSaldoAtual) {
+        elSaldoAtual.innerText = (saldoAtual < 0 ? "− " : "") + "R$ " + formatarMoeda(Math.abs(saldoAtual));
+        elSaldoAtual.classList.toggle("fcNegativo", saldoAtual < 0);
     }
+    // este mês + último lançamento + gráfico
+    let [inicioMes, fimMes] = cpIntervaloPeriodo("mes");
+    let doMes = movimentos.filter(m => m.dataISO >= inicioMes && m.dataISO <= fimMes);
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
+    set("fcMesTitulo", "Este mês · " + new Date().toLocaleDateString("pt-BR", { month: "long" }));
+    set("fcMesEntradas", "R$ " + formatarMoeda(doMes.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0)));
+    set("fcMesSaidas", "R$ " + formatarMoeda(doMes.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0)));
+    set("fcUltimoLancamento", movimentos.length ? String(movimentos[movimentos.length - 1].data).split(",")[0] : "—");
+    desenharSparklineCaixa(movimentos);
 
+    let { de, visiveis, noPeriodo, saldoAnterior } = filtrarMovimentosCaixa(movimentos);
     let totalEntradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
     let totalSaidas = visiveis.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0);
-    document.getElementById("caixaTotalEntradas").innerText = "R$ " + formatarMoeda(totalEntradas);
-    document.getElementById("caixaTotalSaidas").innerText = "R$ " + formatarMoeda(totalSaidas);
+    set("fcSaldoAnterior", de ? (saldoAnterior < 0 ? "− " : "") + "R$ " + formatarMoeda(Math.abs(saldoAnterior)) : "—");
+    set("caixaTotalEntradas", "R$ " + formatarMoeda(totalEntradas));
+    set("caixaTotalSaidas", "R$ " + formatarMoeda(totalSaidas));
     let saldoEl = document.getElementById("caixaSaldoPeriodo");
     let saldoPeriodo = totalEntradas - totalSaidas;
-    let positivo = saldoPeriodo >= 0;
-    saldoEl.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + formatarMoeda(Math.abs(saldoPeriodo));
-    saldoEl.style.color = positivo ? "#0ca30c" : "#d03b3b";
+    saldoEl.innerText = (saldoPeriodo >= 0 ? "+ R$ " : "− R$ ") + formatarMoeda(Math.abs(saldoPeriodo));
+    saldoEl.style.color = saldoPeriodo >= 0 ? "#3ddc84" : "#ff7b72";
+    set("fcResumoExtrato", `${visiveis.length} ${visiveis.length === 1 ? "lançamento" : "lançamentos"}${visiveis.length !== noPeriodo.length ? " (filtrado)" : ""}`);
+
+    if (visiveis.length === 0) {
+        corpo.innerHTML = `<p class="ltVazio fcVazio">Nenhuma movimentação nesse filtro.</p>`;
+        return;
+    }
+    // mais recente primeiro, agrupado por dia (com o resultado do dia)
+    let porDia = [];
+    [...visiveis].reverse().forEach(m => {
+        let ultimo = porDia[porDia.length - 1];
+        if (!ultimo || ultimo.dataISO !== m.dataISO) porDia.push(ultimo = { dataISO: m.dataISO, itens: [], liquido: 0 });
+        ultimo.itens.push(m);
+        ultimo.liquido += m.tipo === "entrada" ? m.valor : -m.valor;
+    });
+    corpo.innerHTML = porDia.map(dia => {
+        let data = new Date(dia.dataISO + "T12:00:00");
+        let titulo = data.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+        titulo = titulo.charAt(0).toUpperCase() + titulo.slice(1);
+        return `
+        <div class="fcDia">
+            <div class="fcDiaTopo"><span>${titulo}</span><b class="${dia.liquido >= 0 ? "fcEntrada" : "fcSaida"}">${dia.liquido >= 0 ? "+ " : "− "}R$ ${formatarMoeda(Math.abs(dia.liquido))}</b></div>
+            ${dia.itens.map(m => {
+                let entrada = m.tipo === "entrada";
+                let hora = (String(m.data).split(",")[1] || "").trim().slice(0, 5);
+                return `
+                <div class="fcLinha ${entrada ? "fcLinhaEntrada" : "fcLinhaSaida"}">
+                    <span class="fcIconeTipo">${entrada ? I.entrada : I.saida}</span>
+                    <div class="fcTextos">
+                        <b>${esc(m.descricao)}</b>
+                        <small>${esc(m.origem)}${hora ? " · " + hora : ""}${m.lote ? ` · <span class="fcEtiqueta">${I.tag}${esc(m.lote)}</span>` : ""}${m.subCaixa ? ` · <span class="fcEtiqueta">${I.pasta}${esc(m.subCaixa)}</span>` : ""}</small>
+                    </div>
+                    <span class="fcValor">${entrada ? "+ " : "− "}R$ ${formatarMoeda(m.valor)}</span>
+                    <span class="fcSaldoApos" data-rotulo="Saldo após">R$ ${formatarMoeda(m.saldoAcumulado)}</span>
+                    <span class="fcAcao">${m.excluivel ? `<button class="ltBtnIcone ltBtnExcluir" onclick='excluirLancamento(${jsonAtributo(m.id)})' title="Excluir lançamento" aria-label="Excluir lançamento">${I.lixeira}</button>` : ""}</span>
+                </div>`;
+            }).join("")}
+        </div>`;
+    }).join("");
+}
+
+// extrato impresso do período filtrado (mesma folha branca dos relatórios)
+function imprimirExtratoCaixa() {
+    let esc = escaparHtmlPesagem;
+    let movimentos = montarMovimentosCaixa();
+    let { de, ate, busca, noPeriodo, visiveis, saldoAnterior } = filtrarMovimentosCaixa(movimentos);
+    let br = iso => iso ? iso.split("-").reverse().join("/") : "";
+    let periodo = de || ate ? `${de ? br(de) : "início"} a ${ate ? br(ate) : "hoje"}` : "Todo o histórico";
+    let entradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
+    let saidas = visiveis.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0);
+    let saldoFinal = noPeriodo.length ? noPeriodo[noPeriodo.length - 1].saldoAcumulado : saldoAnterior;
+    let filtrado = visiveis.length !== noPeriodo.length;
+    let rs = v => (v < 0 ? "− " : "") + "R$ " + formatarMoeda(Math.abs(v));
+    let quadro = (rotulo, valor, destaque) => `<div class="folhaQuadro${destaque ? " folhaQuadroDestaque" : ""}"><span>${rotulo}</span><b>${valor}</b></div>`;
+
+    let html = `
+        <header class="folhaTopo">
+            <div>
+                <div class="folhaFazenda">${esc(nomeFazendaAtual())}</div>
+                <h1>Extrato de Caixa</h1>
+            </div>
+            <div class="folhaTopoDireita">
+                <span class="folhaSelo folhaSeloVenda">${esc(periodo.toUpperCase())}</span>
+                <small>Emitido em ${new Date().toLocaleString("pt-BR")}</small>
+            </div>
+        </header>
+        <section class="folhaDados">
+            <div><span>Período</span><b>${esc(periodo)}</b></div>
+            <div><span>Lançamentos</span><b>${visiveis.length}</b></div>
+            <div><span>Filtro</span><b>${filtroTipoCaixa === "entrada" ? "Só entradas" : filtroTipoCaixa === "saida" ? "Só saídas" : "Entradas e saídas"}${busca ? ` · "${esc(busca)}"` : ""}</b></div>
+            <div><span>Emitido por</span><b>${esc(obterUsuarioLogado() || "—")}</b></div>
+        </section>
+        <section class="folhaResumo">
+            ${quadro("Saldo anterior", de ? rs(saldoAnterior) : "—")}
+            ${quadro("Entradas", "R$ " + formatarMoeda(entradas))}
+            ${quadro("Saídas", "R$ " + formatarMoeda(saidas))}
+            ${quadro("Resultado", (entradas - saidas >= 0 ? "+ " : "− ") + "R$ " + formatarMoeda(Math.abs(entradas - saidas)))}
+            ${quadro("Saldo no fim do período", rs(saldoFinal), true)}
+        </section>
+        ${filtrado ? `<p class="folhaAviso">Lista filtrada: a coluna Saldo considera todos os lançamentos do caixa, inclusive os que não aparecem aqui.</p>` : ""}
+        <table class="folhaTabela folhaExtrato">
+            <thead><tr><th>Data</th><th>Descrição</th><th>Origem</th><th>Entrada</th><th>Saída</th><th>Saldo</th></tr></thead>
+            <tbody>
+                ${de ? `<tr class="folhaLinhaSaldo"><td>${br(de)}</td><td class="folhaObs">Saldo anterior</td><td></td><td></td><td></td><td>${rs(saldoAnterior)}</td></tr>` : ""}
+                ${visiveis.map(m => `<tr>
+                    <td>${esc(String(m.data).split(",")[0])}</td>
+                    <td class="folhaObs">${esc(m.descricao)}${m.lote ? ` <small>(lote ${esc(m.lote)})</small>` : ""}</td>
+                    <td class="folhaObs">${esc(m.origem)}</td>
+                    <td>${m.tipo === "entrada" ? "R$ " + formatarMoeda(m.valor) : ""}</td>
+                    <td>${m.tipo === "saida" ? "R$ " + formatarMoeda(m.valor) : ""}</td>
+                    <td>${rs(m.saldoAcumulado)}</td>
+                </tr>`).join("")}
+            </tbody>
+            <tfoot><tr><td colspan="3">Totais do período</td><td>R$ ${formatarMoeda(entradas)}</td><td>R$ ${formatarMoeda(saidas)}</td><td>${rs(saldoFinal)}</td></tr></tfoot>
+        </table>
+        ${visiveis.length === 0 ? `<p class="folhaAviso">Nenhuma movimentação nesse período.</p>` : ""}
+        <footer class="folhaRodape">
+            <div class="folhaAssinaturas">
+                <div><span></span>Responsável</div>
+                <div><span></span>${esc(nomeFazendaAtual())}</div>
+            </div>
+            <small>Extrato gerado pelo PesoCerto</small>
+        </footer>`;
+
+    document.getElementById("folhaRelatorio").innerHTML = html;
+    document.getElementById("telaImpressao").classList.add("modoExtrato");
+    let titulo = document.getElementById("impressaoTitulo");
+    if (titulo) titulo.innerText = "Extrato de caixa · " + periodo;
+    let voltar = document.getElementById("impressaoVoltarTexto");
+    if (voltar) voltar.innerText = "Voltar ao Fluxo de Caixa";
+    trocarTela("telaImpressao");
+    window.scrollTo(0, 0);
 }
 
 async function abrirModalLancamento() {
@@ -3905,6 +4088,7 @@ async function abrirModalAdiantamento() {
     document.getElementById("adiObservacoesInput").value = "";
     let erroEl = document.getElementById("adiErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
+    novaChaveIdempotencia("modalAdiantamento");
     document.getElementById("modalAdiantamento").style.display = "flex";
 }
 
@@ -3935,6 +4119,7 @@ async function salvarAdiantamento() {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({
+                id: obterChaveIdempotencia("modalAdiantamento"),
                 funcionarioId, valor, data: formatarDataBR(dataISO), competencia,
                 observacoes: observacoes || null
             })
