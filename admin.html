@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=5">
-    <link rel="stylesheet" href="admin.css?v=22">
+    <link rel="stylesheet" href="admin.css?v=23">
 </head>
 <body class="modoDesktop">
 
@@ -493,7 +493,13 @@
     <h2>Lotes</h2>
     <div class="botoesRelatorio">
         <button onclick="abrirModalLote()" style="background:#2e7d32">➕ Novo Lote</button>
-        <button onclick="abrirModalTransferenciaLote()" style="background:#1976d2">🔀 Transferir Animais entre Lotes</button>
+    </div>
+    <div class="avisoTransfPesada">
+        <span class="avisoTransfPesadaIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
+        <div>
+            <strong>Transferência entre lotes é feita no celular, pesando os animais</strong>
+            <span>Nova Pesagem → Operação "Transferência" → escolha o lote de destino e pese cada animal. Assim o lote novo recebe o peso certo de cada um e o custo por kg fica correto. O histórico de transferências continua aqui embaixo.</span>
+        </div>
     </div>
     <table class="tabelaUsuarios">
         <thead>

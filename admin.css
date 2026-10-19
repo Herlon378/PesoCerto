@@ -1874,3 +1874,16 @@ body.modoDesktop .acoesUsuario .btnPdfRelLote:hover { background: rgba(255,138,1
 .relLoteKpi { gap: 5px; }
 .relLoteAviso { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; color: #ffd479; background: rgba(255,201,77,0.08); border: 1px solid rgba(255,201,77,0.3); }
 .relLoteSemPeso { font-size: 12px; font-weight: 700; color: #ffc94d; }
+
+/* Lotes: transferência só pesando (pelo celular) */
+.avisoTransfPesada {
+    display: flex; align-items: flex-start; gap: 12px; margin: 4px 0 16px; padding: 12px 14px;
+    border-radius: 12px; background: rgba(57,135,229,0.1); border: 1px solid rgba(110,170,255,0.35);
+}
+.avisoTransfPesadaIcone {
+    width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: #60a5fa; background: rgba(96,165,250,0.16); border: 1px solid rgba(96,165,250,0.3);
+}
+.avisoTransfPesadaIcone svg { width: 18px; height: 18px; }
+.avisoTransfPesada strong { display: block; font-size: 14px; color: #fff; margin-bottom: 3px; }
+.avisoTransfPesada span { font-size: 13px; line-height: 1.45; color: #c9d3e6; }
