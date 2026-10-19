@@ -343,6 +343,27 @@ async function enviarMensagemAdmin() {
 // ========================================
 let loteEditandoId = null;
 
+// ícones próprios da tela de Lotes (traço fino, mesmo estilo do menu)
+const ICONES_LOTES = {
+    "mais": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg>",
+    "tag": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"></path><circle cx=\"7\" cy=\"7\" r=\"1.3\" fill=\"currentColor\"></circle></svg>",
+    "boi": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5\"></path><path d=\"M7 8.5v5a5 5 0 0 0 10 0v-5\"></path><path d=\"M9.5 17.5h5\"></path><circle cx=\"10\" cy=\"12\" r=\".7\" fill=\"currentColor\"></circle><circle cx=\"14\" cy=\"12\" r=\".7\" fill=\"currentColor\"></circle></svg>",
+    "transf": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 7h13l-3-3\"></path><path d=\"M20 17H7l3 3\"></path></svg>",
+    "busca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>",
+    "editar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 20h9\"></path><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z\"></path></svg>",
+    "desativar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M5.6 5.6l12.8 12.8\"></path></svg>",
+    "ativar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M8.5 12l2.5 2.5 4.5-5\"></path></svg>",
+    "lixeira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"></path><path d=\"M8 6V4h8v2\"></path><path d=\"M19 6l-1 14H6L5 6\"></path><path d=\"M10 11v6M14 11v6\"></path></svg>",
+    "relatorio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21H11\"></path><path d=\"M13 3l5 5v2.5\"></path><path d=\"M13 3v5h5\"></path><path d=\"M8 12h4M8 15.5h2\"></path><circle cx=\"16.5\" cy=\"16.5\" r=\"3\"></circle><path d=\"M18.7 18.7L21 21\"></path></svg>",
+    "seta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"M13 6l6 6-6 6\"></path></svg>",
+    "balanca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v18\"></path><path d=\"M5 7h14\"></path><path d=\"M5 7l-3 7a3 3 0 0 0 6 0z\"></path><path d=\"M19 7l-3 7a3 3 0 0 0 6 0z\"></path><path d=\"M8 21h8\"></path></svg>",
+    "alerta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z\"></path><path d=\"M12 9v4\"></path><path d=\"M12 17h.01\"></path></svg>",
+    "desfazer": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 14L4 9l5-5\"></path><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"></path></svg>"
+};
+
+let lotesCacheTela = [];
+let filtroLotesTela = "ativos";
+
 async function carregarLotes() {
     let token = obterToken();
     let corpo = document.getElementById("corpoTabelaLotes");
@@ -353,29 +374,111 @@ async function carregarLotes() {
             headers: { "Authorization": "Bearer " + token }
         });
         if (!resp.ok) {
-            corpo.innerHTML = `<tr><td colspan="4">Sessão expirada ou sem acesso.</td></tr>`;
+            corpo.innerHTML = `<p class="ltVazio">Sessão expirada ou sem acesso.</p>`;
             return;
         }
-        let lotes = await resp.json();
-        if (lotes.length === 0) {
-            corpo.innerHTML = `<tr><td colspan="4">Nenhum lote cadastrado ainda.</td></tr>`;
-            return;
-        }
-        corpo.innerHTML = lotes.map(l => `
-            <tr>
-                <td>${l.nome}</td>
-                <td><b>${typeof l.saldo === "number" ? l.saldo : "—"}</b></td>
-                <td>${l.ativo ? "✅ Ativo" : "🚫 Inativo"}</td>
-                <td class="acoesUsuario">
-                    <button onclick='abrirModalLote(${jsonAtributo(l)})'>✏️</button>
-                    <button onclick='alternarAtivoLote(${jsonAtributo(l.id)}, ${!l.ativo})'>${l.ativo ? "🚫" : "✅"}</button>
-                    <button onclick='excluirLote(${jsonAtributo(l.id)}, ${jsonAtributo(l.nome)})'>🗑️</button>
-                </td>
-            </tr>
-        `).join("");
+        lotesCacheTela = await resp.json();
+        mostrarLotesTela();
     } catch (e) {
-        corpo.innerHTML = `<tr><td colspan="4">Erro ao carregar lotes.</td></tr>`;
+        corpo.innerHTML = `<p class="ltVazio">Erro ao carregar lotes.</p>`;
     }
+}
+
+function filtrarLotesTela(filtro) {
+    filtroLotesTela = filtro;
+    document.querySelectorAll(".ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.filtro === filtro));
+    mostrarLotesTela();
+}
+
+// quantas transferências cada lote recebeu/enviou (do histórico já carregado)
+function contarTransferenciasDoLote(nome) {
+    let recebidas = 0, enviadas = 0;
+    transferenciasLotesCacheAdmin.forEach(t => {
+        if (t.loteDestino === nome) recebidas++;
+        if (t.loteOrigem === nome) enviadas++;
+    });
+    return { recebidas, enviadas };
+}
+
+function mostrarLotesTela() {
+    let corpo = document.getElementById("corpoTabelaLotes");
+    if (!corpo) return;
+    let esc = escaparHtmlPesagem;
+    let lotes = lotesCacheTela;
+    let saldo = l => typeof l.saldo === "number" ? l.saldo : 0;
+    let totalAnimais = lotes.filter(l => l.ativo).reduce((t, l) => t + saldo(l), 0);
+    let maior = Math.max(1, ...lotes.map(saldo));
+
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
+    set("ltKpiAtivos", lotes.filter(l => l.ativo).length);
+    set("ltKpiAnimais", totalAnimais);
+    set("ltKpiTransf", transferenciasLotesCacheAdmin.length);
+    set("ltResumo", `${lotes.length} ${lotes.length === 1 ? "lote cadastrado" : "lotes cadastrados"}`);
+
+    let busca = (document.getElementById("ltBusca")?.value || "").trim().toLowerCase();
+    let visiveis = lotes.filter(l => {
+        if (busca && !l.nome.toLowerCase().includes(busca)) return false;
+        if (filtroLotesTela === "ativos") return l.ativo;
+        if (filtroLotesTela === "inativos") return !l.ativo;
+        if (filtroLotesTela === "comAnimais") return saldo(l) > 0;
+        if (filtroLotesTela === "vazios") return saldo(l) === 0;
+        return true;
+    });
+    // os com mais animais primeiro; empate, ordem alfabética
+    visiveis.sort((a, b) => saldo(b) - saldo(a) || a.nome.localeCompare(b.nome, "pt-BR"));
+
+    if (lotes.length === 0) {
+        corpo.innerHTML = `<p class="ltVazio">Nenhum lote cadastrado ainda. Clique em <b>Novo Lote</b> pra começar.</p>`;
+        return;
+    }
+    if (visiveis.length === 0) {
+        corpo.innerHTML = `<p class="ltVazio">Nenhum lote nesse filtro.</p>`;
+        return;
+    }
+
+    let I = ICONES_LOTES;
+    corpo.innerHTML = visiveis.map(l => {
+        let n = saldo(l);
+        let { recebidas, enviadas } = contarTransferenciasDoLote(l.nome);
+        let participacao = totalAnimais > 0 && l.ativo ? Math.round(n / totalAnimais * 100) : 0;
+        return `
+        <article class="ltCartao${l.ativo ? "" : " ltCartaoInativo"}${n === 0 ? " ltCartaoVazio" : ""}">
+            <header class="ltCartaoTopo">
+                <span class="ltCartaoIcone">${I.tag}</span>
+                <h4 title="${esc(l.nome)}">${esc(l.nome)}</h4>
+                <span class="ltStatus ${l.ativo ? "ltStatusAtivo" : "ltStatusInativo"}">${l.ativo ? "Ativo" : "Inativo"}</span>
+            </header>
+            <div class="ltCartaoNumero">
+                <b>${n}</b><span>${n === 1 ? "animal" : "animais"}</span>
+                ${l.ativo && n > 0 ? `<small>${participacao}% do rebanho</small>` : ""}
+            </div>
+            <div class="ltBarra"><i style="width:${n > 0 ? Math.max(3, n / maior * 100) : 0}%"></i></div>
+            <button class="ltCartaoTransf" onclick='verTransferenciasDoLote(${jsonAtributo(l.nome)})' title="Ver as transferências deste lote" ${recebidas + enviadas === 0 ? "disabled" : ""}>
+                ${I.transf}<span>${recebidas + enviadas === 0 ? "Nenhuma transferência" : `${recebidas} recebida${recebidas === 1 ? "" : "s"} · ${enviadas} enviada${enviadas === 1 ? "" : "s"}`}</span>
+            </button>
+            <footer class="ltCartaoAcoes">
+                <button class="ltBtnRelatorio" onclick='abrirRelatorioLoteDaTelaLotes(${jsonAtributo(l.nome)})'>${I.relatorio}<span>Ver relatório</span></button>
+                <button class="ltBtnIcone" onclick='abrirModalLote(${jsonAtributo(l)})' title="Renomear lote" aria-label="Renomear lote">${I.editar}</button>
+                <button class="ltBtnIcone ${l.ativo ? "ltBtnDesativar" : "ltBtnAtivar"}" onclick='alternarAtivoLote(${jsonAtributo(l.id)}, ${!l.ativo})' title="${l.ativo ? "Desativar lote" : "Reativar lote"}" aria-label="${l.ativo ? "Desativar lote" : "Reativar lote"}">${l.ativo ? I.desativar : I.ativar}</button>
+                <button class="ltBtnIcone ltBtnExcluir" onclick='excluirLote(${jsonAtributo(l.id)}, ${jsonAtributo(l.nome)})' title="Excluir lote" aria-label="Excluir lote">${I.lixeira}</button>
+            </footer>
+        </article>`;
+    }).join("");
+}
+
+// o relatório usa pesagens + caixa + almoxarifado + transferências: garante
+// que estão carregados (na tela de Lotes o Dashboard pode nunca ter aberto)
+async function abrirRelatorioLoteDaTelaLotes(nome) {
+    await carregarCachesFinanceirasDashboard();
+    await carregarTransferenciasLotesAdmin();
+    abrirRelatorioLote(nome);
+}
+
+function verTransferenciasDoLote(nome) {
+    let sel = document.getElementById("ltFiltroTransf");
+    if (sel) sel.value = nome;
+    mostrarHistoricoTransferencias();
+    document.getElementById("ltHistorico")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function abrirModalLote(loteExistente) {
@@ -620,20 +723,58 @@ async function carregarHistoricoTransferencias() {
     let corpo = document.getElementById("corpoTabelaTransferencias");
     if (!corpo) return;
     await carregarTransferenciasLotesAdmin();
-    if (transferenciasLotesCacheAdmin.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6">Nenhuma transferência registrada ainda.</td></tr>`;
+    mostrarHistoricoTransferencias();
+    mostrarLotesTela(); // contadores de transferência nos cartões
+}
+
+function mostrarHistoricoTransferencias() {
+    let corpo = document.getElementById("corpoTabelaTransferencias");
+    if (!corpo) return;
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_LOTES;
+
+    // filtro por lote: só os lotes que aparecem em alguma transferência
+    let sel = document.getElementById("ltFiltroTransf");
+    let nomes = [...new Set(transferenciasLotesCacheAdmin.flatMap(t => [t.loteOrigem, t.loteDestino]))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    let filtro = sel ? sel.value : "";
+    if (sel) {
+        sel.innerHTML = `<option value="">Todos os lotes</option>` + nomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+        sel.value = nomes.includes(filtro) ? filtro : "";
+        filtro = sel.value;
+        sel.classList.toggle("ltFiltroUsado", !!filtro);
+    }
+    let lista = transferenciasLotesCacheAdmin.filter(t => !filtro || t.loteOrigem === filtro || t.loteDestino === filtro);
+
+    if (lista.length === 0) {
+        corpo.innerHTML = `<p class="ltVazio">${filtro ? "Nenhuma transferência deste lote." : "Nenhuma transferência registrada ainda."}</p>`;
         return;
     }
-    corpo.innerHTML = transferenciasLotesCacheAdmin.map(t => `
-        <tr>
-            <td>${t.data || "—"}</td>
-            <td>${t.loteOrigem}</td>
-            <td>${t.loteDestino}</td>
-            <td>${t.quantidade}${t.kgTotal ? ` <small style="color:var(--ink-muted)">(${formatarPeso(t.kgTotal)} kg)</small>` : ""}</td>
-            <td>R$ ${formatarMoeda(t.valorTotal)}${t.modoCusto === "automatico" ? ` <small style="color:var(--ink-muted)" title="Calculado: só o custo que o lote de origem ainda não tinha recuperado">automático</small>` : ""}</td>
-            <td class="acoesUsuario"><button onclick='excluirTransferenciaLote(${jsonAtributo(t.id)})'>🗑️</button></td>
-        </tr>
-    `).join("");
+    corpo.innerHTML = lista.map(t => {
+        let [dia, hora] = String(t.data || "—").split(",");
+        let pesada = Array.isArray(t.pesos) && t.pesos.length > 0;
+        let destaque = nome => filtro && nome === filtro ? " ltLoteDestaque" : "";
+        return `
+        <div class="ltEvento">
+            <div class="ltEventoData"><b>${esc(dia)}</b><small>${esc((hora || "").trim().slice(0, 5))}</small></div>
+            <div class="ltEventoMarcador" aria-hidden="true"></div>
+            <div class="ltEventoCorpo">
+                <div class="ltEventoRota">
+                    <span class="ltLote${destaque(t.loteOrigem)}">${esc(t.loteOrigem)}</span>
+                    <span class="ltEventoSeta">${I.seta}</span>
+                    <span class="ltLote${destaque(t.loteDestino)}">${esc(t.loteDestino)}</span>
+                </div>
+                <div class="ltEventoInfo">
+                    <span class="ltSelo">${t.quantidade} ${t.quantidade === 1 ? "animal" : "animais"}</span>
+                    ${pesada || t.kgTotal
+                        ? `<span class="ltSelo ltSeloPesada">${I.balanca}${formatarPeso(t.kgTotal)} kg</span>`
+                        : `<span class="ltSelo ltSeloSemPeso" title="Lançada antes da regra de transferir só pesando">${I.alerta}sem peso</span>`}
+                    <span class="ltEventoValor">R$ ${formatarMoeda(t.valorTotal)}</span>
+                    <small class="ltEventoModo" title="${t.modoCusto === "automatico" ? "Calculado: só o custo que o lote de origem ainda não tinha recuperado" : "Valor informado na hora"}">${t.modoCusto === "automatico" ? "custo automático" : "custo manual"}</small>
+                </div>
+            </div>
+            <button class="ltBtnDesfazer" onclick='excluirTransferenciaLote(${jsonAtributo(t.id)})' title="Desfazer: os animais voltam pro lote de origem">${I.desfazer}<span>Desfazer</span></button>
+        </div>`;
+    }).join("");
 }
 
 async function excluirTransferenciaLote(id) {

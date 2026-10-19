@@ -1887,3 +1887,142 @@ body.modoDesktop .acoesUsuario .btnPdfRelLote:hover { background: rgba(255,138,1
 .avisoTransfPesadaIcone svg { width: 18px; height: 18px; }
 .avisoTransfPesada strong { display: block; font-size: 14px; color: #fff; margin-bottom: 3px; }
 .avisoTransfPesada span { font-size: 13px; line-height: 1.45; color: #c9d3e6; }
+
+/* ========================================
+   LOTES: topo fixo + cartões + linha do tempo das transferências
+   ======================================== */
+.ltTituloLinha { align-items: center; }
+.ltResumo { font-size: 13px; color: var(--ink-muted); }
+body.modoDesktop .ltNovo { margin-left: auto; height: 40px; background: linear-gradient(180deg, #2fa654, #1e7d3c); }
+.ltKpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.ltKpi {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--corKpi) 10%, transparent), transparent 70%), var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+}
+.ltKpiIcone, .ltCartaoIcone {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--corKpi, #fbbf24); background: color-mix(in srgb, var(--corKpi, #fbbf24) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--corKpi, #fbbf24) 30%, transparent);
+}
+.ltKpiIcone svg, .ltCartaoIcone svg { width: 19px; height: 19px; }
+.ltKpiRotulo { display: block; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.ltKpi b { font-size: 21px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.ltFiltros { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ltBusca { flex: 0 1 300px; height: 40px; }
+.ltChips { display: flex; gap: 6px; flex-wrap: wrap; }
+body.modoDesktop .ltChip {
+    width: auto; margin: 0; height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: var(--ink-muted);
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border-strong); box-shadow: none;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+body.modoDesktop .ltChip:hover { color: #fff; border-color: rgba(110,170,255,0.5); }
+body.modoDesktop .ltChip.ltChipAtivo { color: #0d1426; background: #fbbf24; border-color: #fbbf24; }
+
+.ltGrade { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.ltVazio { grid-column: 1 / -1; margin: 0; padding: 24px; text-align: center; color: var(--ink-muted); border: 1px dashed var(--border-strong); border-radius: 14px; }
+.ltCartao {
+    display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 16px;
+    background: linear-gradient(160deg, rgba(251,191,36,0.07), transparent 45%), var(--surface);
+    border: 1px solid var(--border-strong);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ltCartao:hover { transform: translateY(-2px); border-color: rgba(251,191,36,0.45); box-shadow: 0 12px 28px -14px rgba(0,0,0,0.7); }
+.ltCartaoInativo { opacity: 0.62; background: var(--surface); }
+.ltCartaoInativo:hover { opacity: 0.9; }
+.ltCartaoTopo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ltCartaoTopo h4 { flex: 1; min-width: 0; margin: 0; font-size: 16px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ltStatus { flex-shrink: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.4px; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; }
+.ltStatusAtivo { color: #3ddc84; background: rgba(61,220,132,0.12); border: 1px solid rgba(61,220,132,0.35); }
+.ltStatusInativo { color: #c3cbdc; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); }
+.ltCartaoNumero { display: flex; align-items: baseline; gap: 6px; }
+.ltCartaoNumero b { font-size: 32px; line-height: 1; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.ltCartaoNumero span { font-size: 14px; color: #c9d3e6; }
+.ltCartaoNumero small { margin-left: auto; font-size: 12px; font-weight: 700; color: #fbbf24; }
+.ltCartaoVazio .ltCartaoNumero b { color: var(--ink-muted); }
+.ltBarra { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; }
+.ltBarra i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #f59e0b, #fbbf24); transition: width 0.4s ease; }
+body.modoDesktop .ltCartaoTransf {
+    display: flex; align-items: center; gap: 8px; width: 100%; margin: 0; padding: 6px 8px; border-radius: 8px; cursor: pointer;
+    font-size: 12.5px; color: #9cc8ff; text-align: left; background: transparent; border: 1px solid transparent; box-shadow: none;
+}
+body.modoDesktop .ltCartaoTransf:hover:not(:disabled) { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.3); }
+body.modoDesktop .ltCartaoTransf:disabled { color: var(--ink-muted); cursor: default; }
+.ltCartaoTransf svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ltCartaoAcoes { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+body.modoDesktop .ltBtnRelatorio {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    width: auto; height: 36px; margin: 0; padding: 0 10px; border-radius: 9px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: #fff; border: none; white-space: nowrap;
+    background: linear-gradient(180deg, #3d8cf0, #2468c8); box-shadow: 0 3px 10px -3px rgba(57,135,229,0.6);
+}
+body.modoDesktop .ltBtnRelatorio:hover { background: linear-gradient(180deg, #4f9bff, #2a74dc); }
+.ltBtnRelatorio svg { width: 16px; height: 16px; }
+body.modoDesktop .ltBtnIcone {
+    width: 36px; height: 36px; flex-shrink: 0; margin: 0; padding: 0; border-radius: 9px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #c9d3e6; background: rgba(255,255,255,0.04); border: 1px solid var(--border-strong); box-shadow: none;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.ltBtnIcone svg { width: 16px; height: 16px; }
+body.modoDesktop .ltBtnIcone:hover { color: #fff; background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.5); }
+body.modoDesktop .ltBtnDesativar:hover { color: #ffc94d; background: rgba(255,201,77,0.14); border-color: rgba(255,201,77,0.5); }
+body.modoDesktop .ltBtnAtivar { color: #3ddc84; }
+body.modoDesktop .ltBtnAtivar:hover { color: #3ddc84; background: rgba(61,220,132,0.14); border-color: rgba(61,220,132,0.5); }
+body.modoDesktop .ltBtnExcluir:hover { color: #ff8a83; background: rgba(229,83,75,0.16); border-color: rgba(229,83,75,0.55); }
+
+.ltHistorico { padding: 18px 20px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); scroll-margin-top: 90px; }
+.ltHistoricoTopo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.ltHistoricoTopo h3 { margin: 0 0 4px; font-size: 18px; }
+.ltHistoricoTopo p { margin: 0; font-size: 13px; color: var(--ink-muted); }
+body.modoDesktop #ltFiltroTransf {
+    width: auto; min-width: 200px; height: 40px; margin: 0; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); color-scheme: dark; cursor: pointer;
+}
+body.modoDesktop #ltFiltroTransf.ltFiltroUsado { border-color: var(--blue-500); background: rgba(57,135,229,0.14); }
+.ltLinhaTempo { display: flex; flex-direction: column; }
+.ltEvento { display: grid; grid-template-columns: 92px 18px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 6px; border-radius: 12px; }
+.ltEvento:hover { background: rgba(255,255,255,0.03); }
+.ltEventoData { text-align: right; }
+.ltEventoData b { display: block; font-size: 13.5px; color: #fff; font-variant-numeric: tabular-nums; }
+.ltEventoData small { font-size: 12px; color: var(--ink-muted); }
+.ltEventoMarcador { position: relative; align-self: stretch; }
+.ltEventoMarcador::before { content: ""; position: absolute; left: 8px; top: -10px; bottom: -10px; width: 2px; background: rgba(110,170,255,0.2); }
+.ltEventoMarcador::after { content: ""; position: absolute; left: 3px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 0 4px rgba(96,165,250,0.18); }
+.ltEvento:first-child .ltEventoMarcador::before { top: 50%; }
+.ltEvento:last-child .ltEventoMarcador::before { bottom: 50%; }
+.ltEventoRota { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ltLote { font-size: 14.5px; font-weight: 700; color: #fff; }
+.ltLoteDestaque { color: #fbbf24; }
+.ltEventoSeta { display: inline-flex; color: #60a5fa; }
+.ltEventoSeta svg { width: 16px; height: 16px; }
+.ltEventoInfo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ltSelo { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #c9d3e6; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); }
+.ltSelo svg { width: 13px; height: 13px; }
+.ltSeloPesada { color: #3ddc84; background: rgba(61,220,132,0.1); border-color: rgba(61,220,132,0.35); }
+.ltSeloSemPeso { color: #ffc94d; background: rgba(255,201,77,0.1); border-color: rgba(255,201,77,0.4); }
+.ltEventoValor { font-size: 13.5px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.ltEventoModo { font-size: 11.5px; color: var(--ink-muted); }
+body.modoDesktop .ltBtnDesfazer {
+    display: inline-flex; align-items: center; gap: 6px; width: auto; height: 34px; margin: 0; padding: 0 12px; border-radius: 9px; cursor: pointer;
+    font-size: 12.5px; font-weight: 700; color: #c9d3e6; background: transparent; border: 1px solid var(--border-strong); box-shadow: none;
+}
+body.modoDesktop .ltBtnDesfazer:hover { color: #ff8a83; background: rgba(229,83,75,0.14); border-color: rgba(229,83,75,0.5); }
+.ltBtnDesfazer svg { width: 15px; height: 15px; }
+@media (max-width: 900px) {
+    .ltTopo { position: static; }
+    .ltKpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .ltKpi { flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 10px; }
+    .ltKpiIcone { width: 30px; height: 30px; }
+    .ltKpi b { font-size: 18px; }
+    body.modoDesktop .ltNovo { margin-left: 0; width: 100%; justify-content: center; }
+    .ltBusca { flex-basis: 100%; }
+    .ltGrade { grid-template-columns: 1fr; }
+    .ltHistorico { padding: 14px; }
+    body.modoDesktop #ltFiltroTransf { width: 100%; }
+    .ltEvento { grid-template-columns: 70px 14px minmax(0, 1fr); }
+    .ltEventoMarcador::before { left: 6px; }
+    .ltEventoMarcador::after { left: 1px; }
+    .ltBtnDesfazer { grid-column: 3; justify-self: start; }
+}

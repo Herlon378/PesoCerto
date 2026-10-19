@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=5">
-    <link rel="stylesheet" href="admin.css?v=23">
+    <link rel="stylesheet" href="admin.css?v=24">
 </head>
 <body class="modoDesktop">
 
@@ -490,34 +490,51 @@
 </div>
 
 <div id="telaLotes" class="tela">
-    <h2>Lotes</h2>
-    <div class="botoesRelatorio">
-        <button onclick="abrirModalLote()" style="background:#2e7d32">➕ Novo Lote</button>
-    </div>
-    <div class="avisoTransfPesada">
-        <span class="avisoTransfPesadaIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
-        <div>
-            <strong>Transferência entre lotes é feita no celular, pesando os animais</strong>
-            <span>Nova Pesagem → Operação "Transferência" → escolha o lote de destino e pese cada animal. Assim o lote novo recebe o peso certo de cada um e o custo por kg fica correto. O histórico de transferências continua aqui embaixo.</span>
+    <div class="relatoriosTopo ltTopo">
+        <div class="relatoriosTituloLinha ltTituloLinha">
+            <h2>Lotes</h2>
+            <span class="ltResumo" id="ltResumo"></span>
+            <button class="acaoRel ltNovo" onclick="abrirModalLote()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Novo Lote</button>
+        </div>
+        <div class="ltKpis">
+            <div class="ltKpi" style="--corKpi:#fbbf24"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg></span><div><span class="ltKpiRotulo">Lotes ativos</span><b id="ltKpiAtivos">0</b></div></div>
+            <div class="ltKpi" style="--corKpi:#a3e635"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span><div><span class="ltKpiRotulo">Animais no rebanho</span><b id="ltKpiAnimais">0</b></div></div>
+            <div class="ltKpi" style="--corKpi:#60a5fa"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span><div><span class="ltKpiRotulo">Transferências</span><b id="ltKpiTransf">0</b></div></div>
+        </div>
+        <div class="ltFiltros">
+            <label class="buscaRelatorioDesk ltBusca">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="search" id="ltBusca" placeholder="Buscar lote..." oninput="mostrarLotesTela()">
+            </label>
+            <div class="ltChips" role="group" aria-label="Filtrar lotes">
+                <button class="ltChip ltChipAtivo" data-filtro="ativos" onclick="filtrarLotesTela('ativos')">Ativos</button>
+                <button class="ltChip" data-filtro="comAnimais" onclick="filtrarLotesTela('comAnimais')">Com animais</button>
+                <button class="ltChip" data-filtro="vazios" onclick="filtrarLotesTela('vazios')">Vazios</button>
+                <button class="ltChip" data-filtro="inativos" onclick="filtrarLotesTela('inativos')">Inativos</button>
+                <button class="ltChip" data-filtro="todos" onclick="filtrarLotesTela('todos')">Todos</button>
+            </div>
         </div>
     </div>
-    <table class="tabelaUsuarios">
-        <thead>
-            <tr><th>Nome</th><th>Animais</th><th>Status</th><th>Ações</th></tr>
-        </thead>
-        <tbody id="corpoTabelaLotes"></tbody>
-    </table>
 
-    <h3 style="margin-top:28px">Transferências entre Lotes</h3>
-    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-        Pra quando o gado de várias compras fica misturado no mesmo pasto (ex: separar o refugo num lote próprio). Move cabeça e custo de um lote pro outro pelo custo médio do lote de origem — não é compra nem venda, não mexe em caixa nem no Fluxo de Caixa.
-    </p>
-    <table class="tabelaUsuarios">
-        <thead>
-            <tr><th>Data</th><th>De</th><th>Para</th><th>Qtd.</th><th>Valor</th><th>Ações</th></tr>
-        </thead>
-        <tbody id="corpoTabelaTransferencias"></tbody>
-    </table>
+    <div class="ltGrade" id="corpoTabelaLotes"></div>
+
+    <section class="ltHistorico" id="ltHistorico">
+        <div class="ltHistoricoTopo">
+            <div>
+                <h3>Transferências entre lotes</h3>
+                <p>Move cabeça e custo de um lote pro outro (ex: separar o refugo) — não é compra nem venda, não mexe no caixa.</p>
+            </div>
+            <select id="ltFiltroTransf" onchange="mostrarHistoricoTransferencias()" title="Filtrar por lote"></select>
+        </div>
+        <div class="avisoTransfPesada">
+            <span class="avisoTransfPesadaIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><path d="M5 7h14"></path><path d="M5 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M19 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M8 21h8"></path></svg></span>
+            <div>
+                <strong>Transferência é feita no celular, pesando os animais</strong>
+                <span>Nova Pesagem → Operação "Transferência" → escolha o lote de destino e pese cada animal. Assim o lote novo recebe o peso certo e o custo por kg fica correto.</span>
+            </div>
+        </div>
+        <div class="ltLinhaTempo" id="corpoTabelaTransferencias"></div>
+    </section>
 </div>
 
 <div id="telaAlmoxarifado" class="tela">
@@ -1008,7 +1025,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=18"></script>
-<script src="admin.js?v=28"></script>
+<script src="admin.js?v=29"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">
