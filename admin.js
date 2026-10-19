@@ -1428,6 +1428,7 @@ function calcularRelatorioLote(nomeLote) {
         receitaVenda += d.totalRS;
     });
 
+    let entradasTransferenciaISO = [];
     let custoInsumos = 0;
     let insumosPorCategoria = {};
     function somarInsumo(chave, valor) {
@@ -1450,15 +1451,21 @@ function calcularRelatorioLote(nomeLote) {
         kgComprado += Number(t.kgTotal) || 0;
         custoCompra += t.valorTotal;
         somarInsumo("Recebido por transferência", t.valorTotal);
-        (t.pesos || []).forEach(p => {
+        entradasTransferenciaISO.push(extrairDataISO(t.data));
+        // transferência lançada no computador não tem pesos: o animal entra
+        // na lista do mesmo jeito (antes sumia), só que "sem peso"
+        let pesosTransf = t.pesos || [];
+        let valorPorAnimal = t.quantidade > 0 ? (Number(t.valorTotal) || 0) / t.quantidade : 0;
+        for (let i = 0; i < Math.max(t.quantidade, pesosTransf.length); i++) {
+            let p = pesosTransf[i];
             animaisDetalhados.push({
-                peso: p.peso || 0,
-                valor: t.custoUnitario || 0,
+                peso: p ? (p.peso || 0) : null,
+                valor: valorPorAnimal,
                 data: t.data ? String(t.data).split(",")[0] : "—",
                 vendedor: "Transferido de " + t.loteOrigem,
-                obs: p.obs || ""
+                obs: p ? (p.obs || "") : "transferido sem pesagem"
             });
-        });
+        }
     });
     transferenciasLotesCacheAdmin.filter(t => t.loteOrigem === nomeLote && noCicloAtual(t.data)).forEach(t => {
         vendidos += t.quantidade;
@@ -1472,18 +1479,20 @@ function calcularRelatorioLote(nomeLote) {
     let custoRestante = gastoTotal - receitaVenda;
     let custoMedioAnimalRestante = headcount > 0 ? custoRestante / headcount : 0;
     let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
-    let pesoMedioCompra = comprados > 0 ? kgComprado / comprados : 0;
+    let comPeso = animaisDetalhados.filter(a => a.peso !== null);
+    let animaisSemPeso = animaisDetalhados.length - comPeso.length;
+    let pesoMedioCompra = comPeso.length > 0 ? comPeso.reduce((t, a) => t + a.peso, 0) / comPeso.length : 0;
     let custoMedioCompraAnimal = comprados > 0 ? custoCompra / comprados : 0;
 
-    let datasCompra = comprasDoLote.map(r => extrairDataISO(r.data)).filter(Boolean).sort();
+    let datasCompra = comprasDoLote.map(r => extrairDataISO(r.data)).concat(entradasTransferenciaISO).filter(Boolean).sort();
     let primeiraCompraISO = datasCompra[0] || null;
     let diasEmPosse = primeiraCompraISO ? Math.max(0, Math.floor((new Date() - new Date(primeiraCompraISO + "T00:00:00")) / 86400000)) : null;
 
-    return { nomeLote, headcount, comprados, vendidos, kgComprado, kgVendido, kgAtual, custoCompra, custoInsumos, gastoTotal, receitaVenda, custoRestante, custoMedioAnimalRestante, custoPorKg, pesoMedioCompra, custoMedioCompraAnimal, primeiraCompraISO, diasEmPosse, insumosPorCategoria, animaisDetalhados };
+    return { animaisSemPeso, nomeLote, headcount, comprados, vendidos, kgComprado, kgVendido, kgAtual, custoCompra, custoInsumos, gastoTotal, receitaVenda, custoRestante, custoMedioAnimalRestante, custoPorKg, pesoMedioCompra, custoMedioCompraAnimal, primeiraCompraISO, diasEmPosse, insumosPorCategoria, animaisDetalhados };
 }
 
 function gerarRelatorioLotePDF(nomeLote) {
-    let { headcount, comprados, vendidos, kgComprado, kgVendido, kgAtual, custoCompra, custoInsumos, gastoTotal, receitaVenda, custoRestante, custoMedioAnimalRestante, custoPorKg, pesoMedioCompra, custoMedioCompraAnimal, primeiraCompraISO, diasEmPosse, insumosPorCategoria, animaisDetalhados } = calcularRelatorioLote(nomeLote);
+    let { animaisSemPeso, headcount, comprados, vendidos, kgComprado, kgVendido, kgAtual, custoCompra, custoInsumos, gastoTotal, receitaVenda, custoRestante, custoMedioAnimalRestante, custoPorKg, pesoMedioCompra, custoMedioCompraAnimal, primeiraCompraISO, diasEmPosse, insumosPorCategoria, animaisDetalhados } = calcularRelatorioLote(nomeLote);
 
     const { jsPDF } = window.jspdf;
     let pdf = new jsPDF();
@@ -1521,8 +1530,8 @@ function gerarRelatorioLotePDF(nomeLote) {
     linhaResumo("Total comprado neste ciclo:", String(comprados));
     linhaResumo("Total vendido neste ciclo:", String(vendidos));
     linhaResumo("Peso total comprado:", formatarPeso(kgComprado) + " kg");
-    linhaResumo("Peso médio por animal (compra):", pesoMedioCompra.toFixed(2).replace(".", ",") + " kg");
-    linhaResumo("Data da 1ª compra deste ciclo:", primeiraCompraISO ? primeiraCompraISO.split("-").reverse().join("/") : "—");
+    linhaResumo("Peso médio por animal (entrada):", pesoMedioCompra.toFixed(2).replace(".", ",") + " kg" + (animaisSemPeso ? ` (${animaisSemPeso} sem peso)` : ""));
+    linhaResumo("1ª entrada deste ciclo:", primeiraCompraISO ? primeiraCompraISO.split("-").reverse().join("/") : "—");
     linhaResumo("Dias em posse (desde a 1ª compra):", diasEmPosse !== null ? diasEmPosse + " dias" : "—");
     y += 3;
 
@@ -1572,7 +1581,7 @@ function gerarRelatorioLotePDF(nomeLote) {
     if (y > 250) { pdf.addPage(); y = 20; }
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
-    pdf.text(`ANIMAIS COMPRADOS NESTE LOTE (${animaisDetalhados.length})`, 10, y);
+    pdf.text(`ANIMAIS QUE ENTRARAM NESTE LOTE (${animaisDetalhados.length})`, 10, y);
     y += 8;
     pdf.line(10, y - 5, 200, y - 5);
     pdf.setFontSize(9);
@@ -1589,7 +1598,7 @@ function gerarRelatorioLotePDF(nomeLote) {
     animaisDetalhados.forEach((a, i) => {
         if (y > 280) { pdf.addPage(); y = 20; }
         pdf.text(String(i + 1), 10, y);
-        pdf.text(formatarPeso(a.peso), 30, y);
+        pdf.text(a.peso === null ? "sem peso" : formatarPeso(a.peso), 30, y);
         pdf.text("R$ " + formatarMoeda(a.valor), 65, y);
         pdf.text(a.data, 100, y);
         pdf.text(a.vendedor.slice(0, 20), 130, y);
@@ -1638,7 +1647,7 @@ function abrirRelatorioLote(nomeLote) {
     let maiorCategoria = categorias.length ? r.insumosPorCategoria[categorias[0]] : 0;
     let totalCategorias = categorias.reduce((t, c) => t + r.insumosPorCategoria[c], 0);
 
-    let pesoTotalAnimais = r.animaisDetalhados.reduce((t, a) => t + a.peso, 0);
+    let pesoTotalAnimais = r.animaisDetalhados.reduce((t, a) => t + (a.peso || 0), 0);
     let valorTotalAnimais = r.animaisDetalhados.reduce((t, a) => t + a.valor, 0);
 
     document.getElementById("relLoteCorpo").innerHTML = `
@@ -1657,8 +1666,8 @@ function abrirRelatorioLote(nomeLote) {
                 ${linha("Total comprado neste ciclo", r.comprados)}
                 ${linha("Total vendido neste ciclo", r.vendidos)}
                 ${linha("Peso total comprado", formatarPeso(r.kgComprado) + " kg")}
-                ${linha("Peso médio por animal (compra)", r.pesoMedioCompra.toFixed(2).replace(".", ",") + " kg")}
-                ${linha("1ª compra deste ciclo", r.primeiraCompraISO ? r.primeiraCompraISO.split("-").reverse().join("/") : "—")}
+                ${linha("Peso médio por animal (entrada)", r.pesoMedioCompra.toFixed(2).replace(".", ",") + " kg")}
+                ${linha("1ª entrada deste ciclo", r.primeiraCompraISO ? r.primeiraCompraISO.split("-").reverse().join("/") : "—")}
                 ${linha("Dias em posse", r.diasEmPosse !== null ? r.diasEmPosse + " dias" : "—")}
             </section>
             <section class="relLoteSecao">
@@ -1674,6 +1683,7 @@ function abrirRelatorioLote(nomeLote) {
                 ${linha("Custo restante (não recuperado)", lucro ? rs(Math.abs(r.custoRestante)) + " (lucro já garantido)" : rs(r.custoRestante), true)}
                 ${linha("Custo médio por animal restante", r.headcount > 0 ? rs(r.custoMedioAnimalRestante) : "—", true)}
                 ${linha("Custo por kg (ponto de equilíbrio)", r.kgAtual > 0 ? rs(r.custoPorKg) + "/kg" : "—", true)}
+                ${r.animaisSemPeso > 0 ? `<p class="relLoteAviso">${r.animaisSemPeso === 1 ? "1 animal entrou" : r.animaisSemPeso + " animais entraram"} sem peso (transferência lançada no computador). O peso médio considera só os pesados, e o custo por kg divide o custo de todos pelo peso só dos pesados — fica mais alto do que o real.</p>` : ""}
             </section>
             <section class="relLoteSecao">
                 <h4>Insumos e despesas</h4>
@@ -1687,13 +1697,13 @@ function abrirRelatorioLote(nomeLote) {
         </div>
 
         <section class="relLoteSecao relLoteAnimais">
-            <h4>Animais comprados neste lote <small>(${r.animaisDetalhados.length})</small></h4>
+            <h4>Animais que entraram neste lote <small>(${r.animaisDetalhados.length}${r.animaisSemPeso ? ` · ${r.animaisSemPeso} sem peso` : ""})</small></h4>
             ${r.animaisDetalhados.length === 0 ? `<p class="relLoteVazio">Nenhum animal comprado neste ciclo.</p>` : `
             <div class="relLoteTabelaRolagem">
                 <table class="relLoteTabela">
                     <thead><tr><th>Nº</th><th>Peso (kg)</th><th>Valor</th><th>Data</th><th>Vendedor</th><th>Obs.</th></tr></thead>
                     <tbody>${r.animaisDetalhados.map((a, i) => `
-                        <tr><td>${i + 1}</td><td>${formatarPeso(a.peso)}</td><td>${rs(a.valor)}</td><td>${esc(a.data)}</td><td>${esc(a.vendedor)}</td><td>${esc(a.obs || "—")}</td></tr>`).join("")}
+                        <tr><td>${i + 1}</td><td>${a.peso === null ? `<span class="relLoteSemPeso">sem peso</span>` : formatarPeso(a.peso)}</td><td>${rs(a.valor)}</td><td>${esc(a.data)}</td><td>${esc(a.vendedor)}</td><td>${esc(a.obs || "—")}</td></tr>`).join("")}
                     </tbody>
                     <tfoot><tr><td>Total</td><td>${formatarPeso(pesoTotalAnimais)}</td><td>${rs(valorTotalAnimais)}</td><td colspan="3"></td></tr></tfoot>
                 </table>

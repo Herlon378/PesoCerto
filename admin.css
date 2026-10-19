@@ -1872,3 +1872,5 @@ body.modoDesktop .acoesUsuario .btnPdfRelLote:hover { background: rgba(255,138,1
 .relLoteKpiRestante { --corIcone: #ffc94d; }
 .relLoteKpiLucro { --corIcone: #3ddc84; }
 .relLoteKpi { gap: 5px; }
+.relLoteAviso { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; color: #ffd479; background: rgba(255,201,77,0.08); border: 1px solid rgba(255,201,77,0.3); }
+.relLoteSemPeso { font-size: 12px; font-weight: 700; color: #ffc94d; }
