@@ -1837,3 +1837,38 @@ body.modoDesktop .relLoteFechar:hover { background: rgba(229,83,75,0.25); }
     .relLoteCorpo { padding: 14px; }
     .relLoteAcoes .acaoRel { flex: 1; justify-content: center; }
 }
+
+/* ícones desenhados do relatório do lote (substituem os emojis) */
+.acoesRelLote { white-space: nowrap; }
+body.modoDesktop .acoesUsuario .btnRelLote {
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 34px; padding: 0 12px; border-radius: 9px; font-size: 13.5px; font-weight: 700; letter-spacing: 0.2px;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+body.modoDesktop .acoesUsuario .btnRelLote:active { transform: scale(0.97); }
+.btnRelLote svg { width: 17px; height: 17px; flex-shrink: 0; }
+body.modoDesktop .acoesUsuario .btnVerRelLote {
+    background: linear-gradient(180deg, #3d8cf0, #2468c8); border-color: transparent; color: #fff;
+    box-shadow: 0 3px 10px -2px rgba(57,135,229,0.55);
+}
+body.modoDesktop .acoesUsuario .btnVerRelLote:hover { background: linear-gradient(180deg, #4f9bff, #2a74dc); }
+body.modoDesktop .acoesUsuario .btnPdfRelLote { background: rgba(255,255,255,0.04); border-color: var(--border-strong); color: var(--ink); }
+body.modoDesktop .acoesUsuario .btnPdfRelLote svg { color: #ff8a80; }
+body.modoDesktop .acoesUsuario .btnPdfRelLote:hover { background: rgba(255,138,128,0.12); border-color: rgba(255,138,128,0.5); }
+.acoesUsuario .btnVerRelLote + button { margin-left: 8px; }
+.relLoteEtiqueta { display: inline-flex; align-items: center; gap: 7px; }
+.relLoteEtiqueta svg { width: 16px; height: 16px; }
+.relLoteKpiRotulo { display: flex; align-items: center; gap: 8px; }
+.relLoteKpiIcone {
+    width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--corIcone); background: color-mix(in srgb, var(--corIcone) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--corIcone) 30%, transparent);
+}
+.relLoteKpiIcone svg { width: 15px; height: 15px; }
+.relLoteKpiAnimais { --corIcone: #a3e635; }
+.relLoteKpiInvest { --corIcone: #60a5fa; }
+.relLoteKpiReceita { --corIcone: #34d399; }
+.relLoteKpiRestante { --corIcone: #ffc94d; }
+.relLoteKpiLucro { --corIcone: #3ddc84; }
+.relLoteKpi { gap: 5px; }

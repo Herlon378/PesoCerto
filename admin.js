@@ -1374,7 +1374,7 @@ async function mostrarCustoPorLote() {
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
                 <td style="color:${headcount > 0 ? medioFmt.cor : 'inherit'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
                 <td style="color:${kgAtual > 0 ? porKgFmt.cor : 'inherit'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
-                <td class="acoesUsuario"><button class="btnVerRelLote" onclick='abrirRelatorioLote(${jsonAtributo(nome)})' title="Ver o relatório aqui na tela">👁️ Ver</button><button onclick='gerarRelatorioLotePDF(${jsonAtributo(nome)})' title="Baixar o relatório em PDF">📄 PDF</button></td>
+                <td class="acoesUsuario acoesRelLote"><button class="btnRelLote btnVerRelLote" onclick='abrirRelatorioLote(${jsonAtributo(nome)})' title="Ver o relatório aqui na tela">${ICONES_REL_LOTE.verRelatorio}<span>Ver</span></button><button class="btnRelLote btnPdfRelLote" onclick='gerarRelatorioLotePDF(${jsonAtributo(nome)})' title="Baixar o relatório em PDF">${ICONES_REL_LOTE.baixarPdf}<span>PDF</span></button></td>
             </tr>
         `;
     }).join("");
@@ -1603,6 +1603,19 @@ function gerarRelatorioLotePDF(nomeLote) {
 // ---------- relatório do lote NA TELA (sem baixar arquivo) ----------
 let relatorioLoteAberto = null;
 
+// ícones próprios (traço fino, mesmo desenho do menu lateral) -- no lugar
+// de emojis, que mudam de cara em cada aparelho e não parecem de sistema
+const ICONES_REL_LOTE = {
+    "verRelatorio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21H11\"></path><path d=\"M13 3l5 5v2.5\"></path><path d=\"M13 3v5h5\"></path><path d=\"M8 12h4M8 15.5h2\"></path><circle cx=\"16.5\" cy=\"16.5\" r=\"3\"></circle><path d=\"M18.7 18.7L21 21\"></path></svg>",
+    "baixarPdf": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"></path><path d=\"M14 3v5h5\"></path><path d=\"M12 11v6\"></path><path d=\"M9.5 14.5L12 17l2.5-2.5\"></path></svg>",
+    "relatorio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"></path><path d=\"M14 3v5h5\"></path><path d=\"M9 17v-3M12 17v-5M15 17v-2\"></path></svg>",
+    "boi": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5\"></path><path d=\"M7 8.5v5a5 5 0 0 0 10 0v-5\"></path><path d=\"M9.5 17.5h5\"></path><circle cx=\"10\" cy=\"12\" r=\".7\" fill=\"currentColor\"></circle><circle cx=\"14\" cy=\"12\" r=\".7\" fill=\"currentColor\"></circle></svg>",
+    "investimento": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><ellipse cx=\"9\" cy=\"6\" rx=\"6\" ry=\"2.5\"></ellipse><path d=\"M3 6v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V6\"></path><path d=\"M3 10v4c0 1.4 2.7 2.5 6 2.5\"></path><path d=\"M3 14v4c0 1.4 2.7 2.5 6 2.5\"></path><circle cx=\"16.5\" cy=\"16.5\" r=\"4.5\"></circle><path d=\"M16.5 14.5v4M15 16.5h3\"></path></svg>",
+    "receita": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 17l6-6 4 4 8-8\"></path><path d=\"M15 7h6v6\"></path></svg>",
+    "ampulheta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 3h12M6 21h12\"></path><path d=\"M7 3v3a5 5 0 0 0 5 5 5 5 0 0 0 5-5V3\"></path><path d=\"M7 21v-3a5 5 0 0 1 5-5 5 5 0 0 1 5 5v3\"></path></svg>",
+    "lucro": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z\"></path><path d=\"M8.5 12l2.5 2.5 4.5-5\"></path></svg>"
+};
+
 function abrirRelatorioLote(nomeLote) {
     let r = calcularRelatorioLote(nomeLote);
     relatorioLoteAberto = nomeLote;
@@ -1613,9 +1626,9 @@ function abrirRelatorioLote(nomeLote) {
     document.getElementById("relLoteNome").innerText = nomeLote;
     document.getElementById("relLoteGerado").innerText = "Gerado em " + new Date().toLocaleString("pt-BR");
 
-    let kpi = (rotulo, valor, sub, classe) => `
+    let kpi = (icone, rotulo, valor, sub, classe) => `
         <div class="relLoteKpi ${classe || ""}">
-            <span class="relLoteKpiRotulo">${rotulo}</span>
+            <span class="relLoteKpiRotulo"><span class="relLoteKpiIcone">${ICONES_REL_LOTE[icone]}</span>${rotulo}</span>
             <span class="relLoteKpiValor">${valor}</span>
             ${sub ? `<span class="relLoteKpiSub">${sub}</span>` : ""}
         </div>`;
@@ -1630,10 +1643,10 @@ function abrirRelatorioLote(nomeLote) {
 
     document.getElementById("relLoteCorpo").innerHTML = `
         <div class="relLoteKpis">
-            ${kpi("🐂 Animais atuais", r.headcount, `${r.comprados} comprados · ${r.vendidos} vendidos`)}
-            ${kpi("💰 Investimento total", rs(r.gastoTotal), "compra + insumos/despesas")}
-            ${kpi("📈 Receita de vendas", rs(r.receitaVenda), "até agora")}
-            ${kpi(lucro ? "✅ Lucro já garantido" : "⏳ Custo restante", rs(Math.abs(r.custoRestante)),
+            ${kpi("boi", "Animais atuais", r.headcount, `${r.comprados} comprados · ${r.vendidos} vendidos`, "relLoteKpiAnimais")}
+            ${kpi("investimento", "Investimento total", rs(r.gastoTotal), "compra + insumos/despesas", "relLoteKpiInvest")}
+            ${kpi("receita", "Receita de vendas", rs(r.receitaVenda), "até agora", "relLoteKpiReceita")}
+            ${kpi(lucro ? "lucro" : "ampulheta", lucro ? "Lucro já garantido" : "Custo restante", rs(Math.abs(r.custoRestante)),
                 lucro ? "as vendas já pagaram o lote" : "ainda não voltou em vendas", lucro ? "relLoteKpiLucro" : "relLoteKpiRestante")}
         </div>
 
