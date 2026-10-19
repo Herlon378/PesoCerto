@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=6">
-    <link rel="stylesheet" href="admin.css?v=25">
+    <link rel="stylesheet" href="admin.css?v=26">
 </head>
 <body class="modoDesktop">
 
@@ -556,50 +556,70 @@
 </div>
 
 <div id="telaAlmoxarifado" class="tela">
-    <h2>📦 Almoxarifado</h2>
-
-    <div class="almoxHubGrade" style="margin-bottom:20px">
-        <button class="almoxHubBotao" onclick="trocarTela('telaProdutos'); carregarProdutos();">
-            <span class="almoxHubIcone">🏷️</span>
-            <span>Produtos</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaEstoque'); carregarEstoque();">
-            <span class="almoxHubIcone">📥</span>
-            <span>Estoque</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();">
-            <span class="almoxHubIcone">📤</span>
-            <span>Saída</span>
-        </button>
-    </div>
-
-    <div class="dashKpiRow" style="margin-bottom:16px">
-        <div class="statTile">
-            <span class="statTileLabel">🏷️ Produtos Ativos</span>
-            <span class="statTileValor" id="almoxProdutosAtivos">0</span>
+    <div class="almCabecalho">
+        <div>
+            <h2>Almoxarifado</h2>
+            <span class="almResumo" id="almResumo">Insumos, estoque e saídas para os lotes</span>
         </div>
-        <div class="statTile">
-            <span class="statTileLabel">📦 Valor em Estoque (produtos ativos)</span>
-            <span class="statTileValor" id="almoxValorEstoque">R$ 0,00</span>
-        </div>
-        <div class="statTile">
-            <span class="statTileLabel">⚠️ Sem Estoque</span>
-            <span class="statTileValor" id="almoxSemEstoque">0</span>
+        <div class="almAcoesRapidas">
+            <button class="acaoRel acaoSecundaria" onclick="trocarTela('telaProdutos'); carregarProdutos(); abrirModalProduto();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Novo produto</button>
+            <button class="acaoRel almBtnEntrada" onclick="trocarTela('telaEstoque'); carregarEstoque(); abrirModalEstoqueEntrada();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"></path><path d="M12 3v11"></path><path d="M8 10l4 4 4-4"></path></svg>Nova entrada</button>
+            <button class="acaoRel almBtnSaida" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"></path><path d="M12 14V3"></path><path d="M8 7l4-4 4 4"></path></svg>Nova saída</button>
         </div>
     </div>
 
-    <div class="dashComparativo">
-        <span class="dashSecaoTitulo">📊 Produtos por Valor em Estoque</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            Ordenado do produto que mais dinheiro tem parado no almoxarifado pro que menos tem — os com saldo zerado ficam por último, marcados pra você saber o que já precisa repor.
-        </p>
-        <table class="tabelaUsuarios">
-            <thead>
-                <tr><th>Produto</th><th>Departamento</th><th>Saldo</th><th>Custo Médio</th><th>Valor em Estoque</th></tr>
-            </thead>
-            <tbody id="corpoTabelaDashboardProdutos"></tbody>
-        </table>
+    <div class="almHub">
+        <button class="almHubCartao" style="--corHub:#fbbf24" onclick="trocarTela('telaProdutos'); carregarProdutos();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg></span>
+            <span class="almHubTextos"><b>Produtos</b><small>Cadastro, departamentos e unidades</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
+        <button class="almHubCartao" style="--corHub:#34d399" onclick="trocarTela('telaEstoque'); carregarEstoque();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"></path><path d="M12 3v11"></path><path d="M8 10l4 4 4-4"></path></svg></span>
+            <span class="almHubTextos"><b>Estoque</b><small>Entradas de compra e saldo atual</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
+        <button class="almHubCartao" style="--corHub:#fb923c" onclick="trocarTela('telaSaidaEstoque'); abrirTelaSaidaEstoqueDesktop();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"></path><path d="M12 14V3"></path><path d="M8 7l4-4 4 4"></path></svg></span>
+            <span class="almHubTextos"><b>Saída</b><small>Uso de insumos nos lotes</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
     </div>
+
+    <div class="ltKpis almKpis">
+        <div class="ltKpi" style="--corKpi:#fbbf24"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg></span><div><span class="ltKpiRotulo">Produtos ativos</span><b id="almoxProdutosAtivos">0</b></div></div>
+        <div class="ltKpi" style="--corKpi:#34d399"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span><div><span class="ltKpiRotulo">Valor parado em estoque</span><b id="almoxValorEstoque">R$ 0,00</b></div></div>
+        <button class="ltKpi almKpiSemEstoque" style="--corKpi:#ff7b72" onclick="filtrarProdutosAlmox('semEstoque', true)" title="Ver os produtos que precisam repor"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><div><span class="ltKpiRotulo">Sem estoque (repor)</span><b id="almoxSemEstoque">0</b></div></button>
+        <div class="ltKpi" style="--corKpi:#a78bfa"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"></path><path d="M7 4h10v5a5 5 0 0 1-10 0z"></path><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"></path></svg></span><div class="almKpiTexto"><span class="ltKpiRotulo">Maior valor parado</span><b id="almoxMaiorValor">—</b></div></div>
+    </div>
+
+    <section class="almLista" id="almLista">
+        <div class="almBarraFixa">
+            <div class="almListaTitulo">
+                <span class="almListaIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg></span>
+                <div>
+                    <h3>Produtos por valor em estoque</h3>
+                    <p>Do produto com mais dinheiro parado pro que tem menos — os zerados ficam por último, marcados pra repor.</p>
+                </div>
+            </div>
+            <div class="ltFiltros">
+                <label class="buscaRelatorioDesk ltBusca">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="search" id="almBusca" placeholder="Buscar produto..." oninput="mostrarListaProdutosAlmox()">
+                </label>
+                <select id="almFiltroDepto" onchange="mostrarListaProdutosAlmox()" title="Departamento"></select>
+                <div class="ltChips" role="group" aria-label="Filtrar produtos">
+                    <button class="ltChip ltChipAtivo" data-filtro="todos" onclick="filtrarProdutosAlmox('todos')">Todos</button>
+                    <button class="ltChip" data-filtro="comEstoque" onclick="filtrarProdutosAlmox('comEstoque')">Com estoque</button>
+                    <button class="ltChip" data-filtro="semEstoque" onclick="filtrarProdutosAlmox('semEstoque')">Sem estoque</button>
+                </div>
+            </div>
+            <div class="almLinha almLinhaCabecalho" aria-hidden="true">
+                <span>Produto</span><span>Saldo</span><span>Custo médio</span><span>Valor em estoque</span>
+            </div>
+        </div>
+        <div id="corpoTabelaDashboardProdutos"></div>
+    </section>
 </div>
 
 <div id="telaProdutos" class="tela">
@@ -1043,7 +1063,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=18"></script>
-<script src="admin.js?v=30"></script>
+<script src="admin.js?v=31"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

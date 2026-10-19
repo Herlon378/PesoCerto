@@ -2087,3 +2087,92 @@ body.modoDesktop .usBtnEditar:hover { background: linear-gradient(180deg, #4f9bf
     body.modoDesktop .usBotoesTopo .acaoRel { flex: 1; justify-content: center; }
     .usGrade { grid-template-columns: 1fr; }
 }
+
+/* ========================================
+   ALMOXARIFADO (hub): atalhos, indicadores e lista de produtos
+   ======================================== */
+.almCabecalho { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+body.modoDesktop .almCabecalho h2 { margin: 0; }
+.almResumo { font-size: 13px; color: var(--ink-muted); }
+.almAcoesRapidas { display: flex; gap: 8px; flex-wrap: wrap; }
+body.modoDesktop .almAcoesRapidas .acaoRel { height: 40px; }
+body.modoDesktop .almBtnEntrada { background: linear-gradient(180deg, #2fa654, #1e7d3c); }
+body.modoDesktop .almBtnSaida { background: linear-gradient(180deg, #c4580f, #9a420c); }
+.almHub { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+body.modoDesktop .almHubCartao {
+    display: flex; align-items: center; gap: 14px; width: auto; margin: 0; padding: 16px 18px; text-align: left; cursor: pointer;
+    border-radius: 16px; border: 1px solid var(--border-strong); box-shadow: none; color: var(--ink);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--corHub) 14%, transparent), transparent 60%), var(--surface);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body.modoDesktop .almHubCartao:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--corHub) 60%, transparent); box-shadow: 0 14px 30px -16px color-mix(in srgb, var(--corHub) 70%, transparent); }
+.almHubIcone {
+    width: 50px; height: 50px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    color: var(--corHub); background: color-mix(in srgb, var(--corHub) 16%, transparent); border: 1px solid color-mix(in srgb, var(--corHub) 35%, transparent);
+}
+.almHubIcone svg { width: 26px; height: 26px; }
+.almHubTextos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.almHubTextos b { font-size: 17px; color: #fff; }
+.almHubTextos small { font-size: 12.5px; color: var(--ink-muted); }
+.almHubSeta { display: inline-flex; color: var(--ink-muted); transition: transform 0.15s ease, color 0.15s ease; }
+.almHubSeta svg { width: 20px; height: 20px; }
+body.modoDesktop .almHubCartao:hover .almHubSeta { transform: translateX(3px); color: var(--corHub); }
+.almKpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+body.modoDesktop button.ltKpi { width: auto; margin: 0; text-align: left; cursor: pointer; color: inherit; box-shadow: none; font: inherit; }
+body.modoDesktop button.ltKpi:hover { border-color: var(--corKpi); }
+.almKpiAlerta { border-color: rgba(255,123,114,0.55) !important; background: linear-gradient(90deg, rgba(255,123,114,0.16), transparent 70%), var(--surface-sunken) !important; }
+.almKpiAlerta b { color: #ff9a92 !important; }
+.almKpiTexto { min-width: 0; }
+.almKpiTexto b { display: block; font-size: 16px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.almLista { border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); scroll-margin-top: 80px; }
+.almBarraFixa {
+    position: sticky; top: 65px; z-index: 30; padding: 16px 18px 0; border-radius: 16px 16px 0 0;
+    background: var(--surface); border-bottom: 1px solid var(--border-strong);
+}
+.almListaTitulo { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.almListaIcone { width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a78bfa; background: rgba(167,139,250,0.16); border: 1px solid rgba(167,139,250,0.3); }
+.almListaIcone svg { width: 19px; height: 19px; }
+.almListaTitulo h3 { margin: 0 0 3px; font-size: 17px; }
+.almListaTitulo p { margin: 0; font-size: 13px; color: var(--ink-muted); }
+body.modoDesktop #almFiltroDepto {
+    width: auto; min-width: 190px; height: 40px; margin: 0; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); color-scheme: dark; cursor: pointer;
+}
+body.modoDesktop #almFiltroDepto.ltFiltroUsado { border-color: var(--blue-500); background: rgba(57,135,229,0.14); }
+.almLinha { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); align-items: center; gap: 16px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+#corpoTabelaDashboardProdutos .almLinha:last-child { border-bottom: none; }
+#corpoTabelaDashboardProdutos .almLinha:hover { background: rgba(255,255,255,0.025); }
+#corpoTabelaDashboardProdutos .ltVazio { margin: 16px; }
+.almLinhaCabecalho { margin-top: 12px; padding: 10px 0; border-bottom: none; font-size: 11.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-muted); }
+.almProduto { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.almProdutoIcone { width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fb923c; background: rgba(251,146,60,0.14); border: 1px solid rgba(251,146,60,0.3); }
+.almProdutoIcone svg { width: 18px; height: 18px; }
+.almLinhaSemEstoque .almProdutoIcone { color: #ff7b72; background: rgba(255,123,114,0.14); border-color: rgba(255,123,114,0.35); }
+.almProdutoTextos { min-width: 0; display: flex; flex-direction: column; }
+.almProdutoTextos b { font-size: 14.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.almProdutoTextos small { font-size: 12px; color: var(--ink-muted); }
+.almSaldo, .almCusto { font-size: 14px; color: #d6deee; font-variant-numeric: tabular-nums; }
+.almSaldo b { color: #fff; font-size: 15px; }
+.almSaldo small, .almCusto small { color: var(--ink-muted); font-size: 12px; }
+.almLinhaSemEstoque .almSaldo b { color: #ff7b72; }
+.almRepor { display: inline-block; margin-right: 6px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 7px; border-radius: 999px; color: #ff7b72; background: rgba(255,123,114,0.12); border: 1px solid rgba(255,123,114,0.4); vertical-align: middle; }
+.almValorLinha { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.almValorLinha b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+.almValorLinha small { font-size: 12px; font-weight: 700; color: #34d399; }
+.almBarra { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; }
+.almBarra i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #10b981, #34d399); }
+@media (max-width: 1200px) {
+    .almKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+    .almHub { grid-template-columns: 1fr; gap: 10px; }
+    .almAcoesRapidas { width: 100%; }
+    body.modoDesktop .almAcoesRapidas .acaoRel { flex: 1 1 auto; justify-content: center; }
+    .almBarraFixa { position: static; }
+    .almLinhaCabecalho { display: none; }
+    .almLinha { grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 12px 14px; }
+    .almProduto { grid-column: 1 / -1; }
+    .almValor { grid-column: 1 / -1; }
+    .almSaldo::before, .almCusto::before, .almValor::before { content: attr(data-rotulo); display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-muted); margin-bottom: 2px; }
+    body.modoDesktop #almFiltroDepto { width: 100%; }
+}

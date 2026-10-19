@@ -1030,6 +1030,21 @@ async function carregarProdutosAdmin() {
 // visão geral do Almoxarifado (tela hub) — quantos produtos, quanto dinheiro
 // está parado em estoque e quais produtos zeraram, pra saber o que repor
 // sem precisar entrar em Produtos e ler linha por linha.
+const ICONES_ALMOX = {
+    "caixa": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"></path><polyline points=\"3.27 6.96 12 12.01 20.73 6.96\"></polyline><line x1=\"12\" y1=\"22.08\" x2=\"12\" y2=\"12\"></line></svg>",
+    "tag": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"></path><circle cx=\"7\" cy=\"7\" r=\"1.3\" fill=\"currentColor\"></circle></svg>",
+    "entrada": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5\"></path><path d=\"M12 3v11\"></path><path d=\"M8 10l4 4 4-4\"></path></svg>",
+    "saida": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5\"></path><path d=\"M12 14V3\"></path><path d=\"M8 7l4-4 4 4\"></path></svg>",
+    "seta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 6l6 6-6 6\"></path></svg>",
+    "dinheiro": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"></rect><circle cx=\"12\" cy=\"12\" r=\"2.5\"></circle><path d=\"M6 12h.01M18 12h.01\"></path></svg>",
+    "alerta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z\"></path><path d=\"M12 9v4\"></path><path d=\"M12 17h.01\"></path></svg>",
+    "trofeu": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 21h8M12 17v4\"></path><path d=\"M7 4h10v5a5 5 0 0 1-10 0z\"></path><path d=\"M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3\"></path></svg>",
+    "busca": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>",
+    "mais": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg>",
+    "grafico": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v18h18\"></path><path d=\"M7 15l4-4 3 3 5-6\"></path></svg>"
+};
+let filtroProdutosAlmox = "todos";
+
 async function mostrarDashboardProdutos() {
     let elAtivos = document.getElementById("almoxProdutosAtivos");
     let corpo = document.getElementById("corpoTabelaDashboardProdutos");
@@ -1037,37 +1052,94 @@ async function mostrarDashboardProdutos() {
 
     await carregarProdutosAdmin();
     let ativos = produtosCacheAdmin.filter(p => p.ativo);
+    let valorDe = p => (p.saldoAtual || 0) * (p.custoMedioUnitario || 0);
 
-    let valorTotalEstoque = ativos.reduce((soma, p) => soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0), 0);
+    let valorTotalEstoque = ativos.reduce((soma, p) => soma + valorDe(p), 0);
     let semEstoque = ativos.filter(p => (p.saldoAtual || 0) <= 0).length;
+    let maior = [...ativos].sort((a, b) => valorDe(b) - valorDe(a))[0];
 
     elAtivos.innerText = ativos.length;
     document.getElementById("almoxValorEstoque").innerText = "R$ " + formatarMoeda(valorTotalEstoque);
     document.getElementById("almoxSemEstoque").innerText = semEstoque;
+    document.querySelector(".almKpiSemEstoque")?.classList.toggle("almKpiAlerta", semEstoque > 0);
+    let elMaior = document.getElementById("almoxMaiorValor");
+    if (elMaior) {
+        elMaior.innerText = maior && valorDe(maior) > 0 ? maior.descricao : "—";
+        elMaior.title = maior && valorDe(maior) > 0 ? `${maior.descricao}: R$ ${formatarMoeda(valorDe(maior))}` : "";
+    }
+    let elResumo = document.getElementById("almResumo");
+    if (elResumo) elResumo.innerText = `${ativos.length} ${ativos.length === 1 ? "produto ativo" : "produtos ativos"} · R$ ${formatarMoeda(valorTotalEstoque)} em estoque`;
+
+    // departamentos que existem nos produtos ativos (mantém a escolha)
+    let sel = document.getElementById("almFiltroDepto");
+    if (sel) {
+        let atual = sel.value;
+        let deptos = [...new Set(ativos.map(p => p.departamentoNome).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        sel.innerHTML = `<option value="">Departamento: Todos</option>` + deptos.map(d => `<option value="${escaparHtmlPesagem(d)}">${escaparHtmlPesagem(d)}</option>`).join("");
+        sel.value = deptos.includes(atual) ? atual : "";
+    }
+    mostrarListaProdutosAlmox();
+}
+
+function filtrarProdutosAlmox(filtro, rolarAteLista) {
+    filtroProdutosAlmox = filtro;
+    document.querySelectorAll("#telaAlmoxarifado .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.filtro === filtro));
+    mostrarListaProdutosAlmox();
+    if (rolarAteLista) document.getElementById("almLista")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function mostrarListaProdutosAlmox() {
+    let corpo = document.getElementById("corpoTabelaDashboardProdutos");
+    if (!corpo) return;
+    let esc = escaparHtmlPesagem;
+    let ativos = produtosCacheAdmin.filter(p => p.ativo);
+    let valorDe = p => (p.saldoAtual || 0) * (p.custoMedioUnitario || 0);
+    let total = ativos.reduce((s, p) => s + valorDe(p), 0);
 
     if (ativos.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="5">Nenhum produto ativo cadastrado ainda.</td></tr>`;
+        corpo.innerHTML = `<p class="ltVazio">Nenhum produto ativo cadastrado ainda.</p>`;
         return;
     }
+    let busca = (document.getElementById("almBusca")?.value || "").trim().toLowerCase();
+    let depto = document.getElementById("almFiltroDepto")?.value || "";
+    document.getElementById("almFiltroDepto")?.classList.toggle("ltFiltroUsado", !!depto);
+    let lista = ativos.filter(p => {
+        let semEst = (p.saldoAtual || 0) <= 0;
+        if (filtroProdutosAlmox === "semEstoque" && !semEst) return false;
+        if (filtroProdutosAlmox === "comEstoque" && semEst) return false;
+        if (depto && p.departamentoNome !== depto) return false;
+        if (busca && !String(p.descricao).toLowerCase().includes(busca)) return false;
+        return true;
+    }).sort((a, b) => valorDe(b) - valorDe(a));
 
-    let ordenados = [...ativos].sort((a, b) => {
-        let valorA = (a.saldoAtual || 0) * (a.custoMedioUnitario || 0);
-        let valorB = (b.saldoAtual || 0) * (b.custoMedioUnitario || 0);
-        return valorB - valorA;
-    });
-
-    corpo.innerHTML = ordenados.map(p => {
-        let valor = (p.saldoAtual || 0) * (p.custoMedioUnitario || 0);
-        let semEstoqueLinha = (p.saldoAtual || 0) <= 0;
+    if (lista.length === 0) {
+        corpo.innerHTML = `<p class="ltVazio">Nenhum produto nesse filtro.</p>`;
+        return;
+    }
+    let I = ICONES_ALMOX;
+    corpo.innerHTML = lista.map(p => {
+        let valor = valorDe(p);
+        let semEst = (p.saldoAtual || 0) <= 0;
+        let parte = total > 0 ? valor / total * 100 : 0;
         return `
-            <tr>
-                <td>${escaparHtmlPesagem(p.descricao)}</td>
-                <td>${p.departamentoNome || "—"}</td>
-                <td style="color:${semEstoqueLinha ? '#d03b3b' : 'inherit'}">${formatarPeso(p.saldoAtual)} ${p.unidade}${semEstoqueLinha ? " ⚠️" : ""}</td>
-                <td>R$ ${formatarMoeda(p.custoMedioUnitario)}</td>
-                <td>R$ ${formatarMoeda(valor)}</td>
-            </tr>
-        `;
+        <div class="almLinha${semEst ? " almLinhaSemEstoque" : ""}">
+            <div class="almProduto">
+                <span class="almProdutoIcone">${semEst ? I.alerta : I.caixa}</span>
+                <div class="almProdutoTextos">
+                    <b title="${esc(p.descricao)}">${esc(p.descricao)}</b>
+                    <small>${p.departamentoNome ? esc(p.departamentoNome) : "sem departamento"}</small>
+                </div>
+            </div>
+            <div class="almSaldo" data-rotulo="Saldo">
+                ${semEst ? `<span class="almRepor">Repor</span>` : ""}
+                <b>${formatarPeso(p.saldoAtual)}</b> <small>${esc(p.unidade || "")}</small>
+            </div>
+            <div class="almCusto" data-rotulo="Custo médio">R$ ${formatarMoeda(p.custoMedioUnitario)}<small> /${esc(p.unidade || "un")}</small></div>
+            <div class="almValor" data-rotulo="Valor em estoque">
+                <div class="almValorLinha"><b>R$ ${formatarMoeda(valor)}</b><small>${parte >= 0.5 ? Math.round(parte) + "%" : (valor > 0 ? "<1%" : "")}</small></div>
+                <div class="almBarra"><i style="width:${valor > 0 ? Math.max(2, parte) : 0}%"></i></div>
+            </div>
+        </div>`;
     }).join("");
 }
 
