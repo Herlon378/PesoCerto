@@ -1763,3 +1763,77 @@ body.modoDesktop .cpLimpar { height: 40px; }
     body.modoDesktop .cpFiltros select, .cpDatas, .cpBusca { flex: 1 1 100%; }
     body.modoDesktop .cpDatas input[type="date"] { flex: 1; min-width: 0; }
 }
+
+/* ========================================
+   RELATÓRIO DO LOTE NA TELA (Custo por Lote -> "Ver")
+   ======================================== */
+body.modoDesktop .acoesUsuario .btnVerRelLote { background: rgba(57,135,229,0.22); border-color: rgba(110,170,255,0.55); color: #fff; }
+body.modoDesktop .acoesUsuario .btnVerRelLote:hover { background: #3987e5; }
+.acoesUsuario .btnVerRelLote + button { margin-left: 6px; }
+.modalRelatorioLote {
+    position: fixed; inset: 0; z-index: 960;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; background: rgba(4,9,20,0.75);
+}
+.relLoteCaixa {
+    width: 100%; max-width: 1000px; max-height: calc(100vh - 48px);
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid rgba(110,170,255,0.25);
+    border-radius: 18px; box-shadow: 0 24px 70px rgba(0,0,0,0.55); overflow: hidden;
+}
+.relLoteTopo {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 18px 22px; border-bottom: 1px solid var(--border);
+    background: linear-gradient(120deg, rgba(57,135,229,0.22), rgba(31,182,166,0.08) 70%, transparent);
+}
+.relLoteTitulos { min-width: 0; }
+.relLoteEtiqueta { font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9cc8ff; }
+.relLoteTopo h3 { margin: 4px 0 2px; font-size: 22px; color: #fff; overflow-wrap: anywhere; }
+.relLoteTopo small { color: var(--ink-muted); font-size: 12px; }
+body.modoDesktop .relLoteFechar {
+    width: 38px; height: 38px; flex-shrink: 0; margin: 0; padding: 0; border-radius: 10px;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); color: var(--ink); font-size: 16px; cursor: pointer;
+}
+body.modoDesktop .relLoteFechar:hover { background: rgba(229,83,75,0.25); }
+.relLoteCorpo { flex: 1; overflow-y: auto; padding: 18px 22px 22px; }
+.relLoteKpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.relLoteKpi {
+    display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px;
+    background: var(--surface-sunken); border: 1px solid var(--border-strong);
+}
+.relLoteKpiRotulo { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.relLoteKpiValor { font-size: 20px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.relLoteKpiSub { font-size: 11.5px; color: var(--ink-muted); }
+.relLoteKpiLucro { border-color: rgba(61,220,132,0.5); background: linear-gradient(135deg, rgba(61,220,132,0.16), transparent), var(--surface-sunken); }
+.relLoteKpiLucro .relLoteKpiValor { color: #6ee7a8; }
+.relLoteKpiRestante { border-color: rgba(255,201,77,0.5); background: linear-gradient(135deg, rgba(255,201,77,0.14), transparent), var(--surface-sunken); }
+.relLoteKpiRestante .relLoteKpiValor { color: #ffd479; }
+.relLoteGrade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.relLoteSecao { padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
+.relLoteSecao h4 { margin: 0 0 10px; font-size: 13px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: #9cc8ff; }
+.relLoteSecao h4 small { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink-muted); }
+.relLoteSecaoDecisao { border-color: rgba(255,201,77,0.35); background: rgba(255,201,77,0.05); }
+.relLoteLinha { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 5px 0; font-size: 14px; color: #c9d3e6; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.relLoteLinha:last-child { border-bottom: none; }
+.relLoteLinha b { color: #fff; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.relLoteLinhaDestaque b { color: #ffd479; }
+.relLoteCategoria .relLoteLinha { border-bottom: none; padding-bottom: 3px; }
+.relLoteBarra { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.06); margin-bottom: 6px; overflow: hidden; }
+.relLoteBarra i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #fb923c, #fbbf24); }
+.relLoteVazio { margin: 0; font-size: 13.5px; color: var(--ink-muted); }
+.relLoteTabelaRolagem { overflow-x: auto; }
+.relLoteTabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.relLoteTabela th { text-align: left; padding: 8px 10px; font-size: 11.5px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--border-strong); position: sticky; top: 0; background: var(--surface); }
+.relLoteTabela td { padding: 7px 10px; color: #d6deee; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.relLoteTabela tbody tr:nth-child(even) td { background: rgba(255,255,255,0.025); }
+.relLoteTabela tfoot td { font-weight: 800; color: #fff; border-top: 1px solid var(--border-strong); border-bottom: none; }
+.relLoteAcoes { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--border); }
+@media (max-width: 900px) {
+    .modalRelatorioLote { padding: 0; }
+    .relLoteCaixa { max-height: 100vh; height: 100%; border-radius: 0; }
+    .relLoteKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .relLoteKpiValor { font-size: 17px; }
+    .relLoteGrade { grid-template-columns: 1fr; }
+    .relLoteCorpo { padding: 14px; }
+    .relLoteAcoes .acaoRel { flex: 1; justify-content: center; }
+}

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=5">
-    <link rel="stylesheet" href="admin.css?v=19">
+    <link rel="stylesheet" href="admin.css?v=20">
 </head>
 <body class="modoDesktop">
 
@@ -1002,7 +1002,26 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=18"></script>
-<script src="admin.js?v=25"></script>
+<script src="admin.js?v=26"></script>
+
+<!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
+<div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">
+    <div class="relLoteCaixa" role="dialog" aria-modal="true" aria-labelledby="relLoteNome">
+        <div class="relLoteTopo">
+            <div class="relLoteTitulos">
+                <span class="relLoteEtiqueta">📄 Relatório do lote</span>
+                <h3 id="relLoteNome">Lote</h3>
+                <small id="relLoteGerado"></small>
+            </div>
+            <button class="relLoteFechar" onclick="fecharRelatorioLote()" aria-label="Fechar">✕</button>
+        </div>
+        <div class="relLoteCorpo" id="relLoteCorpo"></div>
+        <div class="relLoteAcoes">
+            <button class="acaoRel acaoSecundaria" onclick="fecharRelatorioLote()">Fechar</button>
+            <button class="acaoRel acaoImprimir" onclick="baixarPdfRelatorioLoteAberto()">📄 Baixar PDF</button>
+        </div>
+    </div>
+</div>
 
 <div id="modalConfirmacao" class="modal">
     <div class="modal-box">

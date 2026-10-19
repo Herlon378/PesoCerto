@@ -1374,7 +1374,7 @@ async function mostrarCustoPorLote() {
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
                 <td style="color:${headcount > 0 ? medioFmt.cor : 'inherit'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
                 <td style="color:${kgAtual > 0 ? porKgFmt.cor : 'inherit'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
-                <td class="acoesUsuario"><button onclick='gerarRelatorioLotePDF(${jsonAtributo(nome)})'>📄 Relatório</button></td>
+                <td class="acoesUsuario"><button class="btnVerRelLote" onclick='abrirRelatorioLote(${jsonAtributo(nome)})' title="Ver o relatório aqui na tela">👁️ Ver</button><button onclick='gerarRelatorioLotePDF(${jsonAtributo(nome)})' title="Baixar o relatório em PDF">📄 PDF</button></td>
             </tr>
         `;
     }).join("");
@@ -1387,7 +1387,9 @@ async function mostrarCustoPorLote() {
 // mais o detalhamento por categoria de insumo/despesa e a lista individual
 // de cada animal comprado -- pro rancheiro decidir a hora de vender com o
 // máximo de informação, não só o resumo da tabela.
-function gerarRelatorioLotePDF(nomeLote) {
+// O cálculo fica separado: a mesma conta alimenta o PDF e a visualização na
+// tela (abrirRelatorioLote), então os dois nunca mostram números diferentes.
+function calcularRelatorioLote(nomeLote) {
     // mesmo corte de ciclo do mostrarCustoPorLote() -- se esse lote já foi
     // vendido por completo e reaberto com uma compra nova, o relatório mostra
     // só o ciclo atual, não a história inteira desde sempre.
@@ -1476,6 +1478,12 @@ function gerarRelatorioLotePDF(nomeLote) {
     let datasCompra = comprasDoLote.map(r => extrairDataISO(r.data)).filter(Boolean).sort();
     let primeiraCompraISO = datasCompra[0] || null;
     let diasEmPosse = primeiraCompraISO ? Math.max(0, Math.floor((new Date() - new Date(primeiraCompraISO + "T00:00:00")) / 86400000)) : null;
+
+    return { nomeLote, headcount, comprados, vendidos, kgComprado, kgVendido, kgAtual, custoCompra, custoInsumos, gastoTotal, receitaVenda, custoRestante, custoMedioAnimalRestante, custoPorKg, pesoMedioCompra, custoMedioCompraAnimal, primeiraCompraISO, diasEmPosse, insumosPorCategoria, animaisDetalhados };
+}
+
+function gerarRelatorioLotePDF(nomeLote) {
+    let { headcount, comprados, vendidos, kgComprado, kgVendido, kgAtual, custoCompra, custoInsumos, gastoTotal, receitaVenda, custoRestante, custoMedioAnimalRestante, custoPorKg, pesoMedioCompra, custoMedioCompraAnimal, primeiraCompraISO, diasEmPosse, insumosPorCategoria, animaisDetalhados } = calcularRelatorioLote(nomeLote);
 
     const { jsPDF } = window.jspdf;
     let pdf = new jsPDF();
@@ -1591,6 +1599,112 @@ function gerarRelatorioLotePDF(nomeLote) {
 
     pdf.save(`Relatorio_Lote_${nomeLote.replace(/\s+/g, "_")}.pdf`);
 }
+
+// ---------- relatório do lote NA TELA (sem baixar arquivo) ----------
+let relatorioLoteAberto = null;
+
+function abrirRelatorioLote(nomeLote) {
+    let r = calcularRelatorioLote(nomeLote);
+    relatorioLoteAberto = nomeLote;
+    let esc = escaparHtmlPesagem;
+    let rs = v => "R$ " + formatarMoeda(v);
+    let lucro = r.custoRestante < 0;
+
+    document.getElementById("relLoteNome").innerText = nomeLote;
+    document.getElementById("relLoteGerado").innerText = "Gerado em " + new Date().toLocaleString("pt-BR");
+
+    let kpi = (rotulo, valor, sub, classe) => `
+        <div class="relLoteKpi ${classe || ""}">
+            <span class="relLoteKpiRotulo">${rotulo}</span>
+            <span class="relLoteKpiValor">${valor}</span>
+            ${sub ? `<span class="relLoteKpiSub">${sub}</span>` : ""}
+        </div>`;
+    let linha = (rotulo, valor, destaque) => `<div class="relLoteLinha${destaque ? " relLoteLinhaDestaque" : ""}"><span>${rotulo}</span><b>${valor}</b></div>`;
+
+    let categorias = Object.keys(r.insumosPorCategoria).sort((a, b) => r.insumosPorCategoria[b] - r.insumosPorCategoria[a]);
+    let maiorCategoria = categorias.length ? r.insumosPorCategoria[categorias[0]] : 0;
+    let totalCategorias = categorias.reduce((t, c) => t + r.insumosPorCategoria[c], 0);
+
+    let pesoTotalAnimais = r.animaisDetalhados.reduce((t, a) => t + a.peso, 0);
+    let valorTotalAnimais = r.animaisDetalhados.reduce((t, a) => t + a.valor, 0);
+
+    document.getElementById("relLoteCorpo").innerHTML = `
+        <div class="relLoteKpis">
+            ${kpi("🐂 Animais atuais", r.headcount, `${r.comprados} comprados · ${r.vendidos} vendidos`)}
+            ${kpi("💰 Investimento total", rs(r.gastoTotal), "compra + insumos/despesas")}
+            ${kpi("📈 Receita de vendas", rs(r.receitaVenda), "até agora")}
+            ${kpi(lucro ? "✅ Lucro já garantido" : "⏳ Custo restante", rs(Math.abs(r.custoRestante)),
+                lucro ? "as vendas já pagaram o lote" : "ainda não voltou em vendas", lucro ? "relLoteKpiLucro" : "relLoteKpiRestante")}
+        </div>
+
+        <div class="relLoteGrade">
+            <section class="relLoteSecao">
+                <h4>Resumo geral</h4>
+                ${linha("Animais atuais", r.headcount)}
+                ${linha("Total comprado neste ciclo", r.comprados)}
+                ${linha("Total vendido neste ciclo", r.vendidos)}
+                ${linha("Peso total comprado", formatarPeso(r.kgComprado) + " kg")}
+                ${linha("Peso médio por animal (compra)", r.pesoMedioCompra.toFixed(2).replace(".", ",") + " kg")}
+                ${linha("1ª compra deste ciclo", r.primeiraCompraISO ? r.primeiraCompraISO.split("-").reverse().join("/") : "—")}
+                ${linha("Dias em posse", r.diasEmPosse !== null ? r.diasEmPosse + " dias" : "—")}
+            </section>
+            <section class="relLoteSecao">
+                <h4>Investimento</h4>
+                ${linha("Investido em compra", rs(r.custoCompra))}
+                ${linha("Custo médio de compra por animal", rs(r.custoMedioCompraAnimal))}
+                ${linha("Investido em insumos/despesas", rs(r.custoInsumos))}
+                ${linha("Investimento total", rs(r.gastoTotal))}
+                ${linha("Receita de vendas até agora", rs(r.receitaVenda))}
+            </section>
+            <section class="relLoteSecao relLoteSecaoDecisao">
+                <h4>Situação atual <small>pra decisão de venda</small></h4>
+                ${linha("Custo restante (não recuperado)", lucro ? rs(Math.abs(r.custoRestante)) + " (lucro já garantido)" : rs(r.custoRestante), true)}
+                ${linha("Custo médio por animal restante", r.headcount > 0 ? rs(r.custoMedioAnimalRestante) : "—", true)}
+                ${linha("Custo por kg (ponto de equilíbrio)", r.kgAtual > 0 ? rs(r.custoPorKg) + "/kg" : "—", true)}
+            </section>
+            <section class="relLoteSecao">
+                <h4>Insumos e despesas</h4>
+                ${categorias.length === 0 ? `<p class="relLoteVazio">Nenhum insumo ou despesa lançado neste lote.</p>` :
+                    categorias.map(c => `
+                        <div class="relLoteCategoria">
+                            <div class="relLoteLinha"><span>${esc(c)}</span><b>${rs(r.insumosPorCategoria[c])}</b></div>
+                            <div class="relLoteBarra"><i style="width:${maiorCategoria > 0 ? Math.max(2, r.insumosPorCategoria[c] / maiorCategoria * 100) : 0}%"></i></div>
+                        </div>`).join("") + linha("Total", rs(totalCategorias))}
+            </section>
+        </div>
+
+        <section class="relLoteSecao relLoteAnimais">
+            <h4>Animais comprados neste lote <small>(${r.animaisDetalhados.length})</small></h4>
+            ${r.animaisDetalhados.length === 0 ? `<p class="relLoteVazio">Nenhum animal comprado neste ciclo.</p>` : `
+            <div class="relLoteTabelaRolagem">
+                <table class="relLoteTabela">
+                    <thead><tr><th>Nº</th><th>Peso (kg)</th><th>Valor</th><th>Data</th><th>Vendedor</th><th>Obs.</th></tr></thead>
+                    <tbody>${r.animaisDetalhados.map((a, i) => `
+                        <tr><td>${i + 1}</td><td>${formatarPeso(a.peso)}</td><td>${rs(a.valor)}</td><td>${esc(a.data)}</td><td>${esc(a.vendedor)}</td><td>${esc(a.obs || "—")}</td></tr>`).join("")}
+                    </tbody>
+                    <tfoot><tr><td>Total</td><td>${formatarPeso(pesoTotalAnimais)}</td><td>${rs(valorTotalAnimais)}</td><td colspan="3"></td></tr></tfoot>
+                </table>
+            </div>`}
+        </section>`;
+
+    let modal = document.getElementById("modalRelatorioLote");
+    modal.style.display = "flex";
+    document.getElementById("relLoteCorpo").scrollTop = 0;
+}
+
+function fecharRelatorioLote() {
+    let modal = document.getElementById("modalRelatorioLote");
+    if (modal) modal.style.display = "none";
+    relatorioLoteAberto = null;
+}
+
+function baixarPdfRelatorioLoteAberto() {
+    if (relatorioLoteAberto) gerarRelatorioLotePDF(relatorioLoteAberto);
+}
+
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && relatorioLoteAberto) fecharRelatorioLote();
+});
 
 // ========================================
 // SALDO INICIAL DE CAIXA
