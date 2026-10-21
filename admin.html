@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=8">
-    <link rel="stylesheet" href="admin.css?v=29">
+    <link rel="stylesheet" href="admin.css?v=30">
 </head>
 <body class="modoDesktop">
 
@@ -945,39 +945,62 @@
 </div>
 
 <div id="telaSalarios" class="tela">
-    <h2>💰 Salários</h2>
-    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-        Cadastro de funcionários, adiantamentos por competência e geração mensal da folha — cada salário pago vira uma Conta a Pagar de verdade, aparecendo automaticamente lá também.
-    </p>
-    <div class="almoxHubGrade" style="margin-bottom:20px">
-        <button class="almoxHubBotao" onclick="trocarTela('telaFuncionarios'); abrirTelaFuncionarios();">
-            <span class="almoxHubIcone">👤</span>
-            <span>Funcionários</span>
+    <div class="almCabecalho">
+        <div>
+            <h2>Salários</h2>
+            <span class="almResumo">Funcionários, adiantamentos e folha — cada salário vira uma Conta a Pagar</span>
+        </div>
+        <div class="almAcoesRapidas">
+            <button class="acaoRel acaoSecundaria" onclick="trocarTela('telaFuncionarios'); abrirTelaFuncionarios(); abrirModalFuncionario();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>Novo funcionário</button>
+            <button class="acaoRel salBtnAdiantar" onclick="abrirModalAdiantamento()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v6"></path><path d="M9 5l3-3 3 3"></path><rect x="2" y="10" width="20" height="12" rx="2"></rect><circle cx="12" cy="16" r="2"></circle></svg>Novo adiantamento</button>
+            <button class="acaoRel almBtnEntrada" onclick="trocarTela('telaFolhaPagamento'); abrirTelaFolhaPagamento();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Folha do mês</button>
+        </div>
+    </div>
+
+    <!-- folha do mês atual: bruto, adiantado, pago, falta -->
+    <section class="salHero">
+        <div class="salHeroTopo">
+            <div>
+                <span class="fcHeroRotulo salRotulo"><span class="fcHeroIcone salIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-4a2 2 0 0 0 0 4h4v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"></path><circle cx="17" cy="14" r=".6" fill="currentColor"></circle></svg></span><span id="salCompetenciaTitulo">Folha do mês</span></span>
+                <span class="salHeroValor" id="salFaltaPagar">R$ 0,00</span>
+                <span class="fcHeroNota">ainda a pagar no fechamento do mês (salários − adiantamentos − o que já foi pago)</span>
+            </div>
+            <span class="salStatusFolha" id="salStatusFolha"></span>
+        </div>
+        <div class="salBarra" id="salBarra" aria-hidden="true"></div>
+        <div class="salHeroNumeros">
+            <div><span class="salPonto" style="background:#94a3b8"></span><span>Salários do mês</span><b id="salTotalBruto">R$ 0,00</b></div>
+            <div><span class="salPonto" style="background:#fbbf24"></span><span>Já adiantado</span><b id="salAdiantamentosMes">R$ 0,00</b></div>
+            <div><span class="salPonto" style="background:#3ddc84"></span><span>Já pago na folha</span><b id="salPagoFolha">R$ 0,00</b></div>
+            <div><span class="salPonto" style="background:#60a5fa"></span><span>Folha gerada (líquida)</span><b id="salFolhaMesBruta">R$ 0,00</b></div>
+        </div>
+    </section>
+
+    <div class="almHub">
+        <button class="almHubCartao" style="--corHub:#2dd4bf" onclick="trocarTela('telaFuncionarios'); abrirTelaFuncionarios();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+            <span class="almHubTextos"><b>Funcionários</b><small id="salHubFuncionarios">Cadastro, salário e dia de pagamento</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
         </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaFolhaPagamento'); abrirTelaFolhaPagamento();">
-            <span class="almoxHubIcone">📄</span>
-            <span>Folha de Pagamento</span>
+        <button class="almHubCartao" style="--corHub:#60a5fa" onclick="trocarTela('telaFolhaPagamento'); abrirTelaFolhaPagamento();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h5"></path></svg></span>
+            <span class="almHubTextos"><b>Folha de Pagamento</b><small id="salHubFolha">Gerar, pagar e imprimir recibos</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
         </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaAdiantamentos'); abrirTelaAdiantamentos();">
-            <span class="almoxHubIcone">💵</span>
-            <span>Adiantamentos</span>
+        <button class="almHubCartao" style="--corHub:#fbbf24" onclick="trocarTela('telaAdiantamentos'); abrirTelaAdiantamentos();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span>
+            <span class="almHubTextos"><b>Adiantamentos</b><small id="salHubAdiantamentos">Vales descontados na folha</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
         </button>
     </div>
 
-    <div class="dashKpiRow">
-        <div class="statTile">
-            <span class="statTileLabel">👥 Funcionários Ativos</span>
-            <span class="statTileValor" id="salFuncionariosAtivos">0</span>
+    <section class="salEquipe">
+        <div class="salEquipeTopo">
+            <h3>Equipe neste mês <span id="salFuncionariosAtivos" class="salContador">0</span></h3>
+            <small>Quanto cada um já recebeu de adiantamento e quanto falta</small>
         </div>
-        <div class="statTile">
-            <span class="statTileLabel">💰 Folha do Mês Atual (líquida)</span>
-            <span class="statTileValor" id="salFolhaMesBruta">R$ 0,00</span>
-        </div>
-        <div class="statTile">
-            <span class="statTileLabel">💵 Adiantamentos no Mês Atual</span>
-            <span class="statTileValor" id="salAdiantamentosMes">R$ 0,00</span>
-        </div>
-    </div>
+        <div id="salListaEquipe"></div>
+    </section>
 </div>
 
 <div id="telaFuncionarios" class="tela">
@@ -1148,7 +1171,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=21"></script>
-<script src="admin.js?v=33"></script>
+<script src="admin.js?v=34"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

@@ -4116,7 +4116,7 @@ let adiantamentosCacheAdmin = [];
 let funcionarioEmEdicaoId = null;
 
 function competenciaAtualPadrao() {
-    return new Date().toISOString().slice(0, 7);
+    return cpDataLocalISO(new Date()).slice(0, 7);
 }
 
 function nomeFuncionario(id) {
@@ -4155,25 +4155,108 @@ async function abrirTelaSalarios() {
     mostrarResumoSalarios();
 }
 
+const ICONES_SALARIOS = {
+    "pessoas": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle><path d=\"M23 21v-2a4 4 0 0 0-3-3.87\"></path><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"></path></svg>",
+    "maisPessoa": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle><path d=\"M19 8v6M22 11h-6\"></path></svg>",
+    "folha": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"></path><path d=\"M14 2v6h6\"></path><path d=\"M8 13h8M8 17h5\"></path></svg>",
+    "dinheiro": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"></rect><circle cx=\"12\" cy=\"12\" r=\"2.5\"></circle><path d=\"M6 12h.01M18 12h.01\"></path></svg>",
+    "adiantar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 2v6\"></path><path d=\"M9 5l3-3 3 3\"></path><rect x=\"2\" y=\"10\" width=\"20\" height=\"12\" rx=\"2\"></rect><circle cx=\"12\" cy=\"16\" r=\"2\"></circle></svg>",
+    "seta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 6l6 6-6 6\"></path></svg>",
+    "calendario": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"></rect><path d=\"M16 2v4M8 2v4M3 10h18\"></path></svg>",
+    "check": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M8.5 12l2.5 2.5 4.5-5\"></path></svg>",
+    "relogio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 7v5l3 2\"></path></svg>",
+    "carteira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-4a2 2 0 0 0 0 4h4v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5\"></path><circle cx=\"17\" cy=\"14\" r=\".6\" fill=\"currentColor\"></circle></svg>"
+};
+
+// situação de cada funcionário ativo na competência: salário, adiantado,
+// folha gerada/paga e quanto ainda falta pagar
+function calcularSituacaoSalarios(competencia) {
+    return funcionariosCacheAdmin.filter(f => f.ativo).map(f => {
+        let adiantado = adiantamentosCacheAdmin.filter(a => a.funcionarioId === f.id && a.competencia === competencia).reduce((s, a) => s + a.valor, 0);
+        let conta = contasPagarCacheAdmin.find(c => c.funcionarioId === f.id && c.competencia === competencia);
+        let parcela = conta && conta.parcelas ? conta.parcelas[0] : null;
+        let paga = !!(parcela && parcela.paga);
+        let liquido = conta ? conta.valorTotal : Math.max(f.salario - adiantado, 0);
+        return {
+            f, adiantado, conta, parcela, paga, liquido,
+            pago: paga ? conta.valorTotal : 0,
+            falta: paga ? 0 : liquido,
+            vencimento: parcela && parcela.dataVencimento ? parcela.dataVencimento.split(",")[0] : null
+        };
+    });
+}
+
 function mostrarResumoSalarios() {
-    let elAtivos = document.getElementById("salFuncionariosAtivos");
-    if (elAtivos) elAtivos.innerText = String(funcionariosCacheAdmin.filter(f => f.ativo).length);
+    let competencia = competenciaAtualPadrao();
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
+    let rs = v => "R$ " + formatarMoeda(v);
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_SALARIOS;
+    let linhas = calcularSituacaoSalarios(competencia);
+    let [ano, mes] = competencia.split("-");
+    let nomeMes = new Date(Number(ano), Number(mes) - 1, 1).toLocaleDateString("pt-BR", { month: "long" });
 
-    let competenciaAtual = competenciaAtualPadrao();
+    let bruto = linhas.reduce((s, l) => s + l.f.salario, 0);
+    let adiantado = adiantamentosCacheAdmin.filter(a => a.competencia === competencia).reduce((s, a) => s + a.valor, 0);
+    let pago = linhas.reduce((s, l) => s + l.pago, 0);
+    let falta = linhas.reduce((s, l) => s + l.falta, 0);
+    let folhaGerada = contasPagarCacheAdmin.filter(c => c.competencia === competencia && c.categoria === "Salário").reduce((s, c) => s + c.valorTotal, 0);
 
-    let folhaBruta = 0;
-    contasPagarCacheAdmin.forEach(c => {
-        if (c.competencia === competenciaAtual && c.categoria === "Salário") folhaBruta += c.valorTotal;
-    });
-    let elFolha = document.getElementById("salFolhaMesBruta");
-    if (elFolha) elFolha.innerText = "R$ " + formatarMoeda(folhaBruta);
+    set("salCompetenciaTitulo", `Folha de ${nomeMes} de ${ano}`);
+    set("salFaltaPagar", rs(falta));
+    set("salTotalBruto", rs(bruto));
+    set("salAdiantamentosMes", rs(adiantado));
+    set("salPagoFolha", rs(pago));
+    set("salFolhaMesBruta", rs(folhaGerada));
+    set("salFuncionariosAtivos", String(linhas.length));
 
-    let adiantamentosMes = 0;
-    adiantamentosCacheAdmin.forEach(a => {
-        if (a.competencia === competenciaAtual) adiantamentosMes += a.valor;
-    });
-    let elAdi = document.getElementById("salAdiantamentosMes");
-    if (elAdi) elAdi.innerText = "R$ " + formatarMoeda(adiantamentosMes);
+    // barra: adiantado + pago + falta, do total de salários
+    let base = Math.max(bruto, adiantado + pago + falta, 0.01);
+    let barra = document.getElementById("salBarra");
+    if (barra) barra.innerHTML = [["#fbbf24", adiantado, "Adiantado"], ["#3ddc84", pago, "Pago na folha"], ["#60a5fa", falta, "Falta pagar"]]
+        .filter(([, v]) => v > 0).map(([cor, v, nome]) => `<i style="width:${v / base * 100}%; background:${cor}" title="${nome}: ${rs(v)}"></i>`).join("");
+
+    let geradas = linhas.filter(l => l.conta).length;
+    let pagas = linhas.filter(l => l.paga).length;
+    let status = document.getElementById("salStatusFolha");
+    if (status) {
+        let [classe, icone, texto] = linhas.length === 0 ? ["", I.pessoas, "Nenhum funcionário ativo"]
+            : pagas === linhas.length ? ["salStatusOk", I.check, "Folha toda paga"]
+            : geradas === 0 ? ["salStatusPendente", I.relogio, "Folha ainda não gerada"]
+            : ["salStatusParcial", I.folha, `Folha gerada · ${pagas} de ${linhas.length} pagos`];
+        status.className = "salStatusFolha " + classe;
+        status.innerHTML = icone + "<span>" + texto + "</span>";
+    }
+    let qtdAdiantamentos = adiantamentosCacheAdmin.filter(a => a.competencia === competencia).length;
+    set("salHubFuncionarios", `${linhas.length} ${linhas.length === 1 ? "funcionário ativo" : "funcionários ativos"}`);
+    set("salHubFolha", geradas === 0 ? `${nomeMes}: ainda não gerada` : `${nomeMes}: ${pagas} de ${linhas.length} pagos`);
+    set("salHubAdiantamentos", `${qtdAdiantamentos} no mês · ${rs(adiantado)}`);
+
+    let lista = document.getElementById("salListaEquipe");
+    if (!lista) return;
+    if (linhas.length === 0) {
+        lista.innerHTML = `<p class="ltVazio">Nenhum funcionário ativo. Cadastre em <b>Novo funcionário</b>.</p>`;
+        return;
+    }
+    lista.innerHTML = linhas.sort((a, b) => a.f.nome.localeCompare(b.f.nome, "pt-BR")).map(l => {
+        let { iniciais, cor } = avatarUsuario({ nome: l.f.nome, usuario: l.f.nome });
+        let pctAdiantado = l.f.salario > 0 ? Math.min(l.adiantado / l.f.salario * 100, 100) : 0;
+        let situacao = l.paga ? `<span class="ltStatus ltStatusAtivo">Pago</span>`
+            : l.conta ? `<span class="ltStatus salSeloGerada">Vence ${esc(l.vencimento || "—")}</span>`
+            : `<span class="ltStatus ltStatusInativo">A gerar · dia ${l.f.diaPagamento}</span>`;
+        return `
+        <div class="salPessoa">
+            <span class="usAvatar" style="--corAvatar:${cor}">${esc(iniciais)}</span>
+            <div class="salPessoaNome"><b>${esc(l.f.nome)}</b><small>${l.f.cargo ? esc(l.f.cargo) + " · " : ""}salário ${rs(l.f.salario)}</small></div>
+            <div class="salPessoaAdiantado" data-rotulo="Adiantado">
+                <div class="salPessoaLinha"><span>Adiantado</span><b>${rs(l.adiantado)}</b></div>
+                <div class="almBarra"><i style="width:${pctAdiantado}%; background:linear-gradient(90deg,#f59e0b,#fbbf24)"></i></div>
+            </div>
+            <div class="salPessoaFalta"><span>${l.paga ? "Recebeu na folha" : "Falta receber"}</span><b class="${l.paga ? "fcEntrada" : ""}">${rs(l.paga ? l.pago : l.falta)}</b></div>
+            ${situacao}
+            <button class="ltBtnIcone salBtnAdiantarPessoa" onclick='abrirModalAdiantamento(${jsonAtributo(l.f.id)})' title="Lançar adiantamento para ${esc(l.f.nome)}" aria-label="Lançar adiantamento">${I.adiantar}</button>
+        </div>`;
+    }).join("");
 }
 
 // ---------- Funcionários ----------
@@ -4411,13 +4494,14 @@ function mostrarAdiantamentos() {
     `).join("");
 }
 
-async function abrirModalAdiantamento() {
+async function abrirModalAdiantamento(funcionarioId) {
     await carregarFuncionariosAdmin();
     let select = document.getElementById("adiFuncionarioInput");
     select.innerHTML = `<option value="">Selecione o funcionário</option>` +
-        funcionariosCacheAdmin.filter(f => f.ativo).map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
+        funcionariosCacheAdmin.filter(f => f.ativo).map(f => `<option value="${f.id}">${escaparHtmlPesagem(f.nome)}</option>`).join("");
+    if (funcionarioId) select.value = funcionarioId;
     document.getElementById("adiValorInput").value = "";
-    document.getElementById("adiDataInput").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("adiDataInput").value = cpDataLocalISO(new Date());
     document.getElementById("adiCompetenciaInput").value = competenciaAtualPadrao();
     document.getElementById("adiObservacoesInput").value = "";
     let erroEl = document.getElementById("adiErro");
@@ -4463,6 +4547,7 @@ async function salvarAdiantamento() {
 
         fecharModalAdiantamento();
         await abrirTelaAdiantamentos();
+        mostrarResumoSalarios();
         atualizarRelatoriosFinanceirosAposMudanca();
     } catch (e) {
         mostrarErro("Erro de conexão: " + e.message);

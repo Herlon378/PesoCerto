@@ -2450,3 +2450,63 @@ body.modoDesktop .ptModal input.ptCampoDestaque { font-size: 18px; font-weight: 
     .ptLinhaCampos { flex-wrap: wrap; }
     .ptLinhaCampos > div { flex: 1 1 140px; }
 }
+
+/* ========================================
+   SALÁRIOS (hub): folha do mês, atalhos e equipe
+   ======================================== */
+body.modoDesktop .salBtnAdiantar { background: linear-gradient(180deg, #b7791f, #8a5a12); }
+.salHero {
+    display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; margin-bottom: 16px; border-radius: 20px;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(45,212,191,0.2), transparent 55%), linear-gradient(135deg, #0f2233, #0d1a30);
+    border: 1px solid rgba(45,212,191,0.3); box-shadow: 0 18px 40px -22px rgba(0,0,0,0.8);
+}
+.salHeroTopo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.salHeroTopo > div { display: flex; flex-direction: column; gap: 6px; }
+.salRotulo { color: #99f6e4; }
+.salIcone { color: #2dd4bf !important; background: rgba(45,212,191,0.16) !important; border-color: rgba(45,212,191,0.35) !important; }
+.salHeroValor { font-size: 40px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.salStatusFolha { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #c9d3e6; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); }
+.salStatusFolha svg { width: 16px; height: 16px; }
+.salStatusOk { color: #3ddc84; background: rgba(61,220,132,0.12); border-color: rgba(61,220,132,0.4); }
+.salStatusPendente { color: #ffc94d; background: rgba(255,201,77,0.1); border-color: rgba(255,201,77,0.4); }
+.salStatusParcial { color: #93c5fd; background: rgba(96,165,250,0.12); border-color: rgba(96,165,250,0.4); }
+.salBarra { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,0.07); }
+.salBarra i { display: block; height: 100%; }
+.salHeroNumeros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.salHeroNumeros div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); position: relative; padding-left: 26px; }
+.salHeroNumeros span { font-size: 12px; color: #93a4c0; font-weight: 600; }
+.salHeroNumeros b { font-size: 17px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.salHeroNumeros .salPonto { position: absolute; left: 11px; top: 15px; width: 8px; height: 8px; border-radius: 50%; }
+.salEquipe { border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); overflow: hidden; }
+.salEquipeTopo { padding: 16px 18px 10px; border-bottom: 1px solid var(--border); }
+.salEquipeTopo h3 { margin: 0 0 2px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.salEquipeTopo small { font-size: 12.5px; color: var(--ink-muted); }
+.salContador { font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: 999px; color: #2dd4bf; background: rgba(45,212,191,0.12); border: 1px solid rgba(45,212,191,0.35); }
+#salListaEquipe .ltVazio { margin: 16px; }
+.salPessoa { display: grid; grid-template-columns: 46px minmax(0, 1.4fr) minmax(0, 1.2fr) 150px 160px 36px; align-items: center; gap: 16px; padding: 12px 18px; }
+.salPessoa + .salPessoa { border-top: 1px solid var(--border); }
+.salPessoa > .ltStatus { justify-self: start; white-space: nowrap; }
+.salPessoa:hover { background: rgba(255,255,255,0.025); }
+.salPessoaNome { min-width: 0; display: flex; flex-direction: column; }
+.salPessoaNome b { color: #fff; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.salPessoaNome small { font-size: 12.5px; color: var(--ink-muted); }
+.salPessoaLinha { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 12.5px; }
+.salPessoaLinha span { color: #c9d3e6; }
+.salPessoaLinha b { color: #fbbf24; font-variant-numeric: tabular-nums; }
+.salPessoaFalta { display: flex; flex-direction: column; align-items: flex-end; }
+.salPessoaFalta span { font-size: 12px; color: var(--ink-muted); }
+.salPessoaFalta b { font-size: 16px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.salSeloGerada { color: #93c5fd; background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.4); }
+body.modoDesktop .salBtnAdiantarPessoa:hover { color: #fbbf24; background: rgba(251,191,36,0.14); border-color: rgba(251,191,36,0.5); }
+@media (max-width: 1200px) {
+    .salHeroNumeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+    .salHero { padding: 16px; }
+    .salHeroValor { font-size: 30px; }
+    .salPessoa { grid-template-columns: 46px minmax(0, 1fr) 36px; gap: 8px 12px; padding: 12px 14px; }
+    .salPessoaAdiantado { grid-column: 1 / -1; grid-row: 2; }
+    .salPessoaFalta { grid-column: 2; grid-row: 3; align-items: flex-start; }
+    .salPessoa > .ltStatus { grid-column: 3; grid-row: 3; justify-self: end; white-space: nowrap; }
+    .salBtnAdiantarPessoa { grid-column: 3; grid-row: 1; }
+}
