@@ -312,7 +312,30 @@
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:26px;height:26px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         Iniciar Pesagem
     </button>
+    <!-- atalho pra compra/venda na perna sem pesar: só aparece em "Valor Fixo por Animal" -->
+    <button class="btnLancamentoRapido" id="btnLancamentoRapido" style="display:none" onclick="abrirLancamentoRapido()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 19l9-7-9-7z"></path><path d="M2 19l9-7-9-7z"></path></svg>
+        <span><b>Lançar sem pesar</b><small>só a quantidade e o valor por animal</small></span>
+    </button>
     <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+</div>
+
+<div id="modalLancamentoRapido" class="modal">
+    <div class="modal-box lrCaixa">
+        <h2>Lançar sem pesar</h2>
+        <p class="lrExplicacao">Para compra ou venda <b>na perna</b>: lança os animais de uma vez, com o valor por animal e <b>peso 0 kg</b> — o mesmo que lançar um por um.</p>
+        <div class="lrResumo" id="lrResumo"></div>
+        <label class="lrRotulo" for="lrQuantidade">Quantidade de animais</label>
+        <input id="lrQuantidade" type="number" inputmode="numeric" min="1" max="5000" placeholder="Ex: 80" oninput="atualizarTotalLancamentoRapido()">
+        <label class="lrRotulo" for="lrValor">Valor por animal</label>
+        <input id="lrValor" inputmode="decimal" placeholder="R$ 0,00" oninput="formatarCampoMoedaRapido(this)">
+        <div class="lrTotal" id="lrTotal"></div>
+        <p id="lrErro" class="loginErro" style="display:none"></p>
+        <div class="botoes">
+            <button class="btn-nao" onclick="fecharLancamentoRapido()">Cancelar</button>
+            <button class="btn-sim" id="lrBotaoLancar" onclick="confirmarLancamentoRapido()">Lançar</button>
+        </div>
+    </div>
 </div>
 
 <div id="telaConectarBalanca" class="tela">

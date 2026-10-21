@@ -296,6 +296,7 @@ function ehModoTransferencia(){
 // só lote de origem, lote de destino e os animais pesados
 function alternarModoOperacao(){
     let transf = ehModoTransferencia();
+    if(typeof atualizarBotaoLancamentoRapido === "function") atualizarBotaoLancamentoRapido();
     function mostrar(id, visivel){ let el = document.getElementById(id); if(el) el.style.display = visivel ? "" : "none"; }
     mostrar("cardNomeVendedor", !transf);
     mostrar("cardTipoPesagem1", !transf);
@@ -396,6 +397,117 @@ function iniciarPesagem(){
     abrirTelaPesagemOuBalanca();
 }
 
+// ========================================
+// LANÇAR SEM PESAR (compra/venda na perna)
+// ========================================
+// Atalho pra quem compra/vende "na perna" e não pesa: em vez de lançar
+// animal por animal, informa a quantidade e o valor por animal. O atalho só
+// monta a MESMA lista que o operador montaria lançando um a um (peso 0 kg,
+// valor do animal) e chama o finalizarPesagem() de sempre -- mesmo registro,
+// mesma sincronização, mesmo controle de saldo do lote e mesma pergunta do
+// frete. Não existe nenhum tipo de lançamento novo no sistema.
+function lancamentoRapidoDisponivel(){
+    let op = (document.getElementById("tipoOperacao") || {}).value;
+    let tipo = (document.getElementById("tipoPesagem") || {}).value;
+    return (op === "compra" || op === "venda") && tipo === "valor_animal";
+}
+
+function atualizarBotaoLancamentoRapido(){
+    let btn = document.getElementById("btnLancamentoRapido");
+    if(btn) btn.style.display = lancamentoRapidoDisponivel() ? "" : "none";
+}
+
+function formatarCampoMoedaRapido(input){
+    let numero = Number(input.value.replace(/\D/g, "")) / 100;
+    input.value = numero === 0 ? "" : "R$ " + formatarMoeda(numero);
+    atualizarTotalLancamentoRapido();
+}
+
+function lerQuantidadeRapido(){
+    let n = Number(document.getElementById("lrQuantidade").value);
+    return Number.isInteger(n) ? n : NaN;
+}
+
+function atualizarTotalLancamentoRapido(){
+    let qtd = lerQuantidadeRapido();
+    let valor = parseNumeroLocal(document.getElementById("lrValor").value);
+    let total = document.getElementById("lrTotal");
+    let botao = document.getElementById("lrBotaoLancar");
+    if(qtd > 0 && valor > 0){
+        total.innerHTML = `${qtd} ${qtd === 1 ? "animal" : "animais"} × R$ ${formatarMoeda(valor)} = <b>R$ ${formatarMoeda(qtd * valor)}</b>`;
+        botao.innerText = `Lançar ${qtd} ${qtd === 1 ? "animal" : "animais"}`;
+    } else {
+        total.innerHTML = "";
+        botao.innerText = "Lançar";
+    }
+}
+
+function abrirLancamentoRapido(){
+    if(!lancamentoRapidoDisponivel()) return;
+    for(let n of [2, 3]){
+        let bloco = document.getElementById("blocoCriterio" + n);
+        if(bloco && bloco.style.display !== "none"){
+            alert("O lançamento sem pesar funciona com um critério só. Remova o Critério 2/3 ou use Iniciar Pesagem.");
+            return;
+        }
+    }
+    let emAndamento = (criteriosPesagem || []).reduce((s, c) => s + (c.pesos ? c.pesos.length : 0), 0) || pesos.length;
+    if(emAndamento > 0){
+        alert(`Já existe uma pesagem em andamento com ${emAndamento} animal(is). Finalize ou cancele ela antes de lançar sem pesar.`);
+        return;
+    }
+    let nv = document.getElementById("nomeVendedor");
+    if(!nv || !nv.value.trim()){ alert("Preencha o nome do vendedor!"); return; }
+    let op = document.getElementById("tipoOperacao").value;
+    let lote = document.getElementById("descricao").value;
+    let esc = escaparHtmlPesagem;
+    document.getElementById("lrResumo").innerHTML =
+        `<span class="lrSelo ${op === "compra" ? "lrSeloCompra" : "lrSeloVenda"}">${op === "compra" ? "COMPRA" : "VENDA"}</span>` +
+        `<span>${esc(nv.value.trim())}</span><span>Lote: <b>${esc(lote || "Sem lote")}</b></span>`;
+    document.getElementById("lrQuantidade").value = "";
+    document.getElementById("lrValor").value = (document.getElementById("valorKg") || {}).value || "";
+    document.getElementById("lrErro").style.display = "none";
+    atualizarTotalLancamentoRapido();
+    document.getElementById("modalLancamentoRapido").style.display = "flex";
+    setTimeout(() => document.getElementById("lrQuantidade").focus(), 50);
+}
+
+function fecharLancamentoRapido(){
+    document.getElementById("modalLancamentoRapido").style.display = "none";
+}
+
+function confirmarLancamentoRapido(){
+    let erro = document.getElementById("lrErro");
+    let mostrarErro = msg => { erro.innerText = msg; erro.style.display = "block"; };
+    let qtd = lerQuantidadeRapido();
+    let valor = parseNumeroLocal(document.getElementById("lrValor").value);
+    if(!(qtd >= 1 && qtd <= 5000)){ mostrarErro("Informe a quantidade de animais (1 a 5000)."); return; }
+    if(!(valor > 0)){ mostrarErro("Informe o valor por animal."); return; }
+
+    // o valor vai pro mesmo campo "Valor" da Nova Pesagem -- é dele que o
+    // registro salvo tira o preço, igual numa pesagem normal
+    document.getElementById("valorKg").value = "R$ " + formatarMoeda(valor);
+    if(!validarLimiteCompraCriterio("", document.getElementById("tipoOperacao"))){
+        mostrarErro("Valor de compra não autorizado, consulte o administrador.");
+        return;
+    }
+    montarCriteriosPesagem();
+    criterioAtivoIndex = 0;
+    pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
+    if(pesos.length > 0){ mostrarErro("Já existe uma pesagem em andamento. Finalize ou cancele ela antes."); return; }
+    // venda: não pode vender mais do que o lote tem (mesma regra da pesagem)
+    let limite = limiteAnimaisCriterio(0);
+    if(limite !== null && qtd > limite){
+        mostrarErro(`O lote "${criteriosPesagem[0].descricao}" tem ${limite} animal(is) no saldo — não dá pra vender ${qtd}.`);
+        return;
+    }
+    let valorRS = Math.round((valor + Number.EPSILON) * 100) / 100;
+    for(let i = 0; i < qtd; i++) pesos.push({ peso: 0, valorRS, obs: "" });
+    criteriosPesagem[0].pesos = pesos;
+    fecharLancamentoRapido();
+    finalizarPesagem();
+}
+
 function abrirTelaPesagemOuBalanca(){
     if(balancaBluetoothDisponivel()){
         atualizarStatusConexaoBalanca("Balança não conectada", "");
@@ -412,6 +524,7 @@ function abrirTelaPesagemOuBalanca(){
 // (ver CRITÉRIOS DE PESAGEM mais abaixo)
 function alternarTipoPesagem(sufixo){
     sufixo = sufixo || "";
+    if(sufixo === "" && typeof atualizarBotaoLancamentoRapido === "function") atualizarBotaoLancamentoRapido();
     let tipoPesagemEl = document.getElementById("tipoPesagem" + sufixo);
     let rendEl = document.getElementById("rendimentoArroba" + sufixo);
     let vKgEl = document.getElementById("valorKg" + sufixo);
