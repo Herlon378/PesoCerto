@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=8">
-    <link rel="stylesheet" href="admin.css?v=30">
+    <link rel="stylesheet" href="admin.css?v=31">
 </head>
 <body class="modoDesktop">
 
@@ -1050,46 +1050,77 @@
 </div>
 
 <div id="telaVacasMatriz" class="tela">
-    <h2>🐄 Vacas Matriz</h2>
-    <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-        Controle do plantel reprodutivo — separado do resto do sistema de propósito: nada aqui entra em Patrimônio, Custo por Lote ou Fluxo de Caixa.
-    </p>
-    <div class="almoxHubGrade" style="margin-bottom:20px">
-        <button class="almoxHubBotao" onclick="trocarTela('telaPastos'); carregarPastos();">
-            <span class="almoxHubIcone">🌾</span>
-            <span>Pastos</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaVacas'); abrirTelaVacas();">
-            <span class="almoxHubIcone">🐮</span>
-            <span>Vacas</span>
-        </button>
-        <button class="almoxHubBotao" onclick="trocarTela('telaNascimentos'); abrirTelaNascimentos();">
-            <span class="almoxHubIcone">🐣</span>
-            <span>Nascimentos</span>
-        </button>
+    <div class="almCabecalho">
+        <div>
+            <h2>Vacas Matriz</h2>
+            <span class="almResumo vmAviso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>Plantel reprodutivo — separado do financeiro: não entra em Patrimônio, Custo por Lote nem Caixa</span>
+        </div>
+        <div class="almAcoesRapidas">
+            <button class="acaoRel acaoSecundaria" onclick="trocarTela('telaPastos'); carregarPastos(); abrirModalPasto();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Novo pasto</button>
+            <button class="acaoRel salBtnAdiantar" onclick="trocarTela('telaVacas'); abrirTelaVacas(); abrirModalVaca();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg>Nova vaca</button>
+            <button class="acaoRel almBtnEntrada" onclick="trocarTela('telaNascimentos'); abrirTelaNascimentos(); abrirModalNascimento();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-4 0-7-3-7-7 0-5 4-11 7-11s7 6 7 11c0 4-3 7-7 7z"></path><path d="M8 13l2 1.5 2-2 2 2 2-1.5"></path></svg>Registrar nascimento</button>
+        </div>
     </div>
 
-    <div class="dashKpiRow">
-        <div class="statTile">
-            <span class="statTileLabel">🐄 Vacas Ativas</span>
-            <span class="statTileValor" id="vmVacasAtivas">0</span>
+    <section class="vmHero">
+        <div class="vmHeroPrincipal">
+            <span class="fcHeroRotulo vmRotulo"><span class="fcHeroIcone vmIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span>Vacas no plantel</span>
+            <span class="fcHeroValor" id="vmVacasAtivas">0</span>
+            <span class="fcHeroNota" id="vmVacasDetalhe"></span>
         </div>
-        <div class="statTile">
-            <span class="statTileLabel">🐣 Nascimentos no Ano</span>
-            <span class="statTileValor" id="vmNascimentosAno">0</span>
+        <div class="vmHeroNatalidade">
+            <span class="ptComposicaoTitulo" id="vmNatalidadeTitulo">Natalidade no ano</span>
+            <div class="vmAnel">
+                <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" class="vmAnelTrilha"></circle><circle cx="60" cy="60" r="50" class="vmAnelValor" id="vmAnelValor"></circle></svg>
+                <div class="vmAnelTexto"><b id="vmNatalidade">0%</b><small>das vacas pariram</small></div>
+            </div>
         </div>
-        <div class="statTile">
-            <span class="statTileLabel">⚰️ Perdas no Ano</span>
-            <span class="statTileValor" id="vmPerdasAno">0</span>
+        <div class="fcHeroMes vmHeroSexos">
+            <span class="fcHeroMesTitulo">Nascidos no ano por sexo</span>
+            <div class="vmSexoBarra" id="vmSexoBarra"></div>
+            <div class="fcHeroMesLinha"><span class="vmPonto" style="background:#60a5fa"></span><span>Machos</span><b id="vmMachosAno">0</b></div>
+            <div class="fcHeroMesLinha"><span class="vmPonto" style="background:#f472b6"></span><span>Fêmeas</span><b id="vmFemeasAno">0</b></div>
         </div>
-        <div class="statTile">
-            <span class="statTileLabel">🐂 Bezerros p/ Apartar (8-12m)</span>
-            <span class="statTileValor" id="vmBezerrosApartar">0</span>
-        </div>
-        <div class="statTile">
-            <span class="statTileLabel">🐄 Bezerras p/ Apartar (8-12m)</span>
-            <span class="statTileValor" id="vmBezerrasApartar">0</span>
-        </div>
+    </section>
+
+    <div class="ltKpis vmKpis">
+        <div class="ltKpi" style="--corKpi:#a3e635"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-4 0-7-3-7-7 0-5 4-11 7-11s7 6 7 11c0 4-3 7-7 7z"></path><path d="M8 13l2 1.5 2-2 2 2 2-1.5"></path></svg></span><div><span class="ltKpiRotulo">Nascimentos no ano</span><b id="vmNascimentosAno">0</b></div></div>
+        <div class="ltKpi" style="--corKpi:#2dd4bf"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"></path></svg></span><div><span class="ltKpiRotulo">Bezerros ao pé (vivos)</span><b id="vmAoPe">0</b></div></div>
+        <button class="ltKpi vmKpiApartar" style="--corKpi:#fbbf24" onclick="trocarTela('telaNascimentos'); abrirTelaNascimentos();" title="Ver nascimentos"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M20 4L8.1 15.9"></path><path d="M14.5 14.5L20 20"></path><path d="M8.1 8.1L12 12"></path></svg></span><div><span class="ltKpiRotulo">Prontos p/ apartar (8-12m)</span><b><span id="vmBezerrosApartar">0</span> <small>machos</small> · <span id="vmBezerrasApartar">0</span> <small>fêmeas</small></b></div></button>
+        <div class="ltKpi vmKpiPerdas" style="--corKpi:#ff7b72"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><div><span class="ltKpiRotulo">Perdas no ano</span><b id="vmPerdasAno">0</b></div></div>
+    </div>
+
+    <div class="vmPaineis">
+        <section class="vmPainel">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12" y="8" width="3" height="10"></rect><rect x="17" y="5" width="3" height="13"></rect></svg>Nascimentos por mês <small id="vmAnoGrafico"></small></h3>
+            <div class="vmMeses" id="vmMeses"></div>
+        </section>
+        <section class="vmPainel">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"></path><path d="M5 20c0-4 1-7 3-9"></path><path d="M8 20c0-5 2-9 5-11"></path><path d="M12 20c0-3 1-6 3-8"></path><path d="M16 20c0-4 2-7 5-8"></path></svg>Vacas por pasto</h3>
+            <div id="vmPorPasto"></div>
+        </section>
+        <section class="vmPainel">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M20 4L8.1 15.9"></path><path d="M14.5 14.5L20 20"></path><path d="M8.1 8.1L12 12"></path></svg>Prontos para apartar</h3>
+            <div id="vmListaApartar"></div>
+        </section>
+    </div>
+
+    <div class="almHub">
+        <button class="almHubCartao" style="--corHub:#a3e635" onclick="trocarTela('telaPastos'); carregarPastos();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"></path><path d="M5 20c0-4 1-7 3-9"></path><path d="M8 20c0-5 2-9 5-11"></path><path d="M12 20c0-3 1-6 3-8"></path><path d="M16 20c0-4 2-7 5-8"></path></svg></span>
+            <span class="almHubTextos"><b>Pastos</b><small id="vmHubPastos">Onde cada vaca está</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
+        <button class="almHubCartao" style="--corHub:#2dd4bf" onclick="trocarTela('telaVacas'); abrirTelaVacas();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span>
+            <span class="almHubTextos"><b>Vacas</b><small id="vmHubVacas">Cadastro do plantel</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
+        <button class="almHubCartao" style="--corHub:#fbbf24" onclick="trocarTela('telaNascimentos'); abrirTelaNascimentos();">
+            <span class="almHubIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-4 0-7-3-7-7 0-5 4-11 7-11s7 6 7 11c0 4-3 7-7 7z"></path><path d="M8 13l2 1.5 2-2 2 2 2-1.5"></path></svg></span>
+            <span class="almHubTextos"><b>Nascimentos</b><small id="vmHubNascimentos">Bezerros, apartação e vacinas</small></span>
+            <span class="almHubSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
     </div>
 </div>
 
@@ -1171,7 +1202,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=21"></script>
-<script src="admin.js?v=34"></script>
+<script src="admin.js?v=35"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

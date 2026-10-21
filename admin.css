@@ -2510,3 +2510,76 @@ body.modoDesktop .salBtnAdiantarPessoa:hover { color: #fbbf24; background: rgba(
     .salPessoa > .ltStatus { grid-column: 3; grid-row: 3; justify-self: end; white-space: nowrap; }
     .salBtnAdiantarPessoa { grid-column: 3; grid-row: 1; }
 }
+
+/* ========================================
+   VACAS MATRIZ (hub): plantel, natalidade, painéis
+   ======================================== */
+.vmAviso { display: inline-flex; align-items: center; gap: 6px; }
+.vmAviso svg { width: 14px; height: 14px; color: #a3e635; flex-shrink: 0; }
+.vmHero {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); margin-bottom: 16px; border-radius: 20px; overflow: hidden;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(163,230,53,0.2), transparent 55%), linear-gradient(135deg, #142a1c, #0d1a30);
+    border: 1px solid rgba(163,230,53,0.3); box-shadow: 0 18px 40px -22px rgba(0,0,0,0.8);
+}
+.vmHero > div { padding: 22px 24px; min-width: 0; }
+.vmHero > div + div { border-left: 1px solid rgba(255,255,255,0.08); }
+.vmHeroPrincipal { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.vmRotulo { color: #d9f99d; }
+.vmIcone { color: #a3e635 !important; background: rgba(163,230,53,0.16) !important; border-color: rgba(163,230,53,0.4) !important; }
+.vmHeroPrincipal .fcHeroValor { font-size: 52px; }
+.vmHeroNatalidade { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.vmAnel { position: relative; width: 140px; height: 140px; }
+.vmAnel svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.vmAnel circle { fill: none; stroke-width: 12; }
+.vmAnelTrilha { stroke: rgba(255,255,255,0.08); }
+.vmAnelValor { stroke: #a3e635; stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
+.vmAnelTexto { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.vmAnelTexto b { font-size: 26px; color: #fff; }
+.vmAnelTexto small { font-size: 10.5px; color: #93a4c0; max-width: 84px; text-align: center; line-height: 1.2; }
+.vmHeroSexos .fcHeroMesTitulo { text-transform: none; }
+.vmSexoBarra { display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(255,255,255,0.07); margin-bottom: 4px; }
+.vmSexoBarra i { display: block; height: 100%; }
+.vmPonto { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.vmKpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+.vmKpis .ltKpi b small { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.vmKpiDestaque { border-color: rgba(251,191,36,0.6) !important; background: linear-gradient(90deg, rgba(251,191,36,0.16), transparent 70%), var(--surface-sunken) !important; }
+.vmKpiPerdasAlerta { border-color: rgba(255,123,114,0.5) !important; }
+.vmKpiPerdasAlerta b { color: #ff9a92 !important; }
+.vmPaineis { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-bottom: 16px; }
+.vmPainel { padding: 16px 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); min-width: 0; }
+.vmPainel h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 15px; }
+.vmPainel h3 svg { width: 17px; height: 17px; color: #a3e635; }
+.vmPainel h3 small { font-weight: 600; color: var(--ink-muted); font-size: 12.5px; }
+.vmMeses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; height: 150px; }
+.vmMes { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.vmMesQtd { font-size: 11.5px; font-weight: 800; color: #d9f99d; min-height: 14px; }
+.vmMesColuna { flex: 1; width: 100%; max-width: 26px; display: flex; align-items: flex-end; border-radius: 6px; background: rgba(255,255,255,0.04); overflow: hidden; }
+.vmMesColuna i { display: block; width: 100%; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #a3e635, #4d7c0f); }
+.vmMes small { font-size: 11px; color: var(--ink-muted); }
+.vmMesAtual small { color: #fff; font-weight: 800; }
+.vmMesFuturo { opacity: 0.4; }
+.vmLinhaBarra { margin-bottom: 10px; }
+.vmLinhaTopo { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 13.5px; color: #c9d3e6; }
+.vmLinhaTopo b { color: #fff; }
+.vmVazio { margin: 0; font-size: 13px; color: var(--ink-muted); }
+.vmApartarItem { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.vmApartarItem > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.vmApartarItem b { color: #fff; font-size: 14px; }
+.vmApartarItem small { font-size: 12px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vmSexo { width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800; }
+.vmSexoMacho { color: #60a5fa; background: rgba(96,165,250,0.14); border: 1px solid rgba(96,165,250,0.4); }
+.vmSexoFemea { color: #f472b6; background: rgba(244,114,182,0.14); border: 1px solid rgba(244,114,182,0.4); }
+.vmIdade { font-size: 12.5px; font-weight: 800; color: #fbbf24; white-space: nowrap; }
+@media (max-width: 1200px) {
+    .vmPaineis { grid-template-columns: 1fr 1fr; }
+    .vmPaineis .vmPainel:first-child { grid-column: 1 / -1; }
+    .vmKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+    .vmHero { grid-template-columns: 1fr; }
+    .vmHero > div + div { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
+    .vmHero > div { padding: 16px; }
+    .vmPaineis { grid-template-columns: minmax(0, 1fr); }
+    .vmMeses { gap: 3px; height: 130px; }
+    .vmMes small { font-size: 9.5px; }
+}

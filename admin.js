@@ -4796,37 +4796,103 @@ async function abrirTelaVacasMatriz() {
 function mostrarResumoVacasMatriz() {
     let elAtivas = document.getElementById("vmVacasAtivas");
     if (!elAtivas) return;
-
-    elAtivas.innerText = vacasMatrizCacheAdmin.filter(v => v.status === "ativa").length;
-
+    let esc = escaparHtmlPesagem;
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
     let anoAtual = new Date().getFullYear();
-    let nascimentosAno = nascimentosCacheAdmin.filter(n => {
-        let dm = extrairMesAnoDaData(n.dataNascimento);
-        return dm && dm.ano === anoAtual;
-    }).length;
-    document.getElementById("vmNascimentosAno").innerText = nascimentosAno;
+    let doAno = dataStr => { let dm = extrairMesAnoDaData(dataStr); return dm && dm.ano === anoAtual; };
 
-    let mortesVacasAno = vacasMatrizCacheAdmin.filter(v => {
-        if (v.status !== "morta" || !v.dataMorte) return false;
-        let dm = extrairMesAnoDaData(v.dataMorte);
-        return dm && dm.ano === anoAtual;
-    }).length;
-    let mortesBezerrosAno = nascimentosCacheAdmin.filter(n => {
-        if (n.status !== "morto" || !n.dataMorte) return false;
-        let dm = extrairMesAnoDaData(n.dataMorte);
-        return dm && dm.ano === anoAtual;
-    }).length;
-    document.getElementById("vmPerdasAno").innerText = mortesVacasAno + mortesBezerrosAno;
+    let ativas = vacasMatrizCacheAdmin.filter(v => v.status === "ativa");
+    let mortas = vacasMatrizCacheAdmin.filter(v => v.status === "morta").length;
+    let descartadas = vacasMatrizCacheAdmin.length - ativas.length - mortas;
+    elAtivas.innerText = ativas.length;
+    set("vmVacasDetalhe", [mortas ? `${mortas} morta${mortas > 1 ? "s" : ""}` : "", descartadas ? `${descartadas} descartada${descartadas > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · ") || "Nenhuma perda ou descarte registrado");
 
-    // mesma faixa (8 a <12 meses, ainda vivo) do aviso "🟡 Pronto p/ apartar"
-    // já mostrado na tabela de Nascimentos — aqui só conta, separado por sexo.
-    function prontoParaApartar(n, sexo) {
-        if (n.status !== "vivo" || n.sexo !== sexo) return false;
+    let nascidosAno = nascimentosCacheAdmin.filter(n => doAno(n.dataNascimento));
+    set("vmNascimentosAno", nascidosAno.length);
+    let machos = nascidosAno.filter(n => n.sexo === "macho").length;
+    let femeas = nascidosAno.filter(n => n.sexo === "femea").length;
+    set("vmMachosAno", machos);
+    set("vmFemeasAno", femeas);
+    let barra = document.getElementById("vmSexoBarra");
+    if (barra) barra.innerHTML = machos + femeas > 0
+        ? `<i style="width:${machos / (machos + femeas) * 100}%; background:#60a5fa"></i><i style="width:${femeas / (machos + femeas) * 100}%; background:#f472b6"></i>`
+        : "";
+
+    // natalidade: vacas (do plantel ativo) que tiveram pelo menos 1 bezerro no ano
+    let maesNoAno = new Set(nascidosAno.map(n => n.vacaMaeNumero).filter(Boolean));
+    let pariram = ativas.filter(v => maesNoAno.has(v.numero)).length;
+    let natalidade = ativas.length ? Math.round(pariram / ativas.length * 100) : 0;
+    set("vmNatalidade", natalidade + "%");
+    set("vmNatalidadeTitulo", `Natalidade em ${anoAtual} · ${pariram} de ${ativas.length}`);
+    let anel = document.getElementById("vmAnelValor");
+    if (anel) {
+        let circ = 2 * Math.PI * 50;
+        anel.setAttribute("stroke-dasharray", `${circ * natalidade / 100} ${circ}`);
+    }
+
+    set("vmAoPe", nascimentosCacheAdmin.filter(n => n.status === "vivo").length);
+
+    let mortesVacasAno = vacasMatrizCacheAdmin.filter(v => v.status === "morta" && v.dataMorte && doAno(v.dataMorte)).length;
+    let mortesBezerrosAno = nascimentosCacheAdmin.filter(n => n.status === "morto" && n.dataMorte && doAno(n.dataMorte)).length;
+    set("vmPerdasAno", mortesVacasAno + mortesBezerrosAno);
+    document.querySelector(".vmKpiPerdas")?.classList.toggle("vmKpiPerdasAlerta", mortesVacasAno + mortesBezerrosAno > 0);
+    let elPerdas = document.getElementById("vmPerdasAno");
+    if (elPerdas && mortesVacasAno + mortesBezerrosAno > 0) elPerdas.title = `${mortesVacasAno} vaca(s) e ${mortesBezerrosAno} bezerro(s)`;
+
+    // mesma faixa (8 a <12 meses, ainda vivo) do aviso "Pronto p/ apartar" da
+    // tabela de Nascimentos
+    let prontos = nascimentosCacheAdmin.filter(n => {
+        if (n.status !== "vivo") return false;
         let meses = calcularIdadeEmMeses(n.dataNascimento);
         return meses !== null && meses >= 8 && meses < 12;
+    });
+    set("vmBezerrosApartar", prontos.filter(n => n.sexo === "macho").length);
+    set("vmBezerrasApartar", prontos.filter(n => n.sexo === "femea").length);
+    document.querySelector(".vmKpiApartar")?.classList.toggle("vmKpiDestaque", prontos.length > 0);
+
+    // nascimentos por mês do ano
+    let porMes = Array(12).fill(0);
+    nascidosAno.forEach(n => { let dm = extrairMesAnoDaData(n.dataNascimento); if (dm) porMes[dm.mes]++; });
+    let maxMes = Math.max(1, ...porMes);
+    let mesAtual = new Date().getMonth();
+    set("vmAnoGrafico", String(anoAtual));
+    let meses = document.getElementById("vmMeses");
+    if (meses) meses.innerHTML = porMes.map((q, i) => `
+        <div class="vmMes${i === mesAtual ? " vmMesAtual" : ""}${i > mesAtual ? " vmMesFuturo" : ""}" title="${NOMES_MESES_RESULTADO[i]}: ${q} nascimento(s)">
+            <span class="vmMesQtd">${q || ""}</span>
+            <div class="vmMesColuna"><i style="height:${q / maxMes * 100}%"></i></div>
+            <small>${NOMES_MESES_RESULTADO[i].slice(0, 3)}</small>
+        </div>`).join("");
+
+    // vacas ativas por pasto
+    let porPasto = {};
+    ativas.forEach(v => { let p = v.pastoNome || "Sem pasto"; porPasto[p] = (porPasto[p] || 0) + 1; });
+    let pastos = Object.keys(porPasto).sort((a, b) => porPasto[b] - porPasto[a]);
+    let maxPasto = Math.max(1, ...Object.values(porPasto));
+    let elPastos = document.getElementById("vmPorPasto");
+    if (elPastos) elPastos.innerHTML = pastos.length === 0 ? `<p class="vmVazio">Nenhuma vaca ativa.</p>` : pastos.map(p => `
+        <div class="vmLinhaBarra">
+            <div class="vmLinhaTopo"><span>${esc(p)}</span><b>${porPasto[p]}</b></div>
+            <div class="almBarra"><i style="width:${porPasto[p] / maxPasto * 100}%; background:linear-gradient(90deg,#65a30d,#a3e635)"></i></div>
+        </div>`).join("");
+
+    // lista de quem já pode apartar (mais velhos primeiro)
+    let elLista = document.getElementById("vmListaApartar");
+    if (elLista) {
+        let ordenados = prontos.map(n => ({ n, meses: calcularIdadeEmMeses(n.dataNascimento) })).sort((a, b) => b.meses - a.meses);
+        elLista.innerHTML = ordenados.length === 0 ? `<p class="vmVazio">Nenhum bezerro na faixa de 8 a 12 meses agora.</p>` :
+            ordenados.slice(0, 6).map(({ n, meses }) => `
+            <div class="vmApartarItem">
+                <span class="vmSexo ${n.sexo === "macho" ? "vmSexoMacho" : "vmSexoFemea"}">${n.sexo === "macho" ? "M" : "F"}</span>
+                <div><b>${n.numeroBezerro ? "Nº " + esc(n.numeroBezerro) : "Sem número"}</b><small>${n.sexo === "femea" ? "filha" : "filho"} da vaca ${esc(n.vacaMaeNumero || "—")}${n.pastoNome ? " · " + esc(n.pastoNome) : ""}</small></div>
+                <span class="vmIdade">${meses} meses</span>
+            </div>`).join("") + (ordenados.length > 6 ? `<p class="vmVazio">e mais ${ordenados.length - 6} — veja em Nascimentos.</p>` : "");
     }
-    document.getElementById("vmBezerrosApartar").innerText = nascimentosCacheAdmin.filter(n => prontoParaApartar(n, "macho")).length;
-    document.getElementById("vmBezerrasApartar").innerText = nascimentosCacheAdmin.filter(n => prontoParaApartar(n, "femea")).length;
+
+    let pastosAtivos = pastosCacheAdmin.filter(p => p.ativo).length;
+    set("vmHubPastos", `${pastosAtivos} ${pastosAtivos === 1 ? "pasto ativo" : "pastos ativos"}`);
+    set("vmHubVacas", `${ativas.length} ativas · ${vacasMatrizCacheAdmin.length} cadastradas`);
+    set("vmHubNascimentos", `${nascidosAno.length} em ${anoAtual} · ${prontos.length} p/ apartar`);
 }
 
 // ---------- PASTOS (mirrors Lotes) ----------
