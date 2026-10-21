@@ -3962,34 +3962,128 @@ async function carregarEnergiaAdmin() {
 }
 
 async function abrirTelaEnergia() {
-    await carregarEnergiaAdmin();
+    // contas a pagar: pra mostrar se a energia de cada mês já foi paga
+    await Promise.all([carregarEnergiaAdmin(), carregarContasPagarAdmin()]);
     mostrarEnergia();
+}
+
+const ICONES_ENERGIA = {
+    "raio": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polygon points=\"13 2 3 14 12 14 11 22 21 10 12 10 13 2\"></polygon></svg>",
+    "mais": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg>",
+    "medidor": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"13\" r=\"8\"></circle><path d=\"M12 13l3.5-3.5\"></path><path d=\"M8 5.5L7 4M16 5.5l1-1.5M12 3V2\"></path></svg>",
+    "tomada": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 2v6M15 2v6\"></path><path d=\"M6 8h12v4a6 6 0 0 1-12 0z\"></path><path d=\"M12 18v4\"></path></svg>",
+    "etiqueta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"></path><circle cx=\"7\" cy=\"7\" r=\"1.3\" fill=\"currentColor\"></circle></svg>",
+    "media": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12h18\"></path><path d=\"M3 6h18\" opacity=\".4\"></path><path d=\"M3 18h18\" opacity=\".4\"></path></svg>",
+    "calendario": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"></rect><path d=\"M16 2v4M8 2v4M3 10h18\"></path></svg>",
+    "grafico": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v18h18\"></path><rect x=\"7\" y=\"12\" width=\"3\" height=\"6\"></rect><rect x=\"12\" y=\"8\" width=\"3\" height=\"10\"></rect><rect x=\"17\" y=\"5\" width=\"3\" height=\"13\"></rect></svg>",
+    "casa": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"></path><polyline points=\"9 22 9 12 15 12 15 22\"></polyline></svg>",
+    "lixeira": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"></path><path d=\"M8 6V4h8v2\"></path><path d=\"M19 6l-1 14H6L5 6\"></path><path d=\"M10 11v6M14 11v6\"></path></svg>",
+    "info": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 11v5\"></path><path d=\"M12 8h.01\"></path></svg>",
+    "seta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"M13 6l6 6-6 6\"></path></svg>"
+};
+
+// situação da conta a pagar gerada por um lançamento de energia
+function statusContaEnergia(e) {
+    let conta = e.contaPagarId ? contasPagarCacheAdmin.find(c => c.id === e.contaPagarId) : null;
+    let parcela = conta && conta.parcelas ? conta.parcelas[0] : null;
+    if (!parcela) return { chave: "sem", texto: "Sem conta vinculada" };
+    let st = statusParcela(parcela);
+    let venc = parcela.dataVencimento ? parcela.dataVencimento.split(",")[0] : "";
+    if (st.chave === "paga") return { chave: "paga", texto: "Pago" };
+    if (st.chave === "vencida") return { chave: "vencida", texto: "Vencida em " + venc };
+    return { chave: "pendente", texto: "A pagar · vence " + venc };
 }
 
 function mostrarEnergia() {
     let corpo = document.getElementById("corpoTabelaEnergia");
     if (!corpo) return;
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_ENERGIA;
+    let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
+    let rs = v => "R$ " + formatarMoeda(v);
+    let kwh = v => formatarPeso(Math.round(v * 10) / 10) + " kWh";
+    let lista = energiaCacheAdmin; // já vem do mais recente pro mais antigo
+    let ultima = lista[0] || null, anterior = lista[1] || null;
+    let mesDe = e => {
+        let iso = extrairDataISO(e.data);
+        if (!iso) return "";
+        let [a, m] = iso.split("-");
+        let t = new Date(Number(a), Number(m) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    };
 
-    let ultima = energiaCacheAdmin[0] || null; // já vem ordenado mais recente primeiro
-    document.getElementById("energiaUltimaLeitura").innerText = ultima ? formatarPeso(ultima.leituraAtual) + " kWh" : "—";
-    document.getElementById("energiaValorKwh").innerText = ultima ? "R$ " + formatarMoeda(ultima.valorPorKwh) : "—";
-    document.getElementById("energiaConsumoMes").innerText = ultima ? formatarPeso(ultima.consumoMes) + " kWh" : "—";
+    set("enMesTitulo", ultima ? "Energia de " + mesDe(ultima) : "Nenhum lançamento ainda");
+    set("enValorPagar", ultima ? rs(ultima.valorAPagar) : "R$ 0,00");
+    let elStatus = document.getElementById("enStatus");
+    if (elStatus) {
+        let st = ultima ? statusContaEnergia(ultima) : null;
+        elStatus.className = "enStatus" + (st ? " enStatus_" + st.chave : "");
+        elStatus.innerText = st ? st.texto : "Clique em Novo lançamento quando chegar a fatura do vizinho";
+    }
+    set("energiaUltimaLeitura", ultima ? formatarPeso(ultima.leituraAtual) : "—");
+    set("enLeituraAnterior", ultima ? `anterior: ${formatarPeso(ultima.leituraAnterior)} kWh` : "");
+    set("energiaConsumoMes", ultima ? kwh(ultima.consumoMes) : "—");
+    set("energiaValorKwh", ultima ? rs(ultima.valorPorKwh) : "—");
+    let variacao = (id, atual, antes, ehDinheiro) => {
+        let el = document.getElementById(id);
+        if (!el) return;
+        if (!anterior || !antes) { el.innerHTML = ""; return; }
+        let dif = atual - antes, pct = dif / antes * 100;
+        let subiu = dif > 0.0001, igual = Math.abs(pct) < 0.5;
+        el.className = "enVariacao " + (igual ? "enIgual" : subiu ? "enSubiu" : "enDesceu");
+        el.innerText = igual ? "igual ao mês anterior"
+            : `${subiu ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}% (${subiu ? "+" : "−"}${ehDinheiro ? rs(Math.abs(dif)) : kwh(Math.abs(dif))}) vs ${ehDinheiro ? rs(antes) : kwh(antes)}`;
+    };
+    variacao("enVarConsumo", ultima ? ultima.consumoMes : 0, anterior ? anterior.consumoMes : 0, false);
+    variacao("enVarKwh", ultima ? ultima.valorPorKwh : 0, anterior ? anterior.valorPorKwh : 0, true);
 
-    if (energiaCacheAdmin.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="7">Nenhum lançamento registrado ainda.</td></tr>`;
+    let n = lista.length;
+    set("enMediaConsumo", n ? kwh(lista.reduce((s, e) => s + e.consumoMes, 0) / n) : "—");
+    set("enMediaValor", n ? rs(lista.reduce((s, e) => s + e.valorAPagar, 0) / n) : "—");
+    let ano = new Date().getFullYear();
+    let doAno = lista.filter(e => (extrairDataISO(e.data) || "").startsWith(ano + "-"));
+    set("enAnoRotulo", `Gasto em ${ano} (${doAno.length} ${doAno.length === 1 ? "mês" : "meses"})`);
+    set("enTotalAno", rs(doAno.reduce((s, e) => s + e.valorAPagar, 0)));
+    set("enParteFatura", ultima && ultima.consumoTotalFatura > 0 ? Math.round(ultima.consumoMes / ultima.consumoTotalFatura * 100) + "%" : "—");
+    set("enParteRotulo", ultima && ultima.consumoTotalFatura > 0 ? `Sua parte da fatura (${kwh(ultima.consumoMes)} de ${kwh(ultima.consumoTotalFatura)})` : "Sua parte da fatura do vizinho");
+
+    // gráfico: últimos 12 lançamentos, do mais antigo pro mais novo
+    let grafico = document.getElementById("enGrafico");
+    if (grafico) {
+        let pontos = lista.slice(0, 12).reverse();
+        let max = Math.max(1, ...pontos.map(e => e.consumoMes));
+        grafico.innerHTML = pontos.length === 0 ? `<p class="vmVazio">O gráfico aparece depois do primeiro lançamento.</p>` : pontos.map((e, i) => {
+            let iso = extrairDataISO(e.data) || "";
+            let [a, m] = iso.split("-");
+            let rotulo = iso ? new Date(Number(a), Number(m) - 1, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "") + "/" + a.slice(2) : "—";
+            return `
+            <div class="enBarra${i === pontos.length - 1 ? " enBarraAtual" : ""}" title="${esc(rotulo)}: ${kwh(e.consumoMes)} · ${rs(e.valorAPagar)}">
+                <span class="enBarraKwh">${formatarPeso(Math.round(e.consumoMes))}</span>
+                <div class="enBarraColuna"><i style="height:${Math.max(3, e.consumoMes / max * 100)}%"></i></div>
+                <span class="enBarraValor">${rs(e.valorAPagar)}</span>
+                <small>${esc(rotulo)}</small>
+            </div>`;
+        }).join("");
+    }
+
+    set("enQtd", `${n} ${n === 1 ? "lançamento" : "lançamentos"}`);
+    if (n === 0) {
+        corpo.innerHTML = `<p class="ltVazio fcVazio">Nenhum lançamento registrado ainda.</p>`;
         return;
     }
-    corpo.innerHTML = energiaCacheAdmin.map(e => `
-        <tr>
-            <td>${e.data ? e.data.split(",")[0] : "—"}</td>
-            <td>${formatarPeso(e.leituraAnterior)} kWh</td>
-            <td>${formatarPeso(e.leituraAtual)} kWh</td>
-            <td>${formatarPeso(e.consumoMes)} kWh</td>
-            <td>R$ ${formatarMoeda(e.valorPorKwh)}</td>
-            <td>R$ ${formatarMoeda(e.valorAPagar)}</td>
-            <td class="acoesUsuario"><button onclick='excluirEnergia(${jsonAtributo(e.id)})'>🗑️</button></td>
-        </tr>
-    `).join("");
+    corpo.innerHTML = lista.map(e => {
+        let st = statusContaEnergia(e);
+        return `
+        <div class="enLinha">
+            <div class="enLinhaData"><b>${esc(e.data ? e.data.split(",")[0] : "—")}</b><small>${esc(mesDe(e))}</small></div>
+            <div class="enLinhaLeitura"><span>Leitura</span><b>${formatarPeso(e.leituraAnterior)} ${I.seta} ${formatarPeso(e.leituraAtual)} kWh</b></div>
+            <div class="enLinhaConsumo"><span>Consumo</span><b>${kwh(e.consumoMes)}</b></div>
+            <div class="enLinhaKwh"><span>kWh</span><b>${rs(e.valorPorKwh)}</b><small>fatura ${rs(e.valorTotalFatura)} / ${kwh(e.consumoTotalFatura)}</small></div>
+            <div class="enLinhaValor"><span>A pagar</span><b>${rs(e.valorAPagar)}</b></div>
+            <span class="enStatus enStatusPequeno enStatus_${st.chave}">${esc(st.texto)}</span>
+            <button class="ltBtnIcone ltBtnExcluir" onclick='excluirEnergia(${jsonAtributo(e.id)})' title="Excluir lançamento" aria-label="Excluir lançamento">${I.lixeira}</button>
+        </div>`;
+    }).join("");
 }
 
 function abrirModalEnergia() {

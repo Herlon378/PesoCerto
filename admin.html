@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=8">
-    <link rel="stylesheet" href="admin.css?v=31">
+    <link rel="stylesheet" href="admin.css?v=32">
 </head>
 <body class="modoDesktop">
 
@@ -915,33 +915,57 @@
 </div>
 
 <div id="telaEnergia" class="tela">
-    <h2>⚡ Energia</h2>
-    <p class="loginSubtitulo" style="text-align:left">Rateio do consumo próprio a partir da fatura do vizinho: informe o valor e o consumo total da fatura dele, e a leitura atual do seu medidor — o sistema calcula o valor por kWh, desconta a leitura do mês passado e manda o valor certinho pra Contas a Pagar.</p>
-    <div class="botoesRelatorio">
-        <button onclick="abrirModalEnergia()" style="background:#2e7d32">➕ Novo Lançamento</button>
-    </div>
-
-    <div class="dashKpiRow" style="margin-bottom:16px">
-        <div class="statTile">
-            <span class="statTileLabel">🔢 Última Leitura</span>
-            <span class="statTileValor" id="energiaUltimaLeitura">—</span>
+    <div class="almCabecalho">
+        <div>
+            <h2>Energia</h2>
+            <span class="almResumo">Rateio do seu consumo a partir da fatura do vizinho</span>
         </div>
-        <div class="statTile">
-            <span class="statTileLabel">💡 Valor/kWh (última fatura)</span>
-            <span class="statTileValor" id="energiaValorKwh">—</span>
-        </div>
-        <div class="statTile">
-            <span class="statTileLabel">🔌 Consumo do Último Mês</span>
-            <span class="statTileValor" id="energiaConsumoMes">—</span>
+        <div class="almAcoesRapidas">
+            <button class="acaoRel almBtnEntrada" onclick="abrirModalEnergia()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Novo lançamento</button>
         </div>
     </div>
 
-    <table class="tabelaUsuarios">
-        <thead>
-            <tr><th>Data</th><th>Leitura Ant.</th><th>Leitura Atual</th><th>Consumo (kWh)</th><th>Valor/kWh</th><th>Valor a Pagar</th><th>Ações</th></tr>
-        </thead>
-        <tbody id="corpoTabelaEnergia"></tbody>
-    </table>
+    <details class="enComoFunciona">
+        <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>Como o valor é calculado</summary>
+        <p>Você informa o <b>valor</b> e o <b>consumo total</b> da fatura do vizinho e a <b>leitura atual</b> do seu medidor. O sistema divide o valor da fatura pelo consumo dela (= valor do kWh), desconta a leitura do mês passado (= seu consumo) e manda o valor certinho para <b>Contas a Pagar</b>.</p>
+    </details>
+
+    <section class="enHero" id="enHero">
+        <div class="enHeroPrincipal">
+            <span class="fcHeroRotulo enRotulo"><span class="fcHeroIcone enIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span><span id="enMesTitulo">Último lançamento</span></span>
+            <span class="fcHeroValor" id="enValorPagar">R$ 0,00</span>
+            <span class="enStatus" id="enStatus"></span>
+        </div>
+        <div class="enHeroMedidor">
+            <span class="ptComposicaoTitulo">Leitura do medidor</span>
+            <div class="enVisor" id="energiaUltimaLeitura">—</div>
+            <span class="enLeituraAnterior" id="enLeituraAnterior"></span>
+        </div>
+        <div class="fcHeroMes enHeroComparativo">
+            <span class="fcHeroMesTitulo">Comparado ao mês anterior</span>
+            <div class="fcHeroMesLinha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v6M15 2v6"></path><path d="M6 8h12v4a6 6 0 0 1-12 0z"></path><path d="M12 18v4"></path></svg><span>Consumo</span><b id="energiaConsumoMes">—</b></div>
+            <div class="enVariacao" id="enVarConsumo"></div>
+            <div class="fcHeroMesLinha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg><span>Valor do kWh</span><b id="energiaValorKwh">—</b></div>
+            <div class="enVariacao" id="enVarKwh"></div>
+        </div>
+    </section>
+
+    <div class="ltKpis enKpis">
+        <div class="ltKpi" style="--corKpi:#facc15"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"></path><path d="M3 6h18" opacity=".4"></path><path d="M3 18h18" opacity=".4"></path></svg></span><div><span class="ltKpiRotulo">Consumo médio por mês</span><b id="enMediaConsumo">—</b></div></div>
+        <div class="ltKpi" style="--corKpi:#fb923c"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg></span><div><span class="ltKpiRotulo">Gasto médio por mês</span><b id="enMediaValor">—</b></div></div>
+        <div class="ltKpi" style="--corKpi:#34d399"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><div><span class="ltKpiRotulo" id="enAnoRotulo">Gasto no ano</span><b id="enTotalAno">—</b></div></div>
+        <div class="ltKpi" style="--corKpi:#60a5fa"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span><div><span class="ltKpiRotulo" id="enParteRotulo">Sua parte da fatura do vizinho</span><b id="enParteFatura">—</b></div></div>
+    </div>
+
+    <section class="vmPainel enGraficoPainel">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12" y="8" width="3" height="10"></rect><rect x="17" y="5" width="3" height="13"></rect></svg>Consumo por mês <small>últimos lançamentos</small></h3>
+        <div class="enGrafico" id="enGrafico"></div>
+    </section>
+
+    <section class="fcExtrato enHistorico">
+        <div class="fcExtratoTopo"><h3>Histórico</h3><span id="enQtd"></span></div>
+        <div id="corpoTabelaEnergia"></div>
+    </section>
 </div>
 
 <div id="telaSalarios" class="tela">
@@ -1202,7 +1226,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=21"></script>
-<script src="admin.js?v=35"></script>
+<script src="admin.js?v=36"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

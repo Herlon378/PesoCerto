@@ -2583,3 +2583,82 @@ body.modoDesktop .salBtnAdiantarPessoa:hover { color: #fbbf24; background: rgba(
     .vmMeses { gap: 3px; height: 130px; }
     .vmMes small { font-size: 9.5px; }
 }
+
+/* ========================================
+   ENERGIA: fatura do mês, medidor, comparativo, gráfico, histórico
+   ======================================== */
+.enComoFunciona { margin-bottom: 14px; border-radius: 12px; background: rgba(250,204,21,0.06); border: 1px solid rgba(250,204,21,0.25); }
+.enComoFunciona summary { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; font-size: 13.5px; font-weight: 700; color: #fde68a; list-style: none; }
+.enComoFunciona summary::-webkit-details-marker { display: none; }
+.enComoFunciona summary svg { width: 16px; height: 16px; }
+.enComoFunciona p { margin: 0; padding: 0 14px 12px 38px; font-size: 13.5px; line-height: 1.5; color: #c9d3e6; }
+.enComoFunciona p b { color: #fff; }
+.enHero {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.1fr); margin-bottom: 16px; border-radius: 20px; overflow: hidden;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(250,204,21,0.2), transparent 55%), linear-gradient(135deg, #2a2410, #0d1a30);
+    border: 1px solid rgba(250,204,21,0.3); box-shadow: 0 18px 40px -22px rgba(0,0,0,0.8);
+}
+.enHero > div { padding: 22px 24px; min-width: 0; }
+.enHero > div + div { border-left: 1px solid rgba(255,255,255,0.08); }
+.enHeroPrincipal { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.enRotulo { color: #fde68a; }
+.enRotulo span:last-child { text-transform: none; }
+.enIcone { color: #facc15 !important; background: rgba(250,204,21,0.16) !important; border-color: rgba(250,204,21,0.4) !important; }
+.enStatus { align-self: flex-start; display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; color: #c9d3e6; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); }
+.enStatus_paga { color: #3ddc84; background: rgba(61,220,132,0.12); border-color: rgba(61,220,132,0.4); }
+.enStatus_pendente { color: #ffc94d; background: rgba(255,201,77,0.1); border-color: rgba(255,201,77,0.4); }
+.enStatus_vencida { color: #ff7b72; background: rgba(255,123,114,0.12); border-color: rgba(255,123,114,0.45); }
+.enStatusPequeno { font-size: 11.5px; padding: 3px 10px; white-space: nowrap; }
+.enHeroMedidor { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.enVisor {
+    font-family: ui-monospace, Consolas, "Courier New", monospace; font-size: 34px; font-weight: 800; letter-spacing: 4px;
+    padding: 10px 18px; border-radius: 12px; color: #fde047; background: #0a0f1c;
+    border: 2px solid rgba(250,204,21,0.35); box-shadow: inset 0 2px 10px rgba(0,0,0,0.6), 0 0 24px -8px rgba(250,204,21,0.5);
+    text-shadow: 0 0 10px rgba(253,224,71,0.45); font-variant-numeric: tabular-nums;
+}
+.enVisor::after { content: " kWh"; font-size: 14px; letter-spacing: 1px; color: #a3a3a3; text-shadow: none; }
+.enLeituraAnterior { font-size: 12.5px; color: #93a4c0; }
+.enHeroComparativo { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.enHeroComparativo .fcHeroMesLinha svg { color: #facc15; }
+.enVariacao { font-size: 12px; font-weight: 700; margin: -2px 0 6px 24px; }
+.enSubiu { color: #ff9a92; }
+.enDesceu { color: #3ddc84; }
+.enIgual { color: #93a4c0; }
+.enKpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+.enKpis .ltKpi b { font-size: 18px; }
+.enGraficoPainel { margin-bottom: 16px; }
+.enGraficoPainel h3 svg { color: #facc15 !important; }
+.enGrafico { display: flex; gap: 10px; align-items: flex-end; height: 200px; overflow-x: auto; padding-bottom: 2px; }
+.enBarra { flex: 1 0 64px; max-width: 110px; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.enBarraKwh { font-size: 12px; font-weight: 800; color: #fde68a; }
+.enBarraColuna { flex: 1; width: 100%; max-width: 46px; display: flex; align-items: flex-end; border-radius: 8px; background: rgba(255,255,255,0.04); overflow: hidden; }
+.enBarraColuna i { display: block; width: 100%; border-radius: 8px 8px 0 0; background: linear-gradient(180deg, #fde047, #ca8a04); }
+.enBarraAtual .enBarraColuna i { background: linear-gradient(180deg, #fef08a, #eab308); box-shadow: 0 0 18px -4px rgba(250,204,21,0.7); }
+.enBarraValor { font-size: 11.5px; font-weight: 700; color: #fff; white-space: nowrap; }
+.enBarra small { font-size: 11px; color: var(--ink-muted); text-transform: capitalize; }
+.enLinha { display: grid; grid-template-columns: 120px minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 0.8fr) 190px 36px; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--border); }
+.enLinha:hover { background: rgba(255,255,255,0.025); }
+.enLinha > div { display: flex; flex-direction: column; min-width: 0; }
+.enLinha span { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-muted); }
+.enLinha .enStatus { text-transform: none; letter-spacing: 0; justify-self: start; }
+.enLinha b { font-size: 14.5px; color: #fff; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.enLinha b svg { width: 13px; height: 13px; color: #facc15; }
+.enLinha small { font-size: 11.5px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.enLinhaData small { }
+.enLinhaValor b { color: #fde047; font-size: 16px; }
+@media (max-width: 1200px) {
+    .enKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .enLinha { grid-template-columns: 110px minmax(0, 1.3fr) minmax(0, 0.8fr) minmax(0, 0.8fr) auto 36px; }
+    .enLinhaKwh { display: none !important; }
+}
+@media (max-width: 900px) {
+    .enHero { grid-template-columns: 1fr; }
+    .enHero > div + div { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); }
+    .enHero > div { padding: 16px; }
+    .enVisor { font-size: 28px; }
+    .enLinha { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 8px 12px; padding: 12px 14px; }
+    .enLinhaData { grid-column: 1 / 3; }
+    .enLinha .ltBtnExcluir { grid-column: 3; grid-row: 1; }
+    .enLinha .enStatus { grid-column: 1 / -1; }
+    .enLinhaLeitura { grid-column: 1 / -1; }
+}
