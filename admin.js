@@ -3669,7 +3669,7 @@ function mostrarContasPagar() {
                 <td>${escaparHtmlPesagem(l.conta.descricao)}${l.conta.categoria ? `<small class="cpCategoria">${escaparHtmlPesagem(l.conta.categoria)}</small>` : ""}</td>
                 <td>${l.parcela.numero}/${l.conta.numeroParcelas}</td>
                 <td>R$ ${formatarMoeda(l.parcela.valor)}</td>
-                <td style="color:${l.status.cor}">${l.status.texto}</td>
+                <td style="color:${l.status.cor}">${l.status.texto}${l.parcela.paga && (l.parcela.formaPagamento || l.parcela.juros || l.parcela.desconto) ? `<small class="cpDetalhePagamento">${[l.parcela.formaPagamento ? escaparHtmlPesagem(l.parcela.formaPagamento) : "", l.parcela.juros ? "juros R$ " + formatarMoeda(l.parcela.juros) : "", l.parcela.desconto ? "desconto R$ " + formatarMoeda(l.parcela.desconto) : ""].filter(Boolean).join(" · ")}</small>` : ""}</td>
                 <td>${l.conta.loteNome ? escaparHtmlPesagem(l.conta.loteNome) : "—"}</td>
                 <td>${l.conta.subCaixaNome ? escaparHtmlPesagem(l.conta.subCaixaNome) : "—"}</td>
                 <td class="acoesUsuario">${acoes}</td>
@@ -3799,6 +3799,38 @@ async function excluirContaPagar(id, descricao) {
     }
 }
 
+// pagamento: valor da parcela + juros − desconto, com a forma de pagamento
+let parcelaEmPagamentoValor = 0;
+let formaPagamentoEscolhida = "";
+
+function mascaraMoedaPagamento(input) {
+    let numero = Number(input.value.replace(/\D/g, "")) / 100;
+    input.value = numero === 0 ? "" : "R$ " + formatarMoeda(numero);
+    atualizarTotalPagamento();
+}
+
+function valoresPagamento() {
+    let juros = lerValorBR(document.getElementById("ppJurosInput").value) || 0;
+    let desconto = lerValorBR(document.getElementById("ppDescontoInput").value) || 0;
+    let total = Math.round((parcelaEmPagamentoValor + juros - desconto) * 100) / 100;
+    return { juros, desconto, total };
+}
+
+function atualizarTotalPagamento() {
+    let { juros, desconto, total } = valoresPagamento();
+    let el = document.getElementById("ppTotal");
+    el.innerText = "R$ " + formatarMoeda(total);
+    el.className = juros > desconto ? "ppMais" : desconto > juros ? "ppMenos" : "";
+    document.getElementById("ppBotaoConfirmar").innerText = total > 0 ? "Pagar R$ " + formatarMoeda(total) : "Confirmar pagamento";
+}
+
+function escolherFormaPagamento(forma) {
+    formaPagamentoEscolhida = forma;
+    document.querySelectorAll("#ppFormas .ppForma").forEach(b => b.classList.toggle("ppFormaAtiva", b.dataset.forma === forma));
+    let erroEl = document.getElementById("pagarParcelaErro");
+    if (erroEl && forma) erroEl.style.display = "none";
+}
+
 function abrirModalPagarParcela(parcelaId) {
     parcelaEmPagamentoId = parcelaId;
     let achado = null;
@@ -3809,10 +3841,19 @@ function abrirModalPagarParcela(parcelaId) {
     });
     if (!achado) return;
 
-    document.getElementById("pagarParcelaInfo").innerText =
-        `${achado.conta.descricao} — parcela ${achado.parcela.numero}/${achado.conta.numeroParcelas}, vencimento ${achado.parcela.dataVencimento.split(",")[0]}`;
-    document.getElementById("pagarParcelaValorInput").value = String(achado.parcela.valor).replace(".", ",");
-    document.getElementById("pagarParcelaDataInput").value = new Date().toISOString().slice(0, 10);
+    let venc = achado.parcela.dataVencimento.split(",")[0];
+    let vencISO = extrairDataISO(achado.parcela.dataVencimento);
+    let diasAtraso = vencISO ? Math.floor((new Date(cpDataLocalISO(new Date()) + "T12:00:00") - new Date(vencISO + "T12:00:00")) / 86400000) : 0;
+    document.getElementById("pagarParcelaInfo").innerHTML =
+        `<b>${escaparHtmlPesagem(achado.conta.descricao)}</b> — parcela ${achado.parcela.numero}/${achado.conta.numeroParcelas} · vence ${venc}`
+        + (diasAtraso > 0 ? ` <span class="ppAtraso">vencida há ${diasAtraso} ${diasAtraso === 1 ? "dia" : "dias"}</span>` : "");
+    parcelaEmPagamentoValor = Number(achado.parcela.valor) || 0;
+    document.getElementById("ppValorParcela").innerText = "R$ " + formatarMoeda(parcelaEmPagamentoValor);
+    document.getElementById("ppJurosInput").value = "";
+    document.getElementById("ppDescontoInput").value = "";
+    escolherFormaPagamento("");
+    atualizarTotalPagamento();
+    document.getElementById("pagarParcelaDataInput").value = cpDataLocalISO(new Date());
     let erroEl = document.getElementById("pagarParcelaErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
     document.getElementById("modalPagarParcela").style.display = "flex";
@@ -3845,15 +3886,17 @@ async function confirmarPagarParcela() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
         if (!parcelaEmPagamentoId) return;
 
-        let valor = parseFloat(document.getElementById("pagarParcelaValorInput").value.replace(",", "."));
+        let { juros, desconto, total } = valoresPagamento();
         let dataISO = document.getElementById("pagarParcelaDataInput").value;
-        if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
+        if (Number.isNaN(juros) || Number.isNaN(desconto)) { mostrarErro("Confira os valores de juros e desconto."); return; }
+        if (!(total > 0)) { mostrarErro("O desconto não pode ser igual ou maior que o valor a pagar."); return; }
+        if (!formaPagamentoEscolhida) { mostrarErro("Escolha a forma de pagamento."); return; }
 
         let dataFormatada = dataISO ? formatarDataBR(dataISO) : new Date().toLocaleString("pt-BR");
         let resp = await fetch(`${API_URL}/api/contas-pagar/parcelas/${parcelaEmPagamentoId}/pagar`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-            body: JSON.stringify({ valor, data: dataFormatada })
+            body: JSON.stringify({ juros, desconto, formaPagamento: formaPagamentoEscolhida, data: dataFormatada })
         });
         let dados = await resp.json().catch(() => ({}));
         if (!resp.ok) { mostrarErro(dados.erro || `Erro ao pagar (HTTP ${resp.status}).`); return; }

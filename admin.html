@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=9">
-    <link rel="stylesheet" href="admin.css?v=32">
+    <link rel="stylesheet" href="admin.css?v=33">
 </head>
 <body class="modoDesktop">
 
@@ -1226,7 +1226,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=22"></script>
-<script src="admin.js?v=36"></script>
+<script src="admin.js?v=37"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">
@@ -1454,15 +1454,32 @@
 </div>
 
 <div id="modalPagarParcela" class="modal">
-    <div class="modal-box">
-        <h2>💰 Pagar Parcela</h2>
-        <p id="pagarParcelaInfo" class="loginSubtitulo" style="text-align:left"></p>
-        <input id="pagarParcelaValorInput" placeholder="Valor pago (R$)" inputmode="decimal">
+    <div class="modal-box ppCaixa">
+        <h2 class="ppTitulo"><span class="ppTituloIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span>Pagar parcela</h2>
+        <p id="pagarParcelaInfo" class="ppInfo"></p>
+        <div class="ppValores">
+            <div class="ppLinha"><span>Valor da parcela</span><b id="ppValorParcela">R$ 0,00</b></div>
+            <label class="ppLinha ppCampo ppJuros"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Juros / multa</span><input id="ppJurosInput" inputmode="decimal" placeholder="R$ 0,00" oninput="mascaraMoedaPagamento(this)"></label>
+            <label class="ppLinha ppCampo ppDesconto"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg>Desconto</span><input id="ppDescontoInput" inputmode="decimal" placeholder="R$ 0,00" oninput="mascaraMoedaPagamento(this)"></label>
+            <div class="ppLinha ppTotal"><span>Total a pagar</span><b id="ppTotal">R$ 0,00</b></div>
+        </div>
+        <span class="ppRotulo">Forma de pagamento</span>
+        <div class="ppFormas" id="ppFormas" role="group" aria-label="Forma de pagamento">
+            <button type="button" class="ppForma" data-forma="PIX" onclick="escolherFormaPagamento('PIX')">PIX</button>
+            <button type="button" class="ppForma" data-forma="Dinheiro" onclick="escolherFormaPagamento('Dinheiro')">Dinheiro</button>
+            <button type="button" class="ppForma" data-forma="Transferência" onclick="escolherFormaPagamento('Transferência')">Transferência</button>
+            <button type="button" class="ppForma" data-forma="Boleto" onclick="escolherFormaPagamento('Boleto')">Boleto</button>
+            <button type="button" class="ppForma" data-forma="Cartão de débito" onclick="escolherFormaPagamento('Cartão de débito')">Cartão de débito</button>
+            <button type="button" class="ppForma" data-forma="Cartão de crédito" onclick="escolherFormaPagamento('Cartão de crédito')">Cartão de crédito</button>
+            <button type="button" class="ppForma" data-forma="Cheque" onclick="escolherFormaPagamento('Cheque')">Cheque</button>
+            <button type="button" class="ppForma" data-forma="Outro" onclick="escolherFormaPagamento('Outro')">Outro</button>
+        </div>
+        <span class="ppRotulo">Data do pagamento</span>
         <input id="pagarParcelaDataInput" type="date">
         <p id="pagarParcelaErro" class="loginErro" style="display:none"></p>
         <div class="botoes">
             <button class="btn-nao" onclick="fecharModalPagarParcela()">Cancelar</button>
-            <button class="btn-sim" onclick="confirmarPagarParcela()">Confirmar Pagamento</button>
+            <button class="btn-sim" id="ppBotaoConfirmar" onclick="confirmarPagarParcela()">Confirmar pagamento</button>
         </div>
     </div>
 </div>

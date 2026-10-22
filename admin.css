@@ -2662,3 +2662,40 @@ body.modoDesktop .salBtnAdiantarPessoa:hover { color: #fbbf24; background: rgba(
     .enLinha .enStatus { grid-column: 1 / -1; }
     .enLinhaLeitura { grid-column: 1 / -1; }
 }
+
+/* ========================================
+   PAGAR PARCELA: juros, desconto, forma de pagamento
+   ======================================== */
+body.modoDesktop .modal-box.ppCaixa { max-width: 480px; }
+.ppTitulo { display: flex; align-items: center; gap: 10px; margin-top: 0; }
+.ppTituloIcone { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #3ddc84; background: rgba(61,220,132,0.14); border: 1px solid rgba(61,220,132,0.35); }
+.ppTituloIcone svg { width: 18px; height: 18px; }
+.ppInfo { margin: 0 0 12px; font-size: 13.5px; color: #c9d3e6; line-height: 1.45; }
+.ppInfo b { color: #fff; }
+.ppAtraso { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #ff7b72; background: rgba(255,123,114,0.12); border: 1px solid rgba(255,123,114,0.4); }
+.ppValores { border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); padding: 4px 14px; margin-bottom: 12px; }
+.ppLinha { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 14px; color: #c9d3e6; }
+.ppLinha + .ppLinha { border-top: 1px dashed rgba(255,255,255,0.08); }
+.ppLinha b { color: #fff; font-size: 15px; font-variant-numeric: tabular-nums; }
+.ppCampo span { display: inline-flex; align-items: center; gap: 6px; }
+.ppCampo span svg { width: 14px; height: 14px; }
+.ppJuros span svg { color: #ff9a92; }
+.ppDesconto span svg { color: #3ddc84; }
+body.modoDesktop .ppCampo input { width: 150px; margin: 0; height: 36px; padding: 0 10px; text-align: right; font-size: 14.5px; border-radius: 9px; background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); }
+.ppTotal span { font-weight: 800; color: #fff; }
+.ppTotal b { font-size: 22px; }
+.ppTotal b.ppMais { color: #ffb4ae; }
+.ppTotal b.ppMenos { color: #6ee7a8; }
+.ppRotulo { display: block; margin: 10px 0 6px; font-size: 12.5px; font-weight: 700; color: #c9d3e6; }
+.ppFormas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+body.modoDesktop .ppForma {
+    width: auto; margin: 0; padding: 8px 4px; border-radius: 9px; cursor: pointer; font-size: 12.5px; font-weight: 700; line-height: 1.2;
+    color: #c9d3e6; background: var(--surface-sunken); border: 1px solid var(--border-strong); box-shadow: none;
+}
+body.modoDesktop .ppForma:hover { border-color: rgba(110,170,255,0.5); color: #fff; }
+body.modoDesktop .ppForma.ppFormaAtiva { color: #0d1426; background: #3ddc84; border-color: #3ddc84; }
+.cpDetalhePagamento { display: block; margin-top: 2px; font-size: 11.5px; color: var(--ink-muted); }
+@media (max-width: 900px) {
+    .ppFormas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.modoDesktop .ppCampo input { width: 130px; }
+}
