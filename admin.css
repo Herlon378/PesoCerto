@@ -2699,3 +2699,68 @@ body.modoDesktop .ppForma.ppFormaAtiva { color: #0d1426; background: #3ddc84; bo
     .ppFormas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     body.modoDesktop .ppCampo input { width: 130px; }
 }
+
+/* ========================================
+   CATEGORIAS FINANCEIRAS: campo, janela, filtro e painel de gastos
+   ======================================== */
+.catCampo { display: flex; gap: 8px; align-items: stretch; }
+.catCampo select { flex: 1; min-width: 0; }
+body.modoDesktop .catGerenciarLink {
+    display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0 0 10px; padding: 0 12px; border-radius: 10px; cursor: pointer;
+    font-size: 12.5px; font-weight: 700; color: #fbbf24; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.35); box-shadow: none; white-space: nowrap;
+}
+.catGerenciarLink svg { width: 15px; height: 15px; }
+body.modoDesktop .modal-box.catCaixa { max-width: 620px; }
+.catTopo { display: flex; justify-content: space-between; align-items: center; }
+.catTopo h2 { margin: 0; }
+.catIntro { margin: 6px 0 12px; font-size: 13px; color: var(--ink-muted); }
+.catAbas { margin-bottom: 10px; }
+.catNova { display: flex; gap: 8px; margin-bottom: 10px; }
+body.modoDesktop .catNova input { flex: 1; min-width: 0; margin: 0; height: 40px; padding: 0 12px; border-radius: 10px; background: var(--surface-sunken); color: var(--ink); border: 1px solid var(--border-strong); }
+body.modoDesktop .catNova .acaoRel { height: 40px; }
+.catFora { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding: 12px; border-radius: 12px; background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.35); }
+.catFora > b { display: inline-flex; align-items: center; gap: 8px; color: #fde68a; font-size: 14px; }
+.catFora > b svg { width: 16px; height: 16px; }
+.catFora > span { font-size: 12.5px; color: #c9d3e6; }
+.catForaLinha { display: grid; grid-template-columns: minmax(0, 1fr) 190px auto; gap: 8px; align-items: center; }
+.catForaNome { font-size: 13.5px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catForaNome small { color: var(--ink-muted); }
+body.modoDesktop .catForaLinha select { width: 100%; margin: 0; height: 36px; padding: 0 8px; border-radius: 9px; background: var(--surface-sunken); color: var(--ink); border: 1px solid var(--border-strong); color-scheme: dark; }
+body.modoDesktop .catForaLinha .acaoRel { height: 36px; }
+.catLista { display: flex; flex-direction: column; max-height: 46vh; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border-strong); }
+.catItem { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 12px; }
+.catItem + .catItem { border-top: 1px solid var(--border); }
+.catItemInativo { opacity: 0.55; }
+.catNome { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 14px; font-weight: 600; }
+.catCadeado { display: inline-flex; color: #93a4c0; }
+.catCadeado svg { width: 13px; height: 13px; }
+.catUsos { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+.catAcoes { display: flex; gap: 6px; }
+.catSistema { font-size: 11.5px; color: var(--ink-muted); }
+body.modoDesktop .catBtn { width: auto; margin: 0; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #c9d3e6; background: transparent; border: 1px solid var(--border-strong); box-shadow: none; }
+body.modoDesktop .catBtn:hover { color: #fff; border-color: rgba(110,170,255,0.5); }
+body.modoDesktop .catBtnExcluir:hover { color: #ff8a83; border-color: rgba(229,83,75,0.55); }
+body.modoDesktop .catFiltro, body.modoDesktop #cpFiltroCategoria {
+    width: auto; min-width: 180px; height: 40px; margin: 0; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); color-scheme: dark; cursor: pointer;
+}
+body.modoDesktop .catFiltro.ltFiltroUsado { border-color: var(--blue-500); background: rgba(57,135,229,0.14); }
+.catPainel { margin-bottom: 16px; }
+.catPainel h3 svg { color: #fb7185 !important; }
+.catGastosGrade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+body.modoDesktop .catGasto {
+    display: flex; flex-direction: column; gap: 6px; width: auto; margin: 0; padding: 10px 12px; border-radius: 12px; cursor: pointer; text-align: left;
+    background: var(--surface-sunken); border: 1px solid var(--border-strong); color: var(--ink); box-shadow: none; font: inherit;
+}
+body.modoDesktop .catGasto:hover { border-color: rgba(251,113,133,0.5); }
+body.modoDesktop .catGasto.catGastoAtivo { border-color: #fb7185; box-shadow: 0 0 0 2px rgba(251,113,133,0.35); }
+.catGastoTopo { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; }
+.catGastoTopo span { color: #c9d3e6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catGastoTopo b { color: #fff; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.catGasto .almBarra i { background: linear-gradient(90deg, #e11d48, #fb7185); }
+.catGasto small { font-size: 11.5px; color: var(--ink-muted); }
+.catGastoSem .catGastoTopo span { color: #ffc94d; }
+@media (max-width: 900px) {
+    .catForaLinha { grid-template-columns: 1fr; }
+    body.modoDesktop .catFiltro, body.modoDesktop #cpFiltroCategoria { width: 100%; }
+}

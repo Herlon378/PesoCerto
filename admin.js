@@ -2993,6 +2993,157 @@ async function excluirBem(id, nome) {
 }
 
 // ========================================
+// CATEGORIAS FINANCEIRAS (lista fechada por fazenda)
+// ========================================
+const ICONES_CATEGORIAS = {
+    "pasta": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"></path></svg>",
+    "cadeado": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"></rect><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"></path></svg>",
+    "juntar": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3v4a4 4 0 0 0 4 4h0a4 4 0 0 1 4 4v6\"></path><path d=\"M16 3v4a4 4 0 0 1-4 4\"></path><path d=\"M13 18l3 3 3-3\"></path></svg>",
+    "grafico": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v18h18\"></path><rect x=\"7\" y=\"12\" width=\"3\" height=\"6\"></rect><rect x=\"12\" y=\"8\" width=\"3\" height=\"10\"></rect><rect x=\"17\" y=\"5\" width=\"3\" height=\"13\"></rect></svg>"
+};
+let categoriasCacheAdmin = [];
+let categoriasForaDaLista = [];
+let abaCategorias = "saida";
+
+async function carregarCategoriasFinanceiras() {
+    let token = obterToken();
+    if (!token) return [];
+    try {
+        let resp = await fetch(`${API_URL}/api/categorias-financeiras`, { headers: { "Authorization": "Bearer " + token } });
+        if (!resp.ok) return categoriasCacheAdmin;
+        let dados = await resp.json();
+        categoriasCacheAdmin = dados.categorias || [];
+        categoriasForaDaLista = dados.foraDaLista || [];
+    } catch (e) {}
+    return categoriasCacheAdmin;
+}
+
+// select de categoria (só as ativas do tipo); mantém a escolha se ainda existir
+function preencherSelectCategoria(select, tipo, atual) {
+    if (!select) return;
+    let esc = escaparHtmlPesagem;
+    let lista = categoriasCacheAdmin.filter(c => c.ativo && c.tipo === tipo).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    select.innerHTML = `<option value="">Escolha a categoria…</option>` + lista.map(c => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join("");
+    select.value = lista.some(c => c.nome === atual) ? atual : "";
+}
+
+function preencherCategoriasLancamento() {
+    let tipo = document.getElementById("lancamentoTipoInput").value;
+    let sel = document.getElementById("lancamentoCategoriaInput");
+    preencherSelectCategoria(sel, tipo, sel.value);
+}
+
+async function abrirModalCategorias() {
+    await carregarCategoriasFinanceiras();
+    document.getElementById("catErro").style.display = "none";
+    document.getElementById("catNovaInput").value = "";
+    mostrarCategorias();
+    document.getElementById("modalCategorias").style.display = "flex";
+}
+
+async function fecharModalCategorias() {
+    document.getElementById("modalCategorias").style.display = "none";
+    // as janelas de lançamento abertas por baixo pegam a lista nova
+    await carregarCategoriasFinanceiras();
+    preencherCategoriasLancamento();
+    let selConta = document.getElementById("cpCategoriaInput");
+    preencherSelectCategoria(selConta, "saida", selConta.value);
+}
+
+function trocarAbaCategorias(tipo) {
+    abaCategorias = tipo;
+    document.querySelectorAll("#modalCategorias .catAbas .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.tipo === tipo));
+    mostrarCategorias();
+}
+
+function mostrarCategorias() {
+    let esc = escaparHtmlPesagem;
+    let I = ICONES_CATEGORIAS;
+    let lista = categoriasCacheAdmin.filter(c => c.tipo === abaCategorias);
+    let ativas = lista.filter(c => c.ativo).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    let opcoes = ativas.map(c => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join("");
+    let fora = categoriasForaDaLista.filter(f => f.tipo === abaCategorias);
+    document.getElementById("catForaDaLista").innerHTML = fora.length === 0 ? "" : `
+        <div class="catFora">
+            <b>${I.juntar}Organizar lançamentos antigos</b>
+            <span>Estes nomes foram digitados à mão e não estão na lista. Junte cada um numa categoria — os lançamentos passam pra ela.</span>
+            ${fora.map((f, i) => `
+            <div class="catForaLinha">
+                <span class="catForaNome">${f.nome ? "“" + esc(f.nome) + "”" : "<i>Sem categoria</i>"} <small>${f.usos} ${f.usos === 1 ? "uso" : "usos"}</small></span>
+                <select id="catPara${i}"><option value="">Juntar em…</option>${opcoes}</select>
+                <button class="acaoRel salBtnAdiantar" onclick='juntarCategoria(${jsonAtributo(f.nome)}, ${jsonAtributo(f.tipo)}, "catPara${i}")'>Juntar</button>
+            </div>`).join("")}
+        </div>`;
+    document.getElementById("catLista").innerHTML = lista.length === 0 ? `<p class="vmVazio">Nenhuma categoria.</p>` :
+        lista.sort((a, b) => (b.ativo - a.ativo) || (b.sistema - a.sistema) || a.nome.localeCompare(b.nome, "pt-BR")).map(c => `
+        <div class="catItem${c.ativo ? "" : " catItemInativo"}">
+            <span class="catNome">${c.sistema ? `<span class="catCadeado" title="Usada pelo próprio sistema">${I.cadeado}</span>` : ""}${esc(c.nome)}</span>
+            <small class="catUsos">${c.usos} ${c.usos === 1 ? "uso" : "usos"}${c.ativo ? "" : " · desativada"}</small>
+            <span class="catAcoes">${c.sistema ? `<small class="catSistema">do sistema</small>` : `
+                <button class="catBtn" onclick='renomearCategoria(${jsonAtributo(c.id)}, ${jsonAtributo(c.nome)})'>Renomear</button>
+                <button class="catBtn" onclick='alternarCategoria(${jsonAtributo(c.id)}, ${!c.ativo})'>${c.ativo ? "Desativar" : "Reativar"}</button>
+                ${c.usos === 0 ? `<button class="catBtn catBtnExcluir" onclick='excluirCategoria(${jsonAtributo(c.id)}, ${jsonAtributo(c.nome)})'>Excluir</button>` : ""}`}</span>
+        </div>`).join("");
+}
+
+async function requisicaoCategoria(metodo, rota, corpo) {
+    let erro = document.getElementById("catErro");
+    erro.style.display = "none";
+    try {
+        let resp = await fetch(`${API_URL}/api/categorias-financeiras${rota}`, {
+            method: metodo,
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + obterToken() },
+            body: corpo ? JSON.stringify(corpo) : undefined
+        });
+        let dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) { erro.innerText = dados.erro || `Erro (HTTP ${resp.status}).`; erro.style.display = "block"; return null; }
+        await carregarCategoriasFinanceiras();
+        mostrarCategorias();
+        return dados;
+    } catch (e) {
+        erro.innerText = "Erro de conexão: " + e.message; erro.style.display = "block";
+        return null;
+    }
+}
+
+async function criarCategoria() {
+    let input = document.getElementById("catNovaInput");
+    let nome = input.value.trim();
+    if (!nome) return;
+    if (await requisicaoCategoria("POST", "", { nome, tipo: abaCategorias })) input.value = "";
+}
+
+async function renomearCategoria(id, nomeAtual) {
+    let novo = prompt(`Novo nome para "${nomeAtual}" (os lançamentos com esse nome mudam juntos):`, nomeAtual);
+    if (novo === null || !novo.trim() || novo.trim() === nomeAtual) return;
+    if (await requisicaoCategoria("PUT", "/" + id, { nome: novo.trim() })) atualizarTelasDepoisCategorias();
+}
+
+async function alternarCategoria(id, ativo) {
+    await requisicaoCategoria("PUT", "/" + id, { ativo });
+}
+
+async function excluirCategoria(id, nome) {
+    if (!await confirmarModerno(`Excluir a categoria "${nome}"?`)) return;
+    await requisicaoCategoria("DELETE", "/" + id);
+}
+
+async function juntarCategoria(de, tipo, idSelect) {
+    let para = document.getElementById(idSelect).value;
+    if (!para) { let e = document.getElementById("catErro"); e.innerText = "Escolha em qual categoria juntar."; e.style.display = "block"; return; }
+    if (!await confirmarModerno(`Passar todos os lançamentos ${de ? `"${de}"` : "sem categoria"} para "${para}"?`)) return;
+    let r = await requisicaoCategoria("POST", "/unificar", { de, para, tipo });
+    if (r) atualizarTelasDepoisCategorias();
+}
+
+// renomear/juntar muda a categoria de lançamentos que já estão nas telas
+async function atualizarTelasDepoisCategorias() {
+    await Promise.all([carregarCaixaLancamentosAdmin(), carregarContasPagarAdmin()]);
+    if (document.getElementById("telaFluxoCaixa")?.classList.contains("ativa")) mostrarFluxoCaixa();
+    if (document.getElementById("telaContasPagar")?.classList.contains("ativa")) mostrarContasPagar();
+}
+
+// ========================================
 // FLUXO DE CAIXA
 // ========================================
 let caixaLancamentosCacheAdmin = [];
@@ -3054,6 +3205,8 @@ function limparFiltrosCaixa() {
     document.getElementById("caixaDataFim").value = "";
     let busca = document.getElementById("caixaBusca");
     if (busca) busca.value = "";
+    let selCat = document.getElementById("caixaFiltroCategoria");
+    if (selCat) selCat.value = "";
     filtroTipoCaixa = "";
     marcarChipsCaixa("");
     mostrarFluxoCaixa();
@@ -3093,7 +3246,7 @@ function montarMovimentosCaixa() {
         if (dataISO) {
             movimentos.push({
                 dataISO, data: saldoInicialCache.data, tipo: "entrada",
-                origem: "Saldo Inicial",
+                origem: "Saldo Inicial", categoria: "Saldo inicial",
                 descricao: "Saldo inicial de caixa (editável em Definir Saldo Inicial, no Dashboard)",
                 valor: saldoInicialCache.valor
             });
@@ -3107,6 +3260,7 @@ function montarMovimentosCaixa() {
         movimentos.push({
             dataISO, data: r.data, tipo,
             origem: "Pesagem" + (r.numero ? " Nº " + r.numero : "") + (tipo === "saida" ? " (compra)" : " (venda)"),
+            categoria: tipo === "saida" ? "Compra de gado" : "Venda de gado",
             descricao: (r.vendedor || "Não informado") + (r.descricao && r.descricao !== "Sem descrição" ? " — " + r.descricao : ""),
             valor: d.totalRS
         });
@@ -3120,6 +3274,7 @@ function montarMovimentosCaixa() {
         movimentos.push({
             dataISO, data: l.data, tipo: l.tipo,
             origem: l.categoria || "Lançamento manual",
+            categoria: l.categoria && l.categoria.trim() ? l.categoria : "Sem categoria",
             descricao: l.descricao || l.categoria || "—",
             lote: l.loteNome || "", subCaixa: l.subCaixaNome || "",
             valor: l.valor,
@@ -3146,9 +3301,10 @@ function filtrarMovimentosCaixa(movimentos) {
     let noPeriodo = movimentos.filter(m => (!de || m.dataISO >= de) && (!ate || m.dataISO <= ate));
     let anteriores = de ? movimentos.filter(m => m.dataISO < de) : [];
     let saldoAnterior = anteriores.length ? anteriores[anteriores.length - 1].saldoAcumulado : 0;
-    let visiveis = noPeriodo.filter(m => (!filtroTipoCaixa || m.tipo === filtroTipoCaixa) &&
+    let categoriaFiltro = document.getElementById("caixaFiltroCategoria")?.value || "";
+    let visiveis = noPeriodo.filter(m => (!filtroTipoCaixa || m.tipo === filtroTipoCaixa) && (!categoriaFiltro || m.categoria === categoriaFiltro) &&
         (!busca || [m.descricao, m.origem, m.lote, m.subCaixa, formatarMoeda(m.valor)].some(t => String(t || "").toLowerCase().includes(busca))));
-    return { de, ate, busca, noPeriodo, visiveis, saldoAnterior };
+    return { de, ate, busca, noPeriodo, visiveis, saldoAnterior, categoriaFiltro };
 }
 
 function desenharSparklineCaixa(movimentos) {
@@ -3202,7 +3358,17 @@ function mostrarFluxoCaixa() {
     set("fcUltimoLancamento", movimentos.length ? String(movimentos[movimentos.length - 1].data).split(",")[0] : "—");
     desenharSparklineCaixa(movimentos);
 
+    // filtro de categoria: as que aparecem nos lançamentos (mantém a escolha)
+    let selCat = document.getElementById("caixaFiltroCategoria");
+    if (selCat) {
+        let atual = selCat.value;
+        let nomes = [...new Set(movimentos.map(m => m.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        selCat.innerHTML = `<option value="">Categoria: Todas</option>` + nomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+        selCat.value = nomes.includes(atual) ? atual : "";
+        selCat.classList.toggle("ltFiltroUsado", !!selCat.value);
+    }
     let { de, visiveis, noPeriodo, saldoAnterior } = filtrarMovimentosCaixa(movimentos);
+    desenharGastosPorCategoria(noPeriodo);
     let totalEntradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
     let totalSaidas = visiveis.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0);
     set("fcSaldoAnterior", de ? (saldoAnterior < 0 ? "− " : "") + "R$ " + formatarMoeda(Math.abs(saldoAnterior)) : "—");
@@ -3252,11 +3418,42 @@ function mostrarFluxoCaixa() {
     }).join("");
 }
 
+// saídas do período agrupadas por categoria (clicar filtra o extrato)
+function desenharGastosPorCategoria(noPeriodo) {
+    let el = document.getElementById("catGastos");
+    if (!el) return;
+    let esc = escaparHtmlPesagem;
+    let de = document.getElementById("caixaDataInicio").value, ate = document.getElementById("caixaDataFim").value;
+    let br = iso => iso.split("-").reverse().join("/");
+    let periodo = document.getElementById("catPainelPeriodo");
+    if (periodo) periodo.innerText = de || ate ? `${de ? br(de) : "início"} a ${ate ? br(ate) : "hoje"}` : "todo o histórico";
+    let soma = {};
+    noPeriodo.filter(m => m.tipo === "saida").forEach(m => { soma[m.categoria] = (soma[m.categoria] || 0) + m.valor; });
+    let nomes = Object.keys(soma).sort((a, b) => soma[b] - soma[a]);
+    let total = nomes.reduce((s, n) => s + soma[n], 0);
+    if (!nomes.length) { el.innerHTML = `<p class="vmVazio">Nenhuma saída nesse período.</p>`; return; }
+    let filtro = document.getElementById("caixaFiltroCategoria")?.value || "";
+    el.innerHTML = `<div class="catGastosGrade">` + nomes.map(n => `
+        <button class="catGasto${filtro === n ? " catGastoAtivo" : ""}${n === "Sem categoria" ? " catGastoSem" : ""}" onclick='filtrarCategoriaCaixa(${jsonAtributo(n)})' title="Ver só ${esc(n)} no extrato">
+            <div class="catGastoTopo"><span>${esc(n)}</span><b>R$ ${formatarMoeda(soma[n])}</b></div>
+            <div class="almBarra"><i style="width:${Math.max(2, soma[n] / total * 100)}%"></i></div>
+            <small>${Math.round(soma[n] / total * 100)}% das saídas</small>
+        </button>`).join("") + `</div>`;
+}
+
+function filtrarCategoriaCaixa(nome) {
+    let sel = document.getElementById("caixaFiltroCategoria");
+    if (!sel) return;
+    sel.value = sel.value === nome ? "" : nome;
+    mostrarFluxoCaixa();
+    document.querySelector("#telaFluxoCaixa .fcExtrato")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 // extrato impresso do período filtrado (mesma folha branca dos relatórios)
 function imprimirExtratoCaixa() {
     let esc = escaparHtmlPesagem;
     let movimentos = montarMovimentosCaixa();
-    let { de, ate, busca, noPeriodo, visiveis, saldoAnterior } = filtrarMovimentosCaixa(movimentos);
+    let { de, ate, busca, noPeriodo, visiveis, saldoAnterior, categoriaFiltro } = filtrarMovimentosCaixa(movimentos);
     let br = iso => iso ? iso.split("-").reverse().join("/") : "";
     let periodo = de || ate ? `${de ? br(de) : "início"} a ${ate ? br(ate) : "hoje"}` : "Todo o histórico";
     let entradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
@@ -3280,7 +3477,7 @@ function imprimirExtratoCaixa() {
         <section class="folhaDados">
             <div><span>Período</span><b>${esc(periodo)}</b></div>
             <div><span>Lançamentos</span><b>${visiveis.length}</b></div>
-            <div><span>Filtro</span><b>${filtroTipoCaixa === "entrada" ? "Só entradas" : filtroTipoCaixa === "saida" ? "Só saídas" : "Entradas e saídas"}${busca ? ` · "${esc(busca)}"` : ""}</b></div>
+            <div><span>Filtro</span><b>${filtroTipoCaixa === "entrada" ? "Só entradas" : filtroTipoCaixa === "saida" ? "Só saídas" : "Entradas e saídas"}${categoriaFiltro ? ` · ${esc(categoriaFiltro)}` : ""}${busca ? ` · "${esc(busca)}"` : ""}</b></div>
             <div><span>Emitido por</span><b>${esc(obterUsuarioLogado() || "—")}</b></div>
         </section>
         <section class="folhaResumo">
@@ -3327,7 +3524,9 @@ function imprimirExtratoCaixa() {
 
 async function abrirModalLancamento() {
     document.getElementById("lancamentoTipoInput").value = "saida";
+    await carregarCategoriasFinanceiras();
     document.getElementById("lancamentoCategoriaInput").value = "";
+    preencherCategoriasLancamento();
     document.getElementById("lancamentoDescricaoInput").value = "";
     document.getElementById("lancamentoValorInput").value = "";
     document.getElementById("lancamentoDataInput").value = new Date().toISOString().slice(0, 10);
@@ -3365,7 +3564,8 @@ async function salvarLancamento() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
 
         let tipo = document.getElementById("lancamentoTipoInput").value;
-        let categoria = document.getElementById("lancamentoCategoriaInput").value.trim();
+        let categoria = document.getElementById("lancamentoCategoriaInput").value;
+        if (!categoria) { mostrarErro("Escolha a categoria."); return; }
         let loteNome = document.getElementById("lancamentoLoteInput").value;
         let subCaixaNome = document.getElementById("lancamentoSubCaixaInput").value;
         let descricao = document.getElementById("lancamentoDescricaoInput").value.trim();
@@ -3513,7 +3713,7 @@ function cpDatasManuais() {
 }
 
 function cpLimparFiltros() {
-    ["cpBusca", "cpFiltroStatus", "cpFiltroPeriodo", "cpFiltroDe", "cpFiltroAte", "cpFiltroLote", "cpFiltroSubCaixa"]
+    ["cpBusca", "cpFiltroStatus", "cpFiltroPeriodo", "cpFiltroDe", "cpFiltroAte", "cpFiltroCategoria", "cpFiltroLote", "cpFiltroSubCaixa"]
         .forEach(id => { let el = document.getElementById(id); if (el) el.value = ""; });
     document.getElementById("cpFiltroCampoData").value = "vencimento";
     mostrarContasPagar();
@@ -3595,6 +3795,7 @@ function mostrarContasPagar() {
         if (elQtd) elQtd.innerText = qtdTexto(soma[chave][1]);
     });
 
+    cpPreencherOpcoes("cpFiltroCategoria", "Categoria: Todas", contasPagarCacheAdmin.map(c => c.categoria));
     cpPreencherOpcoes("cpFiltroLote", "Lote: Todos", contasPagarCacheAdmin.map(c => c.loteNome));
     cpPreencherOpcoes("cpFiltroSubCaixa", "Sub-caixa: Todas", contasPagarCacheAdmin.map(c => c.subCaixaNome));
 
@@ -3602,7 +3803,7 @@ function mostrarContasPagar() {
     let statusFiltro = valor("cpFiltroStatus");
     let campoData = valor("cpFiltroCampoData") || "vencimento";
     let de = valor("cpFiltroDe"), ate = valor("cpFiltroAte");
-    let loteFiltro = valor("cpFiltroLote"), subCaixaFiltro = valor("cpFiltroSubCaixa");
+    let loteFiltro = valor("cpFiltroLote"), subCaixaFiltro = valor("cpFiltroSubCaixa"), categoriaFiltro = valor("cpFiltroCategoria");
     let busca = valor("cpBusca").trim().toLowerCase();
     let dataDaLinha = l => extrairDataISO(campoData === "compra" ? l.conta.dataCompra
         : campoData === "pagamento" ? l.parcela.dataPagamento : l.parcela.dataVencimento) || "";
@@ -3614,7 +3815,7 @@ function mostrarContasPagar() {
         return d && (!de || d >= de) && (!ate || d <= ate);
     });
     let confere = (filtro, campo) => !filtro || (filtro === "__nenhum" ? !campo : campo === filtro);
-    linhas = linhas.filter(l => confere(loteFiltro, l.conta.loteNome) && confere(subCaixaFiltro, l.conta.subCaixaNome));
+    linhas = linhas.filter(l => confere(loteFiltro, l.conta.loteNome) && confere(subCaixaFiltro, l.conta.subCaixaNome) && confere(categoriaFiltro, l.conta.categoria));
     if (busca) linhas = linhas.filter(l => [l.conta.descricao, l.conta.categoria, l.conta.loteNome, l.conta.subCaixaNome,
         formatarMoeda(l.parcela.valor)].some(t => String(t || "").toLowerCase().includes(busca)));
 
@@ -3630,13 +3831,13 @@ function mostrarContasPagar() {
     // indicador ativo + resumo do que está na tela
     let ativo = cpIndicadorAtivo();
     document.querySelectorAll(".cpKpi").forEach(b => b.classList.toggle("cpKpiAtivo", b.dataset.filtro === ativo));
-    let algumFiltro = statusFiltro || de || ate || loteFiltro || subCaixaFiltro || busca;
+    let algumFiltro = statusFiltro || de || ate || loteFiltro || subCaixaFiltro || categoriaFiltro || busca;
     let topo = document.querySelector(".cpTopo");
     if (topo) {
         topo.classList.toggle("cpComFiltro", !!algumFiltro);
         topo.classList.toggle("cpComPeriodo", !!(valor("cpFiltroPeriodo") || de || ate));
     }
-    ["cpFiltroStatus", "cpFiltroPeriodo", "cpFiltroLote", "cpFiltroSubCaixa"].forEach(id => {
+    ["cpFiltroStatus", "cpFiltroPeriodo", "cpFiltroCategoria", "cpFiltroLote", "cpFiltroSubCaixa"].forEach(id => {
         let el = document.getElementById(id); if (el) el.classList.toggle("cpFiltroUsado", !!el.value);
     });
     let campo = document.getElementById("cpFiltroCampoData");
@@ -3691,7 +3892,8 @@ async function abrirModalContaPagar() {
         subCaixasCacheAdmin.filter(s => s.ativo).map(s => `<option value="${s.nome.replace(/"/g, "&quot;")}">${s.nome}</option>`).join("");
 
     document.getElementById("cpDescricaoInput").value = "";
-    document.getElementById("cpCategoriaInput").value = "";
+    await carregarCategoriasFinanceiras();
+    preencherSelectCategoria(document.getElementById("cpCategoriaInput"), "saida", "");
     document.getElementById("cpDataCompraInput").value = new Date().toISOString().slice(0, 10);
     document.getElementById("cpValorTotalInput").value = "";
     document.getElementById("cpNumeroParcelasInput").value = "1";
@@ -3738,7 +3940,7 @@ function calcularParcelasContaPagar(valorTotal, numeroParcelas, primeiraDataISO)
 function atualizarPreviewContaPagar() {
     let preview = document.getElementById("cpPreview");
     if (!preview) return;
-    let valorTotal = parseFloat(document.getElementById("cpValorTotalInput").value.replace(",", ".")) || 0;
+    let valorTotal = lerValorBR(document.getElementById("cpValorTotalInput").value) || 0;
     let numeroParcelas = parseInt(document.getElementById("cpNumeroParcelasInput").value, 10) || 1;
     let primeiraData = document.getElementById("cpPrimeiroVencimentoInput").value;
     if (valorTotal <= 0 || numeroParcelas <= 0 || !primeiraData) { preview.innerText = ""; return; }
@@ -3755,9 +3957,10 @@ async function salvarContaPagar() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
 
         let descricao = document.getElementById("cpDescricaoInput").value.trim();
-        let categoria = document.getElementById("cpCategoriaInput").value.trim();
+        let categoria = document.getElementById("cpCategoriaInput").value;
+        if (!categoria) { mostrarErro("Escolha a categoria."); return; }
         let dataCompraISO = document.getElementById("cpDataCompraInput").value;
-        let valorTotal = parseFloat(document.getElementById("cpValorTotalInput").value.replace(",", "."));
+        let valorTotal = lerValorBR(document.getElementById("cpValorTotalInput").value);
         let numeroParcelas = parseInt(document.getElementById("cpNumeroParcelasInput").value, 10);
         let primeiraData = document.getElementById("cpPrimeiroVencimentoInput").value;
         let loteNome = document.getElementById("cpLoteInput").value;

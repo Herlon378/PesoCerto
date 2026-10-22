@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=9">
-    <link rel="stylesheet" href="admin.css?v=33">
+    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="admin.css?v=34">
 </head>
 <body class="modoDesktop">
 
@@ -744,6 +744,7 @@
             <span class="almResumo">Entradas e saídas de dinheiro, com extrato por período</span>
         </div>
         <div class="almAcoesRapidas">
+            <button class="acaoRel acaoSecundaria" onclick="abrirModalCategorias()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Categorias</button>
             <button class="acaoRel acaoImprimir fcBtnExtrato" onclick="imprimirExtratoCaixa()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>Imprimir extrato</button>
             <button class="acaoRel almBtnEntrada" onclick="abrirModalLancamento()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Novo lançamento</button>
         </div>
@@ -789,6 +790,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input type="search" id="caixaBusca" placeholder="Buscar descrição, origem, lote..." oninput="mostrarFluxoCaixa()">
             </label>
+            <select id="caixaFiltroCategoria" class="catFiltro" onchange="mostrarFluxoCaixa()" title="Categoria"></select>
             <div class="ltChips fcChipsTipo" role="group" aria-label="Tipo">
                 <button class="ltChip ltChipAtivo" data-tipo="" onclick="filtrarTipoCaixa('')">Todos</button>
                 <button class="ltChip" data-tipo="entrada" onclick="filtrarTipoCaixa('entrada')">Entradas</button>
@@ -804,6 +806,11 @@
         <div class="ltKpi" style="--corKpi:#ff7b72"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12l7-7 7 7"></path></svg></span><div><span class="ltKpiRotulo">Saídas no período</span><b id="caixaTotalSaidas">R$ 0,00</b></div></div>
         <div class="ltKpi" style="--corKpi:#60a5fa"><span class="ltKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><path d="M5 7h14"></path><path d="M5 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M19 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M8 21h8"></path></svg></span><div><span class="ltKpiRotulo">Resultado do período</span><b id="caixaSaldoPeriodo">R$ 0,00</b></div></div>
     </div>
+
+    <section class="vmPainel catPainel">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12" y="8" width="3" height="10"></rect><rect x="17" y="5" width="3" height="13"></rect></svg>Gastos por categoria <small id="catPainelPeriodo">no período</small></h3>
+        <div id="catGastos"></div>
+    </section>
 
     <section class="fcExtrato">
         <div class="fcExtratoTopo">
@@ -839,6 +846,7 @@
         <div class="relatoriosTituloLinha cpTituloLinha">
             <h2>🧾 Contas a Pagar</h2>
             <span class="cpResumoFiltro" id="cpResumoFiltro"></span>
+            <button class="acaoRel acaoSecundaria cpBtnCategorias" onclick="abrirModalCategorias()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Categorias</button>
             <button class="acaoRel cpNovaConta" onclick="abrirModalContaPagar()">➕ Nova Conta a Pagar</button>
         </div>
 
@@ -900,6 +908,7 @@
                 <span class="cpDatasAte">até</span>
                 <input type="date" id="cpFiltroAte" onchange="cpDatasManuais()" title="Até">
             </span>
+            <select id="cpFiltroCategoria" onchange="mostrarContasPagar()" title="Categoria"></select>
             <select id="cpFiltroLote" onchange="mostrarContasPagar()" title="Lote"></select>
             <select id="cpFiltroSubCaixa" onchange="mostrarContasPagar()" title="Sub-caixa"></select>
             <button class="acaoRel acaoSecundaria cpLimpar" onclick="cpLimparFiltros()">✖ Limpar</button>
@@ -1226,7 +1235,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=22"></script>
-<script src="admin.js?v=37"></script>
+<script src="admin.js?v=38"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">
@@ -1372,23 +1381,14 @@
 <div id="modalLancamento" class="modal">
     <div class="modal-box">
         <h2>➕ Novo Lançamento</h2>
-        <select id="lancamentoTipoInput">
+        <select id="lancamentoTipoInput" onchange="preencherCategoriasLancamento()">
             <option value="entrada">Entrada (recebimento)</option>
             <option value="saida">Saída (despesa)</option>
         </select>
-        <input id="lancamentoCategoriaInput" placeholder="Categoria (ex: Salário, Combustível)" list="listaCategoriasCaixa">
-        <datalist id="listaCategoriasCaixa">
-            <option value="Salário">
-            <option value="Combustível">
-            <option value="Manutenção">
-            <option value="Impostos">
-            <option value="Frete">
-            <option value="Veterinário">
-            <option value="Cirurgia">
-            <option value="Nutrição Animal">
-            <option value="Energia">
-            <option value="Outros">
-        </datalist>
+        <div class="catCampo">
+            <select id="lancamentoCategoriaInput"></select>
+            <button type="button" class="catGerenciarLink" onclick="abrirModalCategorias()" title="Criar ou organizar categorias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Categorias</button>
+        </div>
         <select id="lancamentoLoteInput">
             <option value="">Sem lote específico</option>
         </select>
@@ -1410,7 +1410,10 @@
     <div class="modal-box">
         <h2>➕ Nova Conta a Pagar</h2>
         <input id="cpDescricaoInput" placeholder="Descrição (ex: Fornecedor de ração)">
-        <input id="cpCategoriaInput" placeholder="Categoria (opcional)" list="listaCategoriasCaixa">
+        <div class="catCampo">
+            <select id="cpCategoriaInput"></select>
+            <button type="button" class="catGerenciarLink" onclick="abrirModalCategorias()" title="Criar ou organizar categorias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Categorias</button>
+        </div>
         <p class="loginSubtitulo" style="text-align:left;margin-bottom:2px">Data da compra</p>
         <input id="cpDataCompraInput" type="date">
         <input id="cpValorTotalInput" placeholder="Valor total (R$)" inputmode="decimal" oninput="atualizarPreviewContaPagar()">
@@ -1536,6 +1539,27 @@
             <button class="btn-nao" onclick="fecharModalBem()">Cancelar</button>
             <button class="btn-sim" onclick="salvarBem()">Salvar</button>
         </div>
+    </div>
+</div>
+
+<div id="modalCategorias" class="modal">
+    <div class="modal-box catCaixa">
+        <div class="catTopo">
+            <h2>Categorias</h2>
+            <button class="relLoteFechar" onclick="fecharModalCategorias()" aria-label="Fechar">✕</button>
+        </div>
+        <p class="catIntro">Lista fixa usada nos lançamentos do caixa e no Contas a Pagar — é ela que deixa os relatórios por categoria certos.</p>
+        <div class="ltChips catAbas" role="group" aria-label="Tipo">
+            <button class="ltChip ltChipAtivo" data-tipo="saida" onclick="trocarAbaCategorias('saida')">Despesas</button>
+            <button class="ltChip" data-tipo="entrada" onclick="trocarAbaCategorias('entrada')">Receitas</button>
+        </div>
+        <div class="catNova">
+            <input id="catNovaInput" placeholder="Nova categoria (ex: Sal mineral)" maxlength="60" onkeydown="if(event.key === 'Enter') criarCategoria()">
+            <button class="acaoRel almBtnEntrada" onclick="criarCategoria()">+ Criar</button>
+        </div>
+        <p id="catErro" class="loginErro" style="display:none"></p>
+        <div id="catForaDaLista"></div>
+        <div id="catLista" class="catLista"></div>
     </div>
 </div>
 
