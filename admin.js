@@ -2652,6 +2652,7 @@ async function mostrarSubCaixas() {
                         <b class="${saldo >= 0 ? "fcEntrada" : "fcSaida"}">${saldo >= 0 ? "" : "− "}R$ ${formatarMoeda(Math.abs(saldo))}</b>
                     </div>
                     <div class="fcSubAcoes">
+                        <button class="acaoRel acaoSecundaria fcBtnVerExtrato" onclick='verExtratoSubCaixa(${jsonAtributo(s.nome)})'>Ver extrato</button>
                         <button class="ltBtnIcone ${s.ativo ? "ltBtnDesativar" : "ltBtnAtivar"}" onclick='alternarAtivoSubCaixa(${jsonAtributo(s.id)}, ${!s.ativo})' title="${s.ativo ? "Desativar" : "Reativar"}" aria-label="${s.ativo ? "Desativar" : "Reativar"}">${s.ativo ? I.desativar : I.ativar}</button>
                         <button class="ltBtnIcone ltBtnExcluir" onclick='excluirSubCaixa(${jsonAtributo(s.id)}, ${jsonAtributo(s.nome)})' title="Excluir" aria-label="Excluir">${I.lixeira}</button>
                     </div>
@@ -3176,7 +3177,7 @@ async function carregarEstoqueEntradasAdmin() {
 }
 
 async function abrirTelaFluxoCaixa() {
-    await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin(), carregarSaldoInicial()]);
+    await Promise.all([carregarCaixaLancamentosAdmin(), carregarEstoqueEntradasAdmin(), carregarSaldoInicial(), carregarSubCaixasAdmin()]);
     mostrarFluxoCaixa();
     mostrarSubCaixas();
 }
@@ -3207,6 +3208,8 @@ function limparFiltrosCaixa() {
     if (busca) busca.value = "";
     let selCat = document.getElementById("caixaFiltroCategoria");
     if (selCat) selCat.value = "";
+    let selSub = document.getElementById("caixaFiltroSubCaixa");
+    if (selSub) selSub.value = "";
     filtroTipoCaixa = "";
     marcarChipsCaixa("");
     mostrarFluxoCaixa();
@@ -3293,6 +3296,31 @@ function montarMovimentosCaixa() {
     return movimentos;
 }
 
+// "qual caixa": todos (geral), um sub-caixa, ou só o que não tem sub-caixa.
+// Num sub-caixa o saldo acumulado é recalculado só com os lançamentos dele --
+// é o "extrato do Caixa do Caminhão", não um pedaço do extrato geral.
+function nomeDoCaixa(valor) {
+    return valor === "__geral" ? "Caixa geral (sem sub-caixa)" : valor;
+}
+
+function aplicarFiltroSubCaixa(movimentos) {
+    let valor = document.getElementById("caixaFiltroSubCaixa")?.value || "";
+    if (!valor) return { base: movimentos, subCaixa: "" };
+    let base = movimentos.filter(m => valor === "__geral" ? !m.subCaixa : m.subCaixa === valor).map(m => Object.assign({}, m));
+    let saldo = 0;
+    base.forEach(m => { saldo += m.tipo === "entrada" ? m.valor : -m.valor; m.saldoAcumulado = saldo; });
+    return { base, subCaixa: valor };
+}
+
+function verExtratoSubCaixa(nome) {
+    let sel = document.getElementById("caixaFiltroSubCaixa");
+    if (!sel) return;
+    if (nome && ![...sel.options].some(o => o.value === nome)) sel.insertAdjacentHTML("beforeend", `<option value="${escaparHtmlPesagem(nome)}">${escaparHtmlPesagem(nome)}</option>`);
+    sel.value = nome;
+    mostrarFluxoCaixa();
+    if (nome) document.getElementById("fcSubCaixaFaixa")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 // o que está filtrado na tela (período + tipo + busca)
 function filtrarMovimentosCaixa(movimentos) {
     let de = document.getElementById("caixaDataInicio").value;
@@ -3358,16 +3386,41 @@ function mostrarFluxoCaixa() {
     set("fcUltimoLancamento", movimentos.length ? String(movimentos[movimentos.length - 1].data).split(",")[0] : "—");
     desenharSparklineCaixa(movimentos);
 
+    // qual caixa: os sub-caixas cadastrados + os que aparecem nos lançamentos
+    let selSub = document.getElementById("caixaFiltroSubCaixa");
+    if (selSub) {
+        let atual = selSub.value;
+        let nomes = [...new Set(subCaixasCacheAdmin.map(s => s.nome).concat(movimentos.map(m => m.subCaixa)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        selSub.innerHTML = `<option value="">Caixa: Todos</option>` + nomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("") + `<option value="__geral">Só o caixa geral (sem sub-caixa)</option>`;
+        selSub.value = nomes.includes(atual) || atual === "__geral" ? atual : "";
+        selSub.classList.toggle("ltFiltroUsado", !!selSub.value);
+    }
+    let { base, subCaixa } = aplicarFiltroSubCaixa(movimentos);
+    let faixa = document.getElementById("fcSubCaixaFaixa");
+    if (faixa) {
+        faixa.style.display = subCaixa ? "" : "none";
+        if (subCaixa) {
+            let saldoSub = base.length ? base[base.length - 1].saldoAcumulado : 0;
+            let ent = base.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
+            let sai = base.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0);
+            set("fcSubCaixaNome", nomeDoCaixa(subCaixa));
+            set("fcSubCaixaDetalhe", `${base.length} ${base.length === 1 ? "lançamento" : "lançamentos"} no total · entrou R$ ${formatarMoeda(ent)} · saiu R$ ${formatarMoeda(sai)}`);
+            let elSaldo = document.getElementById("fcSubCaixaSaldo");
+            elSaldo.innerText = (saldoSub < 0 ? "− " : "") + "R$ " + formatarMoeda(Math.abs(saldoSub));
+            elSaldo.className = saldoSub < 0 ? "fcSaida" : "fcEntrada";
+        }
+    }
+
     // filtro de categoria: as que aparecem nos lançamentos (mantém a escolha)
     let selCat = document.getElementById("caixaFiltroCategoria");
     if (selCat) {
         let atual = selCat.value;
-        let nomes = [...new Set(movimentos.map(m => m.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+        let nomes = [...new Set(base.map(m => m.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
         selCat.innerHTML = `<option value="">Categoria: Todas</option>` + nomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
         selCat.value = nomes.includes(atual) ? atual : "";
         selCat.classList.toggle("ltFiltroUsado", !!selCat.value);
     }
-    let { de, visiveis, noPeriodo, saldoAnterior } = filtrarMovimentosCaixa(movimentos);
+    let { de, visiveis, noPeriodo, saldoAnterior } = filtrarMovimentosCaixa(base);
     desenharGastosPorCategoria(noPeriodo);
     let totalEntradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
     let totalSaidas = visiveis.filter(m => m.tipo === "saida").reduce((s, m) => s + m.valor, 0);
@@ -3452,8 +3505,9 @@ function filtrarCategoriaCaixa(nome) {
 // extrato impresso do período filtrado (mesma folha branca dos relatórios)
 function imprimirExtratoCaixa() {
     let esc = escaparHtmlPesagem;
-    let movimentos = montarMovimentosCaixa();
-    let { de, ate, busca, noPeriodo, visiveis, saldoAnterior, categoriaFiltro } = filtrarMovimentosCaixa(movimentos);
+    let { base, subCaixa } = aplicarFiltroSubCaixa(montarMovimentosCaixa());
+    let { de, ate, busca, noPeriodo, visiveis, saldoAnterior, categoriaFiltro } = filtrarMovimentosCaixa(base);
+    let nomeCaixa = subCaixa ? nomeDoCaixa(subCaixa) : "";
     let br = iso => iso ? iso.split("-").reverse().join("/") : "";
     let periodo = de || ate ? `${de ? br(de) : "início"} a ${ate ? br(ate) : "hoje"}` : "Todo o histórico";
     let entradas = visiveis.filter(m => m.tipo === "entrada").reduce((s, m) => s + m.valor, 0);
@@ -3467,7 +3521,7 @@ function imprimirExtratoCaixa() {
         <header class="folhaTopo">
             <div>
                 <div class="folhaFazenda">${esc(nomeFazendaAtual())}</div>
-                <h1>Extrato de Caixa</h1>
+                <h1>Extrato de Caixa${nomeCaixa ? ` <span class="folhaSubtitulo">— ${esc(nomeCaixa)}</span>` : ""}</h1>
             </div>
             <div class="folhaTopoDireita">
                 <span class="folhaSelo folhaSeloVenda">${esc(periodo.toUpperCase())}</span>
@@ -3476,7 +3530,7 @@ function imprimirExtratoCaixa() {
         </header>
         <section class="folhaDados">
             <div><span>Período</span><b>${esc(periodo)}</b></div>
-            <div><span>Lançamentos</span><b>${visiveis.length}</b></div>
+            <div><span>${nomeCaixa ? "Caixa" : "Lançamentos"}</span><b>${nomeCaixa ? esc(nomeCaixa) + " · " + visiveis.length + " lanç." : visiveis.length}</b></div>
             <div><span>Filtro</span><b>${filtroTipoCaixa === "entrada" ? "Só entradas" : filtroTipoCaixa === "saida" ? "Só saídas" : "Entradas e saídas"}${categoriaFiltro ? ` · ${esc(categoriaFiltro)}` : ""}${busca ? ` · "${esc(busca)}"` : ""}</b></div>
             <div><span>Emitido por</span><b>${esc(obterUsuarioLogado() || "—")}</b></div>
         </section>
@@ -3485,9 +3539,10 @@ function imprimirExtratoCaixa() {
             ${quadro("Entradas", "R$ " + formatarMoeda(entradas))}
             ${quadro("Saídas", "R$ " + formatarMoeda(saidas))}
             ${quadro("Resultado", (entradas - saidas >= 0 ? "+ " : "− ") + "R$ " + formatarMoeda(Math.abs(entradas - saidas)))}
-            ${quadro("Saldo no fim do período", rs(saldoFinal), true)}
+            ${quadro(nomeCaixa ? "Saldo do caixa no fim do período" : "Saldo no fim do período", rs(saldoFinal), true)}
         </section>
-        ${filtrado ? `<p class="folhaAviso">Lista filtrada: a coluna Saldo considera todos os lançamentos do caixa, inclusive os que não aparecem aqui.</p>` : ""}
+        ${nomeCaixa ? `<p class="folhaAviso">Saldo calculado só com os lançamentos de "${esc(nomeCaixa)}".</p>` : ""}
+        ${filtrado ? `<p class="folhaAviso">Lista filtrada: a coluna Saldo considera todos os lançamentos ${nomeCaixa ? "deste caixa" : "do caixa"}, inclusive os que não aparecem aqui.</p>` : ""}
         <table class="folhaTabela folhaExtrato">
             <thead><tr><th>Data</th><th>Descrição</th><th>Origem</th><th>Entrada</th><th>Saída</th><th>Saldo</th></tr></thead>
             <tbody>
@@ -3515,7 +3570,7 @@ function imprimirExtratoCaixa() {
     document.getElementById("folhaRelatorio").innerHTML = html;
     document.getElementById("telaImpressao").classList.add("modoExtrato");
     let titulo = document.getElementById("impressaoTitulo");
-    if (titulo) titulo.innerText = "Extrato de caixa · " + periodo;
+    if (titulo) titulo.innerText = "Extrato de caixa · " + (nomeCaixa ? nomeCaixa + " · " : "") + periodo;
     let voltar = document.getElementById("impressaoVoltarTexto");
     if (voltar) voltar.innerText = "Voltar ao Fluxo de Caixa";
     trocarTela("telaImpressao");

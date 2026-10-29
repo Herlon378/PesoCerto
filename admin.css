@@ -2764,3 +2764,28 @@ body.modoDesktop .catGasto.catGastoAtivo { border-color: #fb7185; box-shadow: 0 
     .catForaLinha { grid-template-columns: 1fr; }
     body.modoDesktop .catFiltro, body.modoDesktop #cpFiltroCategoria { width: 100%; }
 }
+
+/* Fluxo de Caixa: extrato de um sub-caixa (saldo próprio) */
+body.modoDesktop .fcFiltroSubCaixa { min-width: 200px; }
+body.modoDesktop .fcFiltroSubCaixa.ltFiltroUsado { border-color: #fbbf24; background: rgba(251,191,36,0.12); }
+.fcSubCaixaFaixa {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding: 14px 18px; border-radius: 16px;
+    background: linear-gradient(90deg, rgba(251,191,36,0.16), rgba(251,191,36,0.04)); border: 1px solid rgba(251,191,36,0.45);
+}
+.fcSubCaixaIcone { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fbbf24; background: rgba(251,191,36,0.16); border: 1px solid rgba(251,191,36,0.4); }
+.fcSubCaixaIcone svg { width: 22px; height: 22px; }
+.fcSubCaixaTextos { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fcSubCaixaTextos b { font-size: 18px; color: #fff; }
+.fcSubCaixaTextos small { font-size: 12.5px; color: #c9d3e6; }
+.fcSubCaixaSaldo { display: flex; flex-direction: column; align-items: flex-end; }
+.fcSubCaixaSaldo small { font-size: 12px; color: #fde68a; font-weight: 700; }
+.fcSubCaixaSaldo b { font-size: 24px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+body.modoDesktop .fcSubCaixaFaixa .acaoRel { height: 38px; }
+body.modoDesktop .fcBtnVerExtrato { height: 34px; padding: 0 12px; font-size: 12.5px; }
+.folhaSubtitulo { font-weight: 600; color: #2b5aa3 !important; }
+@media (max-width: 900px) {
+    .fcSubCaixaFaixa { flex-wrap: wrap; }
+    .fcSubCaixaSaldo { align-items: flex-start; }
+    body.modoDesktop .fcSubCaixaFaixa .acaoRel { width: 100%; justify-content: center; }
+    .fcSubAcoes { flex-wrap: wrap; }
+}

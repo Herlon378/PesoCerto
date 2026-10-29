@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=10">
-    <link rel="stylesheet" href="admin.css?v=34">
+    <link rel="stylesheet" href="admin.css?v=35">
 </head>
 <body class="modoDesktop">
 
@@ -790,6 +790,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input type="search" id="caixaBusca" placeholder="Buscar descrição, origem, lote..." oninput="mostrarFluxoCaixa()">
             </label>
+            <select id="caixaFiltroSubCaixa" class="catFiltro fcFiltroSubCaixa" onchange="mostrarFluxoCaixa()" title="Qual caixa"></select>
             <select id="caixaFiltroCategoria" class="catFiltro" onchange="mostrarFluxoCaixa()" title="Categoria"></select>
             <div class="ltChips fcChipsTipo" role="group" aria-label="Tipo">
                 <button class="ltChip ltChipAtivo" data-tipo="" onclick="filtrarTipoCaixa('')">Todos</button>
@@ -798,6 +799,14 @@
             </div>
             <button class="acaoRel acaoSecundaria fcLimpar" onclick="limparFiltrosCaixa()">Limpar</button>
         </div>
+    </div>
+
+    <!-- aparece quando um sub-caixa está escolhido: o saldo é só dele -->
+    <div class="fcSubCaixaFaixa" id="fcSubCaixaFaixa" style="display:none">
+        <span class="fcSubCaixaIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+        <div class="fcSubCaixaTextos"><b id="fcSubCaixaNome"></b><small id="fcSubCaixaDetalhe"></small></div>
+        <div class="fcSubCaixaSaldo"><small>Saldo deste caixa hoje</small><b id="fcSubCaixaSaldo">R$ 0,00</b></div>
+        <button class="acaoRel acaoSecundaria" onclick="verExtratoSubCaixa('')">Ver todos os caixas</button>
     </div>
 
     <div class="ltKpis fcKpis">
@@ -1235,7 +1244,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=22"></script>
-<script src="admin.js?v=38"></script>
+<script src="admin.js?v=39"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">
