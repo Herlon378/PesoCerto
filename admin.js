@@ -1654,6 +1654,7 @@ async function mostrarCustoPorLote() {
     // realizado, não "ainda não vendido", e precisa aparecer em vermelho,
     // não com a mesma cor neutra de um lote que só ainda está em andamento.
     function formatarValorPossivelmenteNegativo(valor, headcount) {
+        valor = Math.round(valor * 100) / 100; // -0,004 é zero, não "prejuízo"
         if (valor < 0) return { texto: "▲ R$ " + formatarMoeda(Math.abs(valor)) + " (lucro)", cor: "#0ca30c" };
         if (valor > 0 && headcount === 0) return { texto: "▼ R$ " + formatarMoeda(valor) + " (prejuízo)", cor: "#d03b3b" };
         // "inherit" em vez de uma cor fixa -- acompanha a cor de texto normal
@@ -1782,7 +1783,7 @@ function calcularRelatorioLote(nomeLote) {
     let headcount = comprados - vendidos;
     let kgAtual = kgComprado - kgVendido;
     let gastoTotal = custoCompra + custoInsumos;
-    let custoRestante = gastoTotal - receitaVenda;
+    let custoRestante = Math.round((gastoTotal - receitaVenda) * 100) / 100; // sem sobra de fração de centavo
     let custoMedioAnimalRestante = headcount > 0 ? custoRestante / headcount : 0;
     let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
     let comPeso = animaisDetalhados.filter(a => a.peso !== null);

@@ -1576,41 +1576,107 @@ async function carregarDadosCustoLoteMobile(){
     }
 }
 
-// ========================================
-// CUSTO DAS TRANSFERÊNCIAS ENTRE LOTES
-// ========================================
-// Regra (pedida pelo Herlon): os animais transferidos levam só o custo que o
-// lote de origem AINDA NÃO RECUPEROU, dividido pelos animais que restam nele.
-// Ex: comprou 10 por R$1.000 (R$10.000) e vendeu 9:
-//   - por R$1.200 cada (R$10.800): já recuperou tudo e lucrou R$800 -> o que
-//     sobra vai com custo R$0 e o lucro de R$800 FICA no lote de origem;
-//   - por R$1.100 cada (R$9.900): faltam R$100 -> o que sobra vai com R$100.
-// Antes ia o "custo médio" (custo restante ÷ animais), que fica NEGATIVO
-// quando o lote já deu lucro -- a transferência levava o lucro embora.
-// Transferências registradas com modoCusto "automatico" têm o valor
-// calculado aqui, na hora de cada relatório, olhando tudo que aconteceu no
-// lote de origem até o momento da transferência (então um gasto ou venda
-// lançado depois, com data anterior, já entra certo). As antigas (manual)
-// continuam com o valor que foi gravado.
+// CUSTO DAS TRANSFERÊNCIAS AUTOMÁTICAS (regra do Herlon, 2026-10-31)
+// As sobras de um lote só carregam o custo que as VENDAS DO LOTE NÃO
+// COBRIRAM -- olhando o ciclo inteiro do lote de origem, inclusive as vendas
+// feitas DEPOIS da transferência. Ex: comprou 10 a R$2.000 + R$500 de custo
+// (R$20.500) e vendeu 8 a R$2.600 (R$20.800): as vendas cobriram tudo, os 2
+// que sobraram vão com custo R$0 e os R$300 de lucro ficam no lote de origem.
+// Se as vendas tivessem dado R$19.500, os 2 levariam os R$1.000 que faltaram.
+// Assim não importa se a transferência foi feita antes, no meio ou depois das
+// vendas. Enquanto o lote de origem ainda tem animais, o que falta é dividido
+// entre os transferidos e os que continuam lá -- e diminui a cada venda nova.
+// (Antes a conta parava no momento da transferência: transferir no meio das
+// vendas fazia as sobras levarem o custo médio e "sobrava lucro" na origem.)
+// Transferências antigas (manual) continuam com o valor que foi gravado.
 function resolverValoresTransferencias(transferencias, pesagens, saidas, lancamentos){
     if(!Array.isArray(transferencias)) return;
     let automaticas = transferencias.filter(t => t.modoCusto === "automatico");
     if(automaticas.length === 0) return;
-    let chave = chaveOrdenacaoLoteMobile;
-    automaticas.forEach(t => { t._pendente = true; t.valorTotal = 0; t.custoUnitario = 0; });
-    [...automaticas]
-        .sort((a, b) => (chave(a.data) || "").localeCompare(chave(b.data) || ""))
-        .forEach(t => {
-            let limite = chave(t.data) || "9999";
-            let est = estadoLoteAteTransferencia(t.loteOrigem, limite, t, transferencias, pesagens || [], saidas || [], lancamentos || []);
-            let restante = est.gasto - est.receita;
-            let qtd = Math.min(Number(t.quantidade) || 0, est.headcount);
-            t.valorTotal = (est.headcount > 0 && restante > 0) ? Math.round(restante * qtd / est.headcount * 100) / 100 : 0;
-            t.custoUnitario = t.quantidade > 0 ? t.valorTotal / t.quantidade : 0;
-            t.custoRestanteOrigem = restante;
-            t.headcountOrigem = est.headcount;
-            delete t._pendente;
+    automaticas.forEach(t => { t.valorTotal = 0; t.custoUnitario = 0; });
+    // o valor de uma transferência pode depender de outra (A -> B -> C, ou
+    // B recebeu de A e depois mandou pra frente): recalcula até estabilizar
+    for(let passo = 0; passo < 8; passo++){
+        let novos = automaticas.map(t => custoTransferenciaFimDeCiclo(t, transferencias, pesagens || [], saidas || [], lancamentos || []));
+        let mudou = false;
+        automaticas.forEach((t, i) => {
+            if(Math.abs((Number(t.valorTotal) || 0) - novos[i].valor) > 0.005) mudou = true;
+            t.valorTotal = novos[i].valor;
+            t.custoRestanteOrigem = novos[i].naoCoberto;
+            t.headcountOrigem = novos[i].cabecas;
         });
+        if(!mudou) break;
+    }
+    automaticas.forEach(t => { t.custoUnitario = t.quantidade > 0 ? t.valorTotal / t.quantidade : 0; });
+}
+
+// custo de UMA transferência automática pela regra acima
+function custoTransferenciaFimDeCiclo(alvo, transferencias, pesagens, saidas, lancamentos){
+    let chave = chaveOrdenacaoLoteMobile;
+    let nomeLote = alvo.loteOrigem;
+    let eventos = [];
+    pesagens.forEach(r => {
+        if((r.descricao || "Sem descrição") !== nomeLote) return;
+        let o = chave(r.data);
+        if(!o) return;
+        let d = calcularDadosCompletos(r);
+        let ehCompra = (r.tipo || "venda") === "compra";
+        eventos.push({ o, delta: ehCompra ? d.totalAnimais : -d.totalAnimais, gasto: ehCompra ? d.totalRS : 0, receita: ehCompra ? 0 : d.totalRS });
+    });
+    transferencias.forEach(t => {
+        let o = chave(t.data);
+        if(!o) return;
+        let qtd = Number(t.quantidade) || 0, valor = Number(t.valorTotal) || 0;
+        if(t.loteDestino === nomeLote) eventos.push({ o, delta: qtd, gasto: valor, receita: 0 });
+        if(t.loteOrigem === nomeLote){
+            // automáticas que saem daqui: as sobras que vão dividir o que faltar
+            if(t.modoCusto === "automatico") eventos.push({ o, delta: -qtd, gasto: 0, receita: 0, sobra: qtd, alvo: t === alvo });
+            else eventos.push({ o, delta: -qtd, gasto: -valor, receita: 0 });
+        }
+    });
+    eventos.sort((a, b) => a.o.localeCompare(b.o));
+
+    // ciclo do lote que contém a transferência: começa depois da última vez
+    // que o lote zerou antes dela, termina quando ele zerar de novo depois dela
+    let iAlvo = eventos.findIndex(e => e.alvo);
+    if(iAlvo < 0) return { valor: 0, naoCoberto: 0, cabecas: 0 };
+    let cabecas = 0, iInicio = 0, iFim = -1;
+    for(let i = 0; i < eventos.length; i++){
+        cabecas += eventos[i].delta;
+        if(cabecas <= 0){
+            if(i < iAlvo) iInicio = i + 1;
+            else { iFim = i; break; }
+        }
+    }
+    let oInicio = eventos[iInicio] ? eventos[iInicio].o : eventos[iAlvo].o;
+    let oFim = iFim >= 0 ? eventos[iFim].o : null;
+    let noCiclo = o => o >= oInicio && (!oFim || o <= oFim);
+
+    let gasto = 0, receita = 0, sobras = 0, restantes = 0;
+    eventos.forEach((e, i) => {
+        if(i < iInicio || (iFim >= 0 && i > iFim)) return;
+        gasto += e.gasto; receita += e.receita; sobras += e.sobra || 0;
+        restantes += e.delta;
+    });
+    saidas.forEach(s => {
+        if(s.loteNome !== nomeLote) return;
+        let o = chave(s.data);
+        if(o && noCiclo(o)) gasto += Number(s.valorTotal) || 0;
+    });
+    lancamentos.forEach(l => {
+        if(!l.loteNome || l.loteNome !== nomeLote) return;
+        let o = chave(l.data);
+        if(!o || !noCiclo(o)) return;
+        if(l.tipo === "saida") gasto += Number(l.valor) || 0;
+        else receita += Number(l.valor) || 0;
+    });
+    let naoCoberto = gasto - receita;
+    // quem ainda divide o que faltou: as sobras transferidas + o que continua
+    // no lote de origem (ciclo ainda aberto); ciclo fechado = só as sobras
+    let divisores = sobras + Math.max(restantes, 0);
+    let qtd = Number(alvo.quantidade) || 0;
+    let valor = naoCoberto > 0 && divisores > 0 ? Math.round(naoCoberto * qtd / divisores * 100) / 100 : 0;
+    return { valor, naoCoberto, cabecas: divisores };
 }
 
 // como estava o lote de origem logo antes da transferência: só o ciclo
@@ -1780,7 +1846,7 @@ function calcularFormulaCustoLote(g){
     let headcount = g.comprados - g.vendidos;
     let kgAtual = g.kgComprado - g.kgVendido;
     let gastoTotal = g.custoCompra + g.custoInsumos;
-    let custoRestante = gastoTotal - g.receitaVenda;
+    let custoRestante = Math.round((gastoTotal - g.receitaVenda) * 100) / 100; // sem sobra de fração de centavo
     let custoMedio = headcount > 0 ? custoRestante / headcount : 0;
     let custoPorKg = kgAtual > 0 ? custoRestante / kgAtual : 0;
     return { headcount, kgAtual, custoRestante, custoMedio, custoPorKg };
