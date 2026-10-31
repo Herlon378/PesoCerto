@@ -1835,7 +1835,7 @@ async function atualizarDashboardLoteMobile(){
     set("dashLoteValorMedio", "R$ " + formatarMoeda(valorMedioPorAnimal));
     setValorLote("dashLoteCustoTotal", f.custoRestante, true);
     setValorLote("dashLoteCustoMedio", f.custoMedio, f.headcount > 0);
-    setValorLote("dashLoteCustoPorKg", f.custoPorKg, f.kgAtual > 0);
+    setValorLote("dashLoteCustoPorKg", f.custoPorKg, f.headcount > 0 && f.kgAtual > 0);
 
     secao.style.display = "block";
     let elNomeLote = document.getElementById("dashLoteNomeSelecionado");

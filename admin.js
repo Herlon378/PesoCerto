@@ -1679,7 +1679,7 @@ async function mostrarCustoPorLote() {
                 <td>R$ ${formatarMoeda(g.receitaVenda)}</td>
                 <td style="color:${restanteFmt.cor}">${restanteFmt.texto}</td>
                 <td style="color:${headcount > 0 ? medioFmt.cor : 'inherit'}">${headcount > 0 ? medioFmt.texto : "—"}</td>
-                <td style="color:${kgAtual > 0 ? porKgFmt.cor : 'inherit'}">${kgAtual > 0 ? porKgFmt.texto : "—"}</td>
+                <td style="color:${headcount > 0 && kgAtual > 0 ? porKgFmt.cor : 'inherit'}">${headcount > 0 && kgAtual > 0 ? porKgFmt.texto : "—"}</td>
                 <td class="acoesUsuario acoesRelLote"><button class="btnRelLote btnVerRelLote" onclick='abrirRelatorioLote(${jsonAtributo(nome)})' title="Ver o relatório aqui na tela">${ICONES_REL_LOTE.verRelatorio}<span>Ver</span></button><button class="btnRelLote btnPdfRelLote" onclick='gerarRelatorioLotePDF(${jsonAtributo(nome)})' title="Baixar o relatório em PDF">${ICONES_REL_LOTE.baixarPdf}<span>PDF</span></button></td>
             </tr>
         `;
@@ -1861,7 +1861,7 @@ function gerarRelatorioLotePDF(nomeLote) {
         : `R$ ${formatarMoeda(custoRestante)}`;
     linhaResumo("Custo restante (ainda não recuperado):", restanteTexto);
     linhaResumo("Custo médio por animal restante:", headcount > 0 ? "R$ " + formatarMoeda(custoMedioAnimalRestante) : "—");
-    linhaResumo("Custo por Kg (ponto de equilíbrio):", kgAtual > 0 ? "R$ " + formatarMoeda(custoPorKg) + "/kg" : "—");
+    linhaResumo("Custo por Kg (ponto de equilíbrio):", headcount > 0 && kgAtual > 0 ? "R$ " + formatarMoeda(custoPorKg) + "/kg" : "—");
     y += 8;
 
     let categorias = Object.keys(insumosPorCategoria).sort();
@@ -1988,7 +1988,7 @@ function abrirRelatorioLote(nomeLote) {
                 <h4>Situação atual <small>pra decisão de venda</small></h4>
                 ${linha("Custo restante (não recuperado)", lucro ? rs(Math.abs(r.custoRestante)) + " (lucro já garantido)" : rs(r.custoRestante), true)}
                 ${linha("Custo médio por animal restante", r.headcount > 0 ? rs(r.custoMedioAnimalRestante) : "—", true)}
-                ${linha("Custo por kg (ponto de equilíbrio)", r.kgAtual > 0 ? rs(r.custoPorKg) + "/kg" : "—", true)}
+                ${linha("Custo por kg (ponto de equilíbrio)", r.headcount > 0 && r.kgAtual > 0 ? rs(r.custoPorKg) + "/kg" : "—", true)}
                 ${r.animaisSemPeso > 0 ? `<p class="relLoteAviso">${r.animaisSemPeso === 1 ? "1 animal entrou" : r.animaisSemPeso + " animais entraram"} sem peso (transferência lançada no computador). O peso médio considera só os pesados, e o custo por kg divide o custo de todos pelo peso só dos pesados — fica mais alto do que o real.</p>` : ""}
             </section>
             <section class="relLoteSecao">
