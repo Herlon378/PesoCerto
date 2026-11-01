@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PesoCerto - Gerenciamento</title>
-    <link rel="icon" href="icon-192.png">
+    <link rel="manifest" href="manifest-admin.json">
+    <meta name="theme-color" content="#0d1426">
+    <link rel="icon" href="icon-admin-192.png">
+    <link rel="apple-touch-icon" href="icon-admin-180.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="PC Gestão">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=10">
-    <link rel="stylesheet" href="admin.css?v=40">
+    <link rel="stylesheet" href="admin.css?v=41">
 </head>
 <body class="modoDesktop">
 
@@ -36,6 +43,7 @@
         <span class="navRodapeLogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-6h6v6"></path></svg></span>
         <strong id="navRodapeFazenda">Estância <span class="navRodapeDestaque">Reis</span></strong>
         <small id="navRodapeSlogan">Trabalho • Disciplina • Resultado</small>
+        <button type="button" class="navInstalarApp" onclick="abrirInstalacaoApp()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"></rect><path d="M12 7v7"></path><path d="M9 11l3 3 3-3"></path><path d="M10 18h4"></path></svg>Instalar app no celular</button>
     </div>
 </div>
 
@@ -1316,7 +1324,13 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=28"></script>
-<script src="admin.js?v=46"></script>
+<script src="admin.js?v=47"></script>
+<script src="instalar.js?v=1" data-nome="PC Gestão" data-icone="icon-admin-192.png" data-chave="admin" defer></script>
+<script>
+    // o gerenciamento também é um app instalável (PWA): o navegador só
+    // oferece instalar se a página tiver um service worker registrado
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
+</script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

@@ -1,0 +1,32 @@
+{
+"name": "PesoCerto Gerenciamento",
+"short_name": "PC Gestão",
+"description": "Gerenciamento da fazenda: dashboard, lotes, caixa, contas e relatórios.",
+"start_url": "admin.html",
+"scope": "admin.html",
+"display": "standalone",
+"background_color": "#0d1426",
+"theme_color": "#0d1426",
+"orientation": "any",
+"lang": "pt-BR",
+"icons": [
+{
+"src": "icon-admin-192.png",
+"sizes": "192x192",
+"type": "image/png",
+"purpose": "any"
+},
+{
+"src": "icon-admin-512.png",
+"sizes": "512x512",
+"type": "image/png",
+"purpose": "any"
+}
+],
+"related_applications": [
+{
+"platform": "webapp",
+"url": "https://herlon378.github.io/PesoCerto/manifest-admin.json"
+}
+]
+}

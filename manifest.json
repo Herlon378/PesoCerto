@@ -2,6 +2,7 @@
 "name": "Pesagem de Gado",
 "short_name": "Pesagem",
 "start_url": "index.html",
+"scope": "./",
 "display": "standalone",
 "background_color": "#ffffff",
 "theme_color": "#1976d2",
@@ -16,6 +17,12 @@
 "src": "icon-512.png",
 "sizes": "512x512",
 "type": "image/png"
+}
+],
+"related_applications": [
+{
+"platform": "webapp",
+"url": "https://herlon378.github.io/PesoCerto/manifest.json"
 }
 ]
 }
