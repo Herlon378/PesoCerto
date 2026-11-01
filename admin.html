@@ -462,7 +462,7 @@
     <div class="dashComparativo" style="margin-top:16px">
         <span class="dashSecaoTitulo">📈 Resultado Mensal</span>
         <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            Lucro ou prejuízo real de cada mês: receita de vendas menos o custo do gado vendido (custo médio de compra + insumos daquele lote) menos despesas gerais sem lote (salário, combustível etc). Compra de gado e compra de insumos NÃO entram aqui — comprar não é prejuízo, é seu dinheiro virando gado ou estoque, e isso já está refletido no Patrimônio Total acima.
+            Lucro ou prejuízo real de cada mês: receita de vendas menos o custo do gado vendido (compra dos animais + despesas lançadas no lote, como frete e comissão) menos as despesas gerais sem lote (salário, combustível, e o pagamento dos insumos no mês em que a conta foi paga). A baixa de insumos no lote aparece só no Custo por Lote, pra mostrar quanto cada lote consumiu — não entra aqui de novo, senão o mesmo dinheiro contaria duas vezes.
         </p>
         <table class="tabelaUsuarios">
             <thead>
@@ -1248,7 +1248,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=25"></script>
-<script src="admin.js?v=42"></script>
+<script src="admin.js?v=43"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

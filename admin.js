@@ -2467,7 +2467,11 @@ function montarCustoMedioPorCiclo() {
         destino.comprados += Number(t.quantidade) || 0; destino.custo += Number(t.valorTotal) || 0;
         origem.comprados -= Number(t.quantidade) || 0; origem.custo -= Number(t.valorTotal) || 0;
     });
-    estoqueSaidasCacheAdmin.forEach(s => { if (s.loteNome) grupo(s.loteNome, s.data).custo += Number(s.valorTotal) || 0; });
+    // insumos do almoxarifado NÃO entram aqui (regra do Herlon, 2026-10-31):
+    // o gasto real com insumo é o PAGAMENTO da conta, que já entra no mês em
+    // que foi pago (despesas gerais). A baixa do estoque no lote serve só pra
+    // mostrar o custo de cada lote (Custo por Lote / relatório do lote) --
+    // contar ela de novo aqui era contar o mesmo dinheiro duas vezes.
     caixaLancamentosCacheAdmin.forEach(l => {
         if (!l.loteNome) return;
         grupo(l.loteNome, l.data).custo += l.tipo === "saida" ? l.valor : -l.valor;
