@@ -1969,13 +1969,9 @@ function lerNumeroSimulador(texto){
 // animais diferente do que foi pesado na compra (já vendeu/transferiu
 // alguns), não dá pra saber QUAIS saíram, então as duas faixas são
 // ajustadas na mesma proporção e o aviso aparece na tela.
-function calcularVendaMistaSimulador(simulador, animaisAtivos){
-    let pesos = [];
-    try{ pesos = JSON.parse(simulador.dataset.pesosCompra || "[]"); }catch(e){}
-    let limite = lerNumeroSimulador((document.getElementById("simMistoLimite") || {}).value);
-    let precoPerna = lerNumeroSimulador((document.getElementById("simMistoPrecoPerna") || {}).value);
-    let precoKg = lerNumeroSimulador((document.getElementById("simMistoPrecoKg") || {}).value);
-
+// só a conta, sem tela -- usada aqui e pelo simulador do computador (tela
+// Custo por Lote), pros dois nunca darem resultados diferentes
+function dividirVendaMista(pesos, animaisAtivos, limite, precoPerna, precoKg){
     let leves = pesos.filter(p => p <= limite);
     let pesados = pesos.filter(p => p > limite);
     let fator = pesos.length > 0 ? animaisAtivos / pesos.length : 0;
@@ -1985,6 +1981,17 @@ function calcularVendaMistaSimulador(simulador, animaisAtivos){
     let kgPesados = kgMedioPesados * qtdPesados;
     let valorPerna = qtdLeves * precoPerna;
     let valorKg = kgPesados * precoKg;
+    return { qtdLeves, qtdPesados, kgPesados, valorPerna, valorKg, valorVenda: valorPerna + valorKg };
+}
+
+function calcularVendaMistaSimulador(simulador, animaisAtivos){
+    let pesos = [];
+    try{ pesos = JSON.parse(simulador.dataset.pesosCompra || "[]"); }catch(e){}
+    let limite = lerNumeroSimulador((document.getElementById("simMistoLimite") || {}).value);
+    let precoPerna = lerNumeroSimulador((document.getElementById("simMistoPrecoPerna") || {}).value);
+    let precoKg = lerNumeroSimulador((document.getElementById("simMistoPrecoKg") || {}).value);
+
+    let { qtdLeves, qtdPesados, kgPesados, valorPerna, valorKg } = dividirVendaMista(pesos, animaisAtivos, limite, precoPerna, precoKg);
 
     function set(id, texto){ let el = document.getElementById(id); if(el) el.innerText = texto; }
     let textoLimite = limite > 0 ? formatarPeso(limite) + " kg" : "o limite";

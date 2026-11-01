@@ -2880,11 +2880,13 @@ body.modoDesktop #clOrdem {
 .clSim[open] .clSimSeta { transform: rotate(180deg); }
 .clSimCorpo { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
 .clSimModos { display: flex; padding: 3px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
-body.modoDesktop .clSimModo { flex: 1; width: auto; height: 30px; margin: 0; padding: 0; border-radius: 7px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-muted); background: transparent; border: none; box-shadow: none; }
+body.modoDesktop .clSimModo { flex: 1; white-space: nowrap; width: auto; height: 30px; margin: 0; padding: 0; border-radius: 7px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-muted); background: transparent; border: none; box-shadow: none; }
 body.modoDesktop .clSimModo.clSimModoAtivo { color: #0d1426; background: #f472b6; }
 .clSimCampos { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
-.clSimCampos label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.clSimCampos label { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-width: 0; }
 .clSimCampos label[hidden] { display: none; }
+.clSimCampos[hidden] { display: none; }
+.clSimAviso { margin: 2px 0 4px; padding: 7px 9px; border-radius: 8px; font-size: 12px; line-height: 1.45; color: #ffd479; background: rgba(255,201,77,0.08); border: 1px solid rgba(255,201,77,0.3); }
 .clSimCampos span { font-size: 11.5px; font-weight: 700; color: var(--ink-muted); }
 body.modoDesktop .clSimCampos input {
     width: 100%; height: 38px; margin: 0; padding: 0 10px; border-radius: 9px; font-size: 14px; font-weight: 700;
@@ -2893,7 +2895,7 @@ body.modoDesktop .clSimCampos input {
 body.modoDesktop .clSimCampos input:focus { outline: none; border-color: #f472b6; box-shadow: 0 0 0 3px rgba(244,114,182,0.2); }
 .clSimResultado { display: flex; flex-direction: column; gap: 4px; }
 .clSimLinha { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: #c9d3e6; }
-.clSimLinha b { color: #fff; font-variant-numeric: tabular-nums; text-align: right; }
+.clSimLinha b { color: #fff; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .clSimTotal { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; padding: 9px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; }
 .clSimTotal b { font-size: 17px; font-variant-numeric: tabular-nums; }
 .clSimLucro { color: #3ddc84; background: rgba(61,220,132,0.1); border: 1px solid rgba(61,220,132,0.35); }

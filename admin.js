@@ -1644,7 +1644,11 @@ async function mostrarCustoPorLote() {
         let g = porLote[nome];
         let f = calcularFormulaCustoLote(g);
         let rel = calcularRelatorioLote(nome);
-        return Object.assign({ nome, g, gastoTotal: g.custoCompra + g.custoInsumos, diasEmPosse: rel.diasEmPosse, primeiraCompraISO: rel.primeiraCompraISO }, f);
+        // peso de compra de cada animal (compras + recebidos por transferência
+        // do ciclo) -- é o que o modo Misto do simulador usa pra separar os
+        // animais, igual ao celular
+        let pesosCompra = rel.animaisDetalhados.filter(a => Number(a.peso) > 0).map(a => Number(a.peso));
+        return Object.assign({ nome, g, gastoTotal: g.custoCompra + g.custoInsumos, diasEmPosse: rel.diasEmPosse, primeiraCompraISO: rel.primeiraCompraISO, pesosCompra }, f);
     });
     desenharCustoLote();
     atualizarAtalhoCustoLoteDashboard();
@@ -1875,8 +1879,14 @@ function cartaoCustoLote(l) {
                     <div class="clSimModos" role="group" aria-label="Como vender">
                         <button type="button" class="clSimModo${sim.modo !== "kg" ? " clSimModoAtivo" : ""}" data-modo="animal" onclick='trocarModoSimuladorCustoLote(${nomeAttr}, "animal")'>Por animal</button>
                         <button type="button" class="clSimModo${sim.modo === "kg" ? " clSimModoAtivo" : ""}" data-modo="kg" onclick='trocarModoSimuladorCustoLote(${nomeAttr}, "kg")'>Por kg</button>
+                        <button type="button" class="clSimModo${sim.modo === "misto" ? " clSimModoAtivo" : ""}" data-modo="misto" onclick='trocarModoSimuladorCustoLote(${nomeAttr}, "misto")' title="Na perna até um peso de compra, por kg acima dele">Misto</button>
                     </div>
-                    <div class="clSimCampos">
+                    <div class="clSimCampos clSimCamposMisto"${sim.modo === "misto" ? "" : " hidden"}>
+                        <label><span>Na perna até (kg)</span><input type="text" inputmode="decimal" class="clSimLimite" placeholder="Ex: 206,5" value="${esc(sim.limite || "")}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
+                        <label><span>Preço na perna</span><input type="text" inputmode="decimal" class="clSimPrecoPerna" placeholder="R$ por animal" value="${esc(sim.precoPerna || "")}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
+                        <label><span>Preço por kg</span><input type="text" inputmode="decimal" class="clSimPrecoKg" placeholder="R$ por kg" value="${esc(sim.precoKg || "")}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
+                    </div>
+                    <div class="clSimCampos clSimCamposSimples"${sim.modo === "misto" ? " hidden" : ""}>
                         <label><span>Animais</span><input type="number" min="1" max="${l.headcount}" step="1" class="clSimQtd" value="${sim.qtd || l.headcount}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
                         <label><span class="clSimPrecoRotulo">${sim.modo === "kg" ? "Preço por kg" : "Preço por animal"}</span><input type="text" inputmode="decimal" class="clSimPreco" placeholder="R$ 0,00" value="${esc(sim.preco || "")}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
                         <label class="clSimCampoPeso"${sim.modo === "kg" ? "" : " hidden"}><span>Peso médio (kg)</span><input type="text" inputmode="decimal" class="clSimPeso" value="${esc(sim.peso || (l.kgAtual > 0 ? String(Math.round(l.kgAtual / l.headcount * 10) / 10).replace(".", ",") : ""))}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
@@ -1906,6 +1916,10 @@ function trocarModoSimuladorCustoLote(nome, modo) {
     if (!el) return;
     el.querySelectorAll(".clSimModo").forEach(b => b.classList.toggle("clSimModoAtivo", b.dataset.modo === modo));
     el.querySelector(".clSimCampoPeso").hidden = modo !== "kg";
+    // no Misto o lote inteiro é vendido: quantidade/preço/peso dão lugar ao
+    // limite de peso e aos dois preços
+    el.querySelector(".clSimCamposSimples").hidden = modo === "misto";
+    el.querySelector(".clSimCamposMisto").hidden = modo !== "misto";
     el.querySelector(".clSimPrecoRotulo").innerText = modo === "kg" ? "Preço por kg" : "Preço por animal";
     custoLoteSimulacoes[nome] = Object.assign(custoLoteSimulacoes[nome] || {}, { modo });
     simularVendaCustoLote(nome);
@@ -1925,9 +1939,34 @@ function simularVendaCustoLote(nome) {
     let qtd = Math.min(l.headcount, Math.max(0, Math.floor(Number(campoQtd.value) || 0)));
     let preco = lerValorBR(el.querySelector(".clSimPreco").value) || 0;
     let peso = lerValorBR(el.querySelector(".clSimPeso").value) || 0;
+    let valorDe = classe => el.querySelector(classe).value;
     custoLoteSimulacoes[nome] = Object.assign(custoLoteSimulacoes[nome] || {}, {
-        aberto: el.open, modo, qtd: campoQtd.value, preco: el.querySelector(".clSimPreco").value, peso: el.querySelector(".clSimPeso").value
+        aberto: el.open, modo, qtd: campoQtd.value, preco: valorDe(".clSimPreco"), peso: valorDe(".clSimPeso"),
+        limite: valorDe(".clSimLimite"), precoPerna: valorDe(".clSimPrecoPerna"), precoKg: valorDe(".clSimPrecoKg")
     });
+
+    // Misto: até o limite (peso de COMPRA do animal) vende na perna, acima
+    // vende por kg -- mesma conta do celular (dividirVendaMista, app.js)
+    let detalheMisto = "";
+    let misto = null;
+    if (modo === "misto") {
+        let limite = lerValorBR(valorDe(".clSimLimite")) || 0;
+        let precoPerna = lerValorBR(valorDe(".clSimPrecoPerna")) || 0;
+        let precoKg = lerValorBR(valorDe(".clSimPrecoKg")) || 0;
+        misto = dividirVendaMista(l.pesosCompra, l.headcount, limite, precoPerna, precoKg);
+        let aviso = l.pesosCompra.length === 0
+            ? "Este lote não tem pesagem de compra — não dá pra separar os animais pelo peso."
+            : l.pesosCompra.length !== l.headcount
+                ? `Na compra foram pesados ${l.pesosCompra.length} animais e hoje o lote tem ${l.headcount}. Como não dá pra saber quais saíram, as duas faixas foram ajustadas na mesma proporção.`
+                : "";
+        let textoLimite = limite > 0 ? formatarPeso(limite) + " kg" : "o limite";
+        detalheMisto = `
+            <div class="clSimLinha"><span>Na perna (até ${textoLimite}): ${misto.qtdLeves} × ${rs(precoPerna)}</span><b>${rs(misto.valorPerna)}</b></div>
+            <div class="clSimLinha"><span>Por kg (acima): ${misto.qtdPesados} anim. · ${formatarPeso(Math.round(misto.kgPesados * 10) / 10)} kg × ${rs(precoKg)}</span><b>${rs(misto.valorKg)}</b></div>
+            ${aviso ? `<p class="clSimAviso">${aviso}</p>` : ""}`;
+        if (!(limite > 0 && (precoPerna > 0 || precoKg > 0))) misto = null;
+        qtd = l.headcount;
+    }
 
     let custo = Math.max(l.custoRestante, 0);
     let equilibrioAnimal = l.headcount > 0 ? custo / l.headcount : 0;
@@ -1936,11 +1975,11 @@ function simularVendaCustoLote(nome) {
     let dica = custo <= 0
         ? `<p class="clSimDica">As vendas já pagaram este lote: qualquer venda daqui pra frente é lucro.</p>`
         : `<p class="clSimDica">Empata vendendo todos a <b>${rs(equilibrioAnimal)}</b> por animal${equilibrioKg > 0 ? ` ou <b>${rs(equilibrioKg)}</b> por kg` : ""}.</p>`;
-    if (!(qtd > 0 && preco > 0 && (modo === "animal" || peso > 0))) {
-        saida.innerHTML = dica;
+    if (modo === "misto" ? !misto : !(qtd > 0 && preco > 0 && (modo === "animal" || peso > 0))) {
+        saida.innerHTML = detalheMisto + dica;
         return;
     }
-    let valorVenda = modo === "kg" ? preco * peso * qtd : preco * qtd;
+    let valorVenda = modo === "misto" ? misto.valorVenda : modo === "kg" ? preco * peso * qtd : preco * qtd;
     let resultado = valorVenda - custo;
     let restantes = l.headcount - qtd;
     let custoQueFica = Math.max(custo - valorVenda, 0);
@@ -1949,6 +1988,7 @@ function simularVendaCustoLote(nome) {
         : "";
     let positivo = resultado >= 0;
     saida.innerHTML = `
+        ${detalheMisto}
         <div class="clSimLinha"><span>Venda de ${qtd} ${qtd === 1 ? "animal" : "animais"}</span><b>${rs(valorVenda)}</b></div>
         <div class="clSimLinha"><span>Custo restante do lote</span><b>${rs(custo)}</b></div>
         ${linhaRestantes}
