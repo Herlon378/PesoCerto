@@ -1,4 +1,4 @@
-const CACHE_NAME = "pesagem-gado-v180";
+const CACHE_NAME = "pesagem-gado-v181";
 
 const urlsToCache = [
 "./",
@@ -13,6 +13,7 @@ const urlsToCache = [
 "icon-admin-512.png",
 "icon-admin-180.png",
 "icon-192.png",
+"icon-180.png",
 "icon-512.png",
 "lib/jspdf.umd.min.js",
 "lib/xlsx.full.min.js",
