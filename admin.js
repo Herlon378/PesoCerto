@@ -753,7 +753,7 @@ async function atualizarPreviewTransferencia() {
     let preview = document.getElementById("transfPreview");
     if (!preview) return;
     let loteOrigem = document.getElementById("transfLoteOrigemInput").value;
-    let qtd = parseFloat(document.getElementById("transfQuantidadeInput").value.replace(",", ".")) || 0;
+    let qtd = lerValorBR(document.getElementById("transfQuantidadeInput").value) || 0;
     if (!loteOrigem) { preview.innerText = ""; return; }
 
     await carregarCachesFinanceirasDashboard();
@@ -780,7 +780,7 @@ async function confirmarTransferenciaLote() {
 
         let loteOrigem = document.getElementById("transfLoteOrigemInput").value;
         let loteDestino = document.getElementById("transfLoteDestinoInput").value;
-        let quantidade = parseFloat(document.getElementById("transfQuantidadeInput").value.replace(",", "."));
+        let quantidade = lerValorBR(document.getElementById("transfQuantidadeInput").value);
         let dataISOSimples = document.getElementById("transfDataInput").value;
 
         if (!loteOrigem) { mostrarErro("Selecione o lote de origem."); return; }
@@ -1324,8 +1324,8 @@ function fecharModalEstoqueEntrada() {
 }
 
 function atualizarPreviewEntrada() {
-    let qtd = parseFloat(document.getElementById("entradaQuantidadeInput").value.replace(",", ".")) || 0;
-    let valorUnit = parseFloat(document.getElementById("entradaValorUnitarioInput").value.replace(",", ".")) || 0;
+    let qtd = lerValorBR(document.getElementById("entradaQuantidadeInput").value) || 0;
+    let valorUnit = lerValorBR(document.getElementById("entradaValorUnitarioInput").value) || 0;
     let preview = document.getElementById("entradaPreviewTotal");
     if (preview) preview.innerText = (qtd > 0 && valorUnit > 0) ? `Total: R$ ${formatarMoeda(qtd * valorUnit)}` : "";
 }
@@ -1338,8 +1338,8 @@ async function salvarEstoqueEntrada() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
 
         let produtoId = document.getElementById("entradaProdutoInput").value;
-        let quantidade = parseFloat(document.getElementById("entradaQuantidadeInput").value.replace(",", "."));
-        let valorUnitario = parseFloat(document.getElementById("entradaValorUnitarioInput").value.replace(",", "."));
+        let quantidade = lerValorBR(document.getElementById("entradaQuantidadeInput").value);
+        let valorUnitario = lerValorBR(document.getElementById("entradaValorUnitarioInput").value);
         let numeroNota = document.getElementById("entradaNumeroNotaInput").value.trim();
 
         if (!produtoId) { mostrarErro("Selecione um produto."); return; }
@@ -1402,7 +1402,7 @@ async function abrirTelaSaidaEstoqueDesktop() {
 
 function atualizarPreviewSaidaDesktop() {
     let produtoId = document.getElementById("saidaProdutoInput").value;
-    let qtd = parseFloat(document.getElementById("saidaQuantidadeInput").value.replace(",", ".")) || 0;
+    let qtd = lerValorBR(document.getElementById("saidaQuantidadeInput").value) || 0;
     let preview = document.getElementById("saidaPreview");
     if (!preview) return;
 
@@ -1424,7 +1424,7 @@ async function confirmarSaidaEstoqueDesktop() {
 
         let loteNome = document.getElementById("saidaLoteInput").value;
         let produtoId = document.getElementById("saidaProdutoInput").value;
-        let quantidade = parseFloat(document.getElementById("saidaQuantidadeInput").value.replace(",", "."));
+        let quantidade = lerValorBR(document.getElementById("saidaQuantidadeInput").value);
 
         if (!loteNome) { mostrarErro("Selecione o lote."); return; }
         if (!produtoId) { mostrarErro("Selecione o produto."); return; }
@@ -1711,6 +1711,9 @@ function calcularRelatorioLote(nomeLote) {
     let vendasDoLote = relatorios.filter(r => (r.descricao || "Sem descrição") === nomeLote && (r.tipo || "venda") === "venda" && noCicloAtual(r.data));
 
     let comprados = 0, vendidos = 0, kgComprado = 0, kgVendido = 0, custoCompra = 0, receitaVenda = 0;
+    // valor pago pelos animais que ENTRARAM (compras + recebidos), sem abater
+    // o que saiu transferido -- é a base do "custo médio de compra por animal"
+    let custoCompraBruto = 0;
     let animaisDetalhados = [];
 
     comprasDoLote.forEach(r => {
@@ -1718,6 +1721,7 @@ function calcularRelatorioLote(nomeLote) {
         comprados += d.totalAnimais;
         kgComprado += d.totalKg;
         custoCompra += d.totalRS;
+        custoCompraBruto += d.totalRS;
         (r.pesos || []).forEach(p => {
             animaisDetalhados.push({
                 peso: p.peso || 0,
@@ -1757,6 +1761,7 @@ function calcularRelatorioLote(nomeLote) {
         comprados += t.quantidade;
         kgComprado += Number(t.kgTotal) || 0;
         custoCompra += t.valorTotal;
+        custoCompraBruto += t.valorTotal;
         somarInsumo("Recebido por transferência", t.valorTotal);
         entradasTransferenciaISO.push(extrairDataISO(t.data));
         // transferência lançada no computador não tem pesos: o animal entra
@@ -1789,7 +1794,7 @@ function calcularRelatorioLote(nomeLote) {
     let comPeso = animaisDetalhados.filter(a => a.peso !== null);
     let animaisSemPeso = animaisDetalhados.length - comPeso.length;
     let pesoMedioCompra = comPeso.length > 0 ? comPeso.reduce((t, a) => t + a.peso, 0) / comPeso.length : 0;
-    let custoMedioCompraAnimal = comprados > 0 ? custoCompra / comprados : 0;
+    let custoMedioCompraAnimal = comprados > 0 ? custoCompraBruto / comprados : 0;
 
     let datasCompra = comprasDoLote.map(r => extrairDataISO(r.data)).concat(entradasTransferenciaISO).filter(Boolean).sort();
     let primeiraCompraISO = datasCompra[0] || null;
@@ -2086,7 +2091,7 @@ async function salvarSaldoInicial() {
         let token = obterToken();
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
 
-        let valor = parseFloat(document.getElementById("saldoInicialValorInput").value.replace(",", "."));
+        let valor = lerValorBR(document.getElementById("saldoInicialValorInput").value);
         let dataISOSimples = document.getElementById("saldoInicialDataInput").value;
         if (!Number.isFinite(valor) || valor < 0) { mostrarErro("Informe um valor válido."); return; }
 
@@ -2137,7 +2142,8 @@ async function carregarCachesFinanceirasDashboard() {
         carregarProdutosAdmin(),
         carregarSaldoInicial(),
         carregarTransferenciasLotesAdmin(),
-        carregarBensAdmin()
+        carregarBensAdmin(),
+        carregarContasPagarAdmin()
     ]);
     atualizarInfoSaldoInicial();
 }
@@ -2273,6 +2279,46 @@ function calcularCaixaAcumulado(dataISOLimite) {
     return entradasCaixa - saidasCaixa;
 }
 
+// contas a pagar ainda não pagas numa data (sem data = hoje): o que a fazenda
+// DEVE. Patrimônio é o que é seu menos o que você deve -- antes uma compra de
+// insumo parcelada entrava inteira no estoque e as parcelas a pagar não eram
+// descontadas, deixando o patrimônio maior do que o real.
+function dividasEmAbertoNaData(dataISO) {
+    return contasPagarCacheAdmin.reduce((soma, c) => {
+        let criada = extrairDataISO(c.dataCompra) || (c.dataCompra && /^\d{4}-\d{2}-\d{2}/.test(c.dataCompra) ? c.dataCompra.slice(0, 10) : null);
+        if (dataISO && criada && criada > dataISO) return soma;
+        (c.parcelas || []).forEach(p => {
+            let pagoEm = extrairDataISO(p.dataPagamento);
+            let emAberto = !p.paga || (dataISO && pagoEm && pagoEm > dataISO);
+            if (!emAberto) return;
+            let valor = p.paga && p.valorOriginal !== null && p.valorOriginal !== undefined ? p.valorOriginal : p.valor;
+            soma += Number(valor) || 0;
+        });
+        return soma;
+    }, 0);
+}
+
+// valor do almoxarifado numa data passada: saldo de cada produto naquela data
+// (entradas − saídas até ali) × preço médio das entradas até ali. Antes a
+// Evolução do Patrimônio contava o estoque só no mês atual (zero nos meses
+// anteriores), criando um "salto" falso no gráfico.
+function valorEstoqueNaData(dataISO) {
+    if (!dataISO) return produtosCacheAdmin.reduce((s, p) => s + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0), 0);
+    let porProduto = {};
+    estoqueEntradasCacheAdmin.forEach(e => {
+        let iso = extrairDataISO(e.data);
+        if (!iso || iso > dataISO) return;
+        let p = porProduto[e.produtoId] = porProduto[e.produtoId] || { qtd: 0, qtdEntradas: 0, valorEntradas: 0 };
+        p.qtd += Number(e.quantidade) || 0; p.qtdEntradas += Number(e.quantidade) || 0; p.valorEntradas += Number(e.valorTotal) || 0;
+    });
+    estoqueSaidasCacheAdmin.forEach(s => {
+        let iso = extrairDataISO(s.data);
+        if (!iso || iso > dataISO || !porProduto[s.produtoId]) return;
+        porProduto[s.produtoId].qtd -= Number(s.quantidade) || 0;
+    });
+    return Object.values(porProduto).reduce((s, p) => s + Math.max(p.qtd, 0) * (p.qtdEntradas > 0 ? p.valorEntradas / p.qtdEntradas : 0), 0);
+}
+
 function valorRebanhoVivo(porLote) {
     // nunca negativo — um lote já totalmente vendido não "deve" patrimônio
     // pra trás, o excesso já virou lucro realizado (está embutido no caixa).
@@ -2298,7 +2344,10 @@ async function mostrarPatrimonio() {
     // bens da fazenda em uso (veículos, máquinas, terra...) pelo valor atual
     let valorBens = valorBensNaData();
 
-    let patrimonioTotal = caixaAcumulado + valorRebanho + valorEstoqueAlmoxarifado + valorBens;
+    let dividas = dividasEmAbertoNaData();
+    let patrimonioTotal = caixaAcumulado + valorRebanho + valorEstoqueAlmoxarifado + valorBens - dividas;
+    let elDividas = document.getElementById("patrimonioDividas");
+    if (elDividas) elDividas.innerText = (dividas > 0 ? "− " : "") + "R$ " + formatarMoeda(dividas);
 
     let elBens = document.getElementById("patrimonioBens");
     if (elBens) elBens.innerText = "R$ " + formatarMoeda(valorBens);
@@ -2307,7 +2356,8 @@ async function mostrarPatrimonio() {
     document.getElementById("patrimonioEstoque").innerText = "R$ " + formatarMoeda(valorEstoqueAlmoxarifado);
     elTotal.innerText = "R$ " + formatarMoeda(patrimonioTotal);
 
-    atualizarDonutPatrimonio(caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, patrimonioTotal, valorBens);
+    let somaAtivos = [caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, valorBens].reduce((s, v) => s + Math.max(v, 0), 0);
+    atualizarDonutPatrimonio(caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, somaAtivos, valorBens);
 }
 
 // Desenha o gráfico de rosca "Composição do Patrimônio" a partir dos mesmos
@@ -2362,6 +2412,72 @@ function chaveMes(ano, mes) {
     return ano + "-" + String(mes).padStart(2, "0");
 }
 
+// custo médio por animal de cada ciclo de cada lote, olhando o ciclo INTEIRO
+// (todas as compras, insumos, despesas e receitas avulsas do lote, inclusive
+// as lançadas depois das vendas -- ex: frete ou comissão pagos depois). Antes
+// o Resultado Mensal usava só o que existia até a data de cada venda, então
+// uma despesa do lote lançada depois da venda não entrava em mês nenhum e o
+// lucro saía maior que o do Custo por Lote. Assim a soma do lucro de todos os
+// meses de um ciclo fechado bate com o resultado do lote.
+function montarCustoMedioPorCiclo() {
+    let ordem = chaveOrdenacaoLote;
+    let inicios = {};
+    let eventos = {};
+    function ev(lote) { return eventos[lote] = eventos[lote] || []; }
+    relatorios.forEach(r => {
+        let o = ordem(r.data); if (!o) return;
+        let qtd = calcularDadosCompletos(r).totalAnimais;
+        ev(r.descricao || "Sem descrição").push({ o, delta: (r.tipo || "venda") === "compra" ? qtd : -qtd });
+    });
+    transferenciasLotesCacheAdmin.forEach(t => {
+        let o = ordem(t.data); if (!o) return;
+        ev(t.loteDestino).push({ o, delta: Number(t.quantidade) || 0 });
+        ev(t.loteOrigem).push({ o, delta: -(Number(t.quantidade) || 0) });
+    });
+    Object.keys(eventos).forEach(lote => {
+        let lista = eventos[lote].sort((a, b) => a.o.localeCompare(b.o));
+        let cab = 0, esperando = false, ini = [lista[0].o];
+        lista.forEach(e => {
+            if (esperando) { ini.push(e.o); esperando = false; }
+            cab += e.delta;
+            if (cab <= 0) esperando = true;
+        });
+        inicios[lote] = ini;
+    });
+    // em que ciclo cai uma data: o último início <= data (antes do 1º = ciclo 0)
+    function ciclo(lote, dataStr) {
+        let o = ordem(dataStr), ini = inicios[lote];
+        if (!o || !ini) return 0;
+        let k = 0;
+        for (let i = 0; i < ini.length; i++) if (ini[i] <= o) k = i;
+        return k;
+    }
+    let acumulado = {};
+    function grupo(lote, dataStr) {
+        let chave = lote + "|" + ciclo(lote, dataStr);
+        return acumulado[chave] = acumulado[chave] || { comprados: 0, custo: 0 };
+    }
+    relatorios.forEach(r => {
+        if ((r.tipo || "venda") !== "compra") return;
+        let d = calcularDadosCompletos(r), g = grupo(r.descricao || "Sem descrição", r.data);
+        g.comprados += d.totalAnimais; g.custo += d.totalRS;
+    });
+    transferenciasLotesCacheAdmin.forEach(t => {
+        let destino = grupo(t.loteDestino, t.data), origem = grupo(t.loteOrigem, t.data);
+        destino.comprados += Number(t.quantidade) || 0; destino.custo += Number(t.valorTotal) || 0;
+        origem.comprados -= Number(t.quantidade) || 0; origem.custo -= Number(t.valorTotal) || 0;
+    });
+    estoqueSaidasCacheAdmin.forEach(s => { if (s.loteNome) grupo(s.loteNome, s.data).custo += Number(s.valorTotal) || 0; });
+    caixaLancamentosCacheAdmin.forEach(l => {
+        if (!l.loteNome) return;
+        grupo(l.loteNome, l.data).custo += l.tipo === "saida" ? l.valor : -l.valor;
+    });
+    return (lote, dataStr) => {
+        let g = acumulado[lote + "|" + ciclo(lote, dataStr)];
+        return g && g.comprados > 0 ? g.custo / g.comprados : 0;
+    };
+}
+
 async function mostrarResultadoMensal() {
     let corpo = document.getElementById("corpoTabelaResultadoMensal");
     if (!corpo) return;
@@ -2371,11 +2487,7 @@ async function mostrarResultadoMensal() {
     // custo de hoje -- senão uma compra nova feita meses depois muda
     // silenciosamente o resultado de um mês já fechado toda vez que a tela é
     // reaberta. Memoiza por data pra não recalcular o mesmo dia repetido.
-    let custoLotesPorData = {};
-    function custoLotesAteData(dataISO) {
-        if (!(dataISO in custoLotesPorData)) custoLotesPorData[dataISO] = agregarCustoLotesFinanceiro(dataISO);
-        return custoLotesPorData[dataISO];
-    }
+    let custoMedioDoCiclo = montarCustoMedioPorCiclo();
 
     let porMes = {};
     function grupoDoMes(ano, mes) {
@@ -2404,9 +2516,7 @@ async function mostrarResultadoMensal() {
         if (!dm) return;
         let d = calcularDadosCompletos(r);
         let nomeLote = r.descricao || "Sem descrição";
-        let dataISO = extrairDataISO(r.data);
-        let porLoteNaData = dataISO ? custoLotesAteData(dataISO) : {};
-        let custoMedio = porLoteNaData[nomeLote] ? porLoteNaData[nomeLote].custoMedioAnimal : 0;
+        let custoMedio = custoMedioDoCiclo(nomeLote, r.data);
         let grupo = grupoDoMes(dm.ano, dm.mes);
         grupo.receitaVendas += d.totalRS;
         grupo.custoGadoVendido += d.totalAnimais * custoMedio;
@@ -2505,11 +2615,11 @@ async function mostrarEvolucaoPatrimonio() {
         let caixa = calcularCaixaAcumulado(corteISO);
         let porLote = agregarCustoLotesFinanceiro(corteISO);
         let rebanho = valorRebanhoVivo(porLote);
-        let estoqueAlmox = (m.chave === ultimaChave)
-            ? produtosCacheAdmin.reduce((soma, p) => soma + (p.saldoAtual || 0) * (p.custoMedioUnitario || 0), 0)
-            : 0;
+        // mês atual: estoque de hoje (saldo do servidor); meses anteriores:
+        // o estoque como estava no fim daquele mês
+        let estoqueAlmox = m.chave === chaveMesDeHoje ? valorEstoqueNaData() : valorEstoqueNaData(corteISO);
 
-        m.patrimonio = caixa + rebanho + estoqueAlmox + valorBensNaData(corteISO);
+        m.patrimonio = caixa + rebanho + estoqueAlmox + valorBensNaData(corteISO) - dividasEmAbertoNaData(corteISO);
     }
 
     for (let i = 0; i < meses.length; i++) {
@@ -3626,7 +3736,7 @@ async function salvarLancamento() {
         let subCaixaNome = document.getElementById("lancamentoSubCaixaInput").value;
         let descricao = document.getElementById("lancamentoDescricaoInput").value.trim();
         let valorTexto = document.getElementById("lancamentoValorInput").value.trim();
-        let valor = parseFloat(valorTexto.replace(/\./g, "").replace(",", "."));
+        let valor = lerValorBR(valorTexto);
         let dataInput = document.getElementById("lancamentoDataInput").value;
 
         if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
@@ -4202,7 +4312,7 @@ async function confirmarEditarParcela() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
         if (!parcelaEmEdicaoId) return;
 
-        let valor = parseFloat(document.getElementById("editParcelaValorInput").value.replace(",", "."));
+        let valor = lerValorBR(document.getElementById("editParcelaValorInput").value);
         let dataISO = document.getElementById("editParcelaDataInput").value;
         if (!Number.isFinite(valor) || valor <= 0) { mostrarErro("Informe um valor válido."); return; }
         if (!dataISO) { mostrarErro("Informe a data de vencimento."); return; }
@@ -4414,9 +4524,9 @@ function fecharModalEnergia() {
 }
 
 function atualizarPreviewEnergia() {
-    let valorFatura = parseFloat(document.getElementById("energiaValorFaturaInput").value.replace(",", ".")) || 0;
-    let consumoFatura = parseFloat(document.getElementById("energiaConsumoFaturaInput").value.replace(",", ".")) || 0;
-    let leituraAtual = parseFloat(document.getElementById("energiaLeituraAtualInput").value.replace(",", ".")) || 0;
+    let valorFatura = lerValorBR(document.getElementById("energiaValorFaturaInput").value) || 0;
+    let consumoFatura = lerValorBR(document.getElementById("energiaConsumoFaturaInput").value) || 0;
+    let leituraAtual = lerValorBR(document.getElementById("energiaLeituraAtualInput").value) || 0;
     let ultima = energiaCacheAdmin[0] || null;
     let leituraAnterior = ultima ? ultima.leituraAtual : 0;
 
@@ -4452,9 +4562,9 @@ async function salvarEnergia() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
 
         let dataISO = document.getElementById("energiaDataInput").value;
-        let valorFatura = parseFloat(document.getElementById("energiaValorFaturaInput").value.replace(",", "."));
-        let consumoFatura = parseFloat(document.getElementById("energiaConsumoFaturaInput").value.replace(",", "."));
-        let leituraAtual = parseFloat(document.getElementById("energiaLeituraAtualInput").value.replace(",", "."));
+        let valorFatura = lerValorBR(document.getElementById("energiaValorFaturaInput").value);
+        let consumoFatura = lerValorBR(document.getElementById("energiaConsumoFaturaInput").value);
+        let leituraAtual = lerValorBR(document.getElementById("energiaLeituraAtualInput").value);
         let vencimentoISO = document.getElementById("energiaVencimentoInput").value;
 
         if (!dataISO) { mostrarErro("Informe a data de referência."); return; }
@@ -4717,7 +4827,7 @@ async function salvarFuncionario() {
 
         let nome = document.getElementById("funcNomeInput").value.trim();
         let cargo = document.getElementById("funcCargoInput").value.trim();
-        let salario = parseFloat(document.getElementById("funcSalarioInput").value.replace(",", "."));
+        let salario = lerValorBR(document.getElementById("funcSalarioInput").value);
         let diaPagamento = parseInt(document.getElementById("funcDiaPagamentoInput").value, 10);
         let dataAdmissaoISO = document.getElementById("funcDataAdmissaoInput").value;
         let observacoes = document.getElementById("funcObservacoesInput").value.trim();
@@ -4919,7 +5029,7 @@ async function salvarAdiantamento() {
         if (!token) { mostrarErro("Sua sessão expirou."); return; }
 
         let funcionarioId = document.getElementById("adiFuncionarioInput").value;
-        let valor = parseFloat(document.getElementById("adiValorInput").value.replace(",", "."));
+        let valor = lerValorBR(document.getElementById("adiValorInput").value);
         let dataISO = document.getElementById("adiDataInput").value;
         let competencia = document.getElementById("adiCompetenciaInput").value;
         let observacoes = document.getElementById("adiObservacoesInput").value.trim();

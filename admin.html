@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=10">
-    <link rel="stylesheet" href="admin.css?v=35">
+    <link rel="stylesheet" href="admin.css?v=36">
 </head>
 <body class="modoDesktop">
 
@@ -374,6 +374,10 @@
                     <button class="statTile statTileBens" onclick="trocarTela('telaPatrimonio'); abrirTelaPatrimonio();" title="Ver os bens">
                         <span class="statTileLabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-5h6v5"></path><path d="M10 10h4"></path></svg>Bens (veículos, máquinas...)</span>
                         <span class="statTileValor" id="patrimonioBens">R$ 0,00</span>
+                    </button>
+                    <button class="statTile statTileDividas" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();" title="Ver as contas a pagar">
+                        <span class="statTileLabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"></path><path d="M8 9h8M8 13h8"></path></svg>Contas a pagar em aberto</span>
+                        <span class="statTileValor" id="patrimonioDividas">R$ 0,00</span>
                     </button>
                 </div>
             </div>
@@ -1244,7 +1248,7 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
 <script src="app.js?v=25"></script>
-<script src="admin.js?v=41"></script>
+<script src="admin.js?v=42"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

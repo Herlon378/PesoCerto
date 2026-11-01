@@ -2789,3 +2789,9 @@ body.modoDesktop .fcBtnVerExtrato { height: 34px; padding: 0 12px; font-size: 12
     body.modoDesktop .fcSubCaixaFaixa .acaoRel { width: 100%; justify-content: center; }
     .fcSubAcoes { flex-wrap: wrap; }
 }
+
+/* Patrimônio: contas a pagar em aberto (descontadas do total) */
+body.modoDesktop button.statTileDividas { width: auto; margin: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.statTileDividas .statTileLabel { display: inline-flex; align-items: center; gap: 6px; }
+.statTileDividas .statTileLabel svg { width: 14px; height: 14px; color: #fb7185; }
+.statTileDividas .statTileValor { color: #ff9a92; }
