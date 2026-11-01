@@ -2795,3 +2795,139 @@ body.modoDesktop button.statTileDividas { width: auto; margin: 0; text-align: le
 .statTileDividas .statTileLabel { display: inline-flex; align-items: center; gap: 6px; }
 .statTileDividas .statTileLabel svg { width: 14px; height: 14px; color: #fb7185; }
 .statTileDividas .statTileValor { color: #ff9a92; }
+
+/* ========================================
+   CUSTO POR LOTE (menu próprio): indicadores clicáveis, cartões com
+   barra de recuperação e simulador de venda em cada lote
+   ======================================== */
+.clBotoesTopo { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+body.modoDesktop .clBtnAjuda { height: 40px; }
+.clVisao { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
+body.modoDesktop .clVisaoBtn {
+    display: inline-flex; align-items: center; gap: 6px; width: auto; height: 32px; margin: 0; padding: 0 12px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: var(--ink-muted); background: transparent; border: none; box-shadow: none;
+}
+body.modoDesktop .clVisaoBtn:hover { color: #fff; }
+body.modoDesktop .clVisaoBtn.clVisaoAtiva { color: #0d1426; background: #f472b6; }
+.clVisaoBtn svg { width: 15px; height: 15px; }
+.clKpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+body.modoDesktop button.clKpi { transition: border-color 0.15s ease, transform 0.15s ease; }
+body.modoDesktop button.clKpi:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--corKpi) 55%, transparent); }
+body.modoDesktop button.clKpi.clKpiAtivo { border-color: var(--corKpi); box-shadow: 0 0 0 1px var(--corKpi) inset; }
+.clKpi > div { min-width: 0; }
+.clKpi b { display: block; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clKpi small { display: block; font-size: 11.5px; color: var(--ink-muted); }
+body.modoDesktop #telaCustoLote .ltChip.ltChipAtivo { color: #0d1426; background: #f472b6; border-color: #f472b6; }
+body.modoDesktop #clOrdem {
+    width: auto; min-width: 200px; height: 40px; margin: 0 0 0 auto; padding: 0 10px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--ink); color-scheme: dark; cursor: pointer;
+}
+
+.clAjuda { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 18px; padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); }
+.clAjuda[hidden] { display: none; }
+.clAjudaItem { display: flex; gap: 12px; align-items: flex-start; }
+.clAjudaItem b { display: block; font-size: 14px; color: #fff; margin-bottom: 3px; }
+.clAjudaItem p { margin: 0; font-size: 12.5px; line-height: 1.5; color: #c9d3e6; }
+
+.clGrade { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; margin-bottom: 28px; align-items: start; }
+.clGrade[hidden], .clTabelaCaixa[hidden] { display: none; }
+.clCartao {
+    --corSit: #fbbf24;
+    display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--corSit) 9%, transparent), transparent 45%), var(--surface);
+    border: 1px solid var(--border-strong);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.clCartao:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--corSit) 45%, transparent); box-shadow: 0 12px 28px -14px rgba(0,0,0,0.7); }
+.clCartao_lucro, .clCartao_lucroEncerrado { --corSit: #3ddc84; }
+.clCartao_prejuizo { --corSit: #fb7185; }
+.clCartao_zerado { --corSit: #94a3b8; }
+.clCartao_lucroEncerrado, .clCartao_prejuizo, .clCartao_zerado { opacity: 0.88; }
+.clCartaoTopo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.clCartaoTopo h4 { flex: 1; min-width: 0; margin: 0; font-size: 16px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clSelo { flex-shrink: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.4px; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; color: var(--corSit); background: color-mix(in srgb, var(--corSit) 12%, transparent); border: 1px solid color-mix(in srgb, var(--corSit) 38%, transparent); }
+.clCartaoCabecas { display: flex; align-items: baseline; gap: 6px; }
+.clCartaoCabecas b { font-size: 30px; line-height: 1; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.clCartaoCabecas > span { font-size: 14px; color: #c9d3e6; }
+.clDias { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--ink-muted); }
+.clDias svg { width: 14px; height: 14px; }
+.clDestaque { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--corSit) 8%, var(--surface-sunken)); border: 1px solid color-mix(in srgb, var(--corSit) 28%, transparent); }
+.clDestaqueRotulo { font-size: 12px; font-weight: 700; color: var(--corSit); text-transform: uppercase; letter-spacing: 0.4px; }
+.clDestaqueValor { font-size: 24px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.clDestaqueSub { font-size: 12px; color: var(--ink-muted); }
+.clPorUnidade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.clPorUnidade > div { padding: 8px 10px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border); min-width: 0; }
+.clPorUnidade span { display: block; font-size: 11.5px; color: var(--ink-muted); }
+.clPorUnidade b { display: block; font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clRecuperadoTopo { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 12.5px; color: #c9d3e6; }
+.clRecuperadoTopo b { font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; }
+.clBarra { position: relative; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.clBarra i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--corSit) 70%, #000), var(--corSit)); transition: width 0.4s ease; }
+.clBarra em { position: absolute; right: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(255,255,255,0.35) 0 3px, transparent 3px 6px); }
+.clRecuperado small { display: block; margin-top: 5px; font-size: 11.5px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.clComposicao { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--border); }
+.clComposicao > div { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.clComposicao i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+.clComposicao span { color: #c9d3e6; }
+.clComposicao b { margin-left: auto; color: #fff; font-variant-numeric: tabular-nums; }
+
+.clSim { border-radius: 12px; border: 1px solid rgba(244,114,182,0.3); background: rgba(244,114,182,0.05); }
+.clSim summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; font-size: 13.5px; font-weight: 700; color: #f9a8d4; }
+.clSim summary::-webkit-details-marker { display: none; }
+.clSim summary svg { width: 17px; height: 17px; flex-shrink: 0; }
+.clSim summary span { flex: 1; }
+.clSimSeta { transition: transform 0.2s ease; }
+.clSim[open] .clSimSeta { transform: rotate(180deg); }
+.clSimCorpo { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
+.clSimModos { display: flex; padding: 3px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
+body.modoDesktop .clSimModo { flex: 1; width: auto; height: 30px; margin: 0; padding: 0; border-radius: 7px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-muted); background: transparent; border: none; box-shadow: none; }
+body.modoDesktop .clSimModo.clSimModoAtivo { color: #0d1426; background: #f472b6; }
+.clSimCampos { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+.clSimCampos label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.clSimCampos label[hidden] { display: none; }
+.clSimCampos span { font-size: 11.5px; font-weight: 700; color: var(--ink-muted); }
+body.modoDesktop .clSimCampos input {
+    width: 100%; height: 38px; margin: 0; padding: 0 10px; border-radius: 9px; font-size: 14px; font-weight: 700;
+    color: #fff; background: var(--surface-sunken); border: 1px solid var(--border-strong); color-scheme: dark; box-sizing: border-box;
+}
+body.modoDesktop .clSimCampos input:focus { outline: none; border-color: #f472b6; box-shadow: 0 0 0 3px rgba(244,114,182,0.2); }
+.clSimResultado { display: flex; flex-direction: column; gap: 4px; }
+.clSimLinha { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: #c9d3e6; }
+.clSimLinha b { color: #fff; font-variant-numeric: tabular-nums; text-align: right; }
+.clSimTotal { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; padding: 9px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; }
+.clSimTotal b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.clSimLucro { color: #3ddc84; background: rgba(61,220,132,0.1); border: 1px solid rgba(61,220,132,0.35); }
+.clSimPrejuizo { color: #ffc94d; background: rgba(255,201,77,0.08); border: 1px solid rgba(255,201,77,0.35); }
+.clSimDica { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--ink-muted); }
+.clSimDica b { color: #fff; }
+
+.clTabelaCaixa { margin-bottom: 28px; overflow-x: auto; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--surface); }
+.clTabelaCaixa .clTabela { margin: 0; }
+
+/* atalho no Dashboard pra tela Custo por Lote */
+body.modoDesktop .dashAtalhoCustoLote {
+    display: flex; align-items: center; gap: 14px; width: 100%; margin: 16px 0 0; padding: 16px 18px; border-radius: 16px; cursor: pointer; text-align: left;
+    color: inherit; font: inherit; box-shadow: none;
+    background: linear-gradient(90deg, rgba(244,114,182,0.1), transparent 60%), var(--surface);
+    border: 1px solid var(--border-strong); transition: border-color 0.15s ease, transform 0.15s ease;
+}
+body.modoDesktop .dashAtalhoCustoLote:hover { border-color: rgba(244,114,182,0.55); transform: translateY(-1px); }
+.dashAtalhoTexto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dashAtalhoTexto b { font-size: 16px; color: #fff; }
+.dashAtalhoTexto span { font-size: 13px; color: #c9d3e6; }
+.dashAtalhoAbrir { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #f9a8d4; flex-shrink: 0; }
+.dashAtalhoAbrir svg { width: 16px; height: 16px; }
+
+@media (max-width: 900px) {
+    .clKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .clKpi b { font-size: 16px; }
+    .clBotoesTopo { margin-left: 0; width: 100%; }
+    body.modoDesktop .clBtnAjuda { flex: 1; justify-content: center; }
+    body.modoDesktop #clOrdem { width: 100%; margin: 0; }
+    .clGrade { grid-template-columns: 1fr; }
+    .clDestaqueValor { font-size: 22px; }
+    body.modoDesktop .clBtnAjuda { white-space: nowrap; font-size: 13px; padding: 0 10px; }
+    .clPorUnidade { gap: 6px; }
+    .clPorUnidade > div { padding: 7px 8px; }
+    .clPorUnidade b { font-size: 12.5px; white-space: normal; overflow: visible; }
+}

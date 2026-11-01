@@ -1636,6 +1636,19 @@ async function mostrarCustoPorLote() {
     });
 
     let nomesLotes = Object.keys(porLote).sort();
+
+    // mesma conta de sempre (calcularFormulaCustoLote, compartilhada com o
+    // celular) -- a tela de cartões, os indicadores e o atalho do Dashboard
+    // só leem destas linhas, nunca refazem a conta por conta própria
+    custoLoteLinhas = nomesLotes.map(nome => {
+        let g = porLote[nome];
+        let f = calcularFormulaCustoLote(g);
+        let rel = calcularRelatorioLote(nome);
+        return Object.assign({ nome, g, gastoTotal: g.custoCompra + g.custoInsumos, diasEmPosse: rel.diasEmPosse, primeiraCompraISO: rel.primeiraCompraISO }, f);
+    });
+    desenharCustoLote();
+    atualizarAtalhoCustoLoteDashboard();
+
     if (nomesLotes.length === 0) {
         corpo.innerHTML = `<tr><td colspan="9">Nenhum dado de lote disponível ainda.</td></tr>`;
         return;
@@ -1663,17 +1676,14 @@ async function mostrarCustoPorLote() {
         return { texto: "R$ " + formatarMoeda(valor), cor: "inherit" };
     }
 
-    corpo.innerHTML = nomesLotes.map(nome => {
-        let g = porLote[nome];
-        // fórmula compartilhada com o celular (app.js) -- ver
-        // calcularFormulaCustoLote(), garante que os dois nunca divergem
-        let { headcount, kgAtual, custoRestante, custoMedio, custoPorKg } = calcularFormulaCustoLote(g);
+    corpo.innerHTML = custoLoteLinhas.map(l => {
+        let { nome, g, headcount, kgAtual, custoRestante, custoMedio, custoPorKg } = l;
         let restanteFmt = formatarValorPossivelmenteNegativo(custoRestante, headcount);
         let medioFmt = formatarValorPossivelmenteNegativo(custoMedio, headcount);
         let porKgFmt = formatarValorPossivelmenteNegativo(custoPorKg, headcount);
         return `
             <tr>
-                <td>${nome}</td>
+                <td>${escaparHtmlPesagem(nome)}</td>
                 <td>${headcount}</td>
                 <td>R$ ${formatarMoeda(g.custoCompra)}</td>
                 <td>R$ ${formatarMoeda(g.custoInsumos)}</td>
@@ -1686,6 +1696,284 @@ async function mostrarCustoPorLote() {
         `;
     }).join("");
 }
+
+// ========================================
+// TELA CUSTO POR LOTE (menu próprio)
+// ========================================
+// Antes era uma tabela no fim do Dashboard. Agora tem tela própria com
+// cartões, indicadores clicáveis, filtros e um simulador de venda em cada
+// lote. Os números vêm todos de custoLoteLinhas (montado em
+// mostrarCustoPorLote acima) -- a tabela continua lá, na visão "Tabela".
+let custoLoteLinhas = [];
+let custoLoteFiltro = "todos";
+// o que foi digitado no simulador de cada lote sobrevive a uma atualização
+// da tela (sincronização, filtro, troca de ordem)
+let custoLoteSimulacoes = {};
+
+async function abrirTelaCustoLote() {
+    trocarTela("telaCustoLote");
+    try { trocarVisaoCustoLote(localStorage.getItem("custoLoteVisao") === "tabela" ? "tabela" : "cartoes"); } catch (e) {}
+    await mostrarCustoPorLote();
+}
+
+// em que situação o lote está -- uma regra só, usada pelo selo do cartão,
+// pelos filtros e pelos indicadores do topo
+function situacaoCustoLote(l) {
+    let restante = Math.round(l.custoRestante * 100) / 100;
+    if (l.headcount > 0) return restante > 0 ? "andamento" : "lucro";
+    if (restante > 0) return "prejuizo";
+    return restante < 0 ? "lucroEncerrado" : "zerado";
+}
+
+function custoLotePassaFiltro(l, filtro) {
+    let s = situacaoCustoLote(l);
+    if (filtro === "comAnimais") return l.headcount > 0;
+    if (filtro === "andamento") return s === "andamento";
+    if (filtro === "lucro") return s === "lucro" || s === "lucroEncerrado";
+    if (filtro === "prejuizo") return s === "prejuizo";
+    if (filtro === "encerrados") return l.headcount <= 0;
+    return true;
+}
+
+function percentualRecuperadoLote(l) {
+    if (l.gastoTotal > 0) return l.g.receitaVenda / l.gastoTotal * 100;
+    return l.g.receitaVenda > 0 ? 100 : 0;
+}
+
+function filtrarCustoLote(filtro) {
+    custoLoteFiltro = filtro;
+    desenharCustoLote();
+}
+
+function trocarVisaoCustoLote(visao) {
+    document.querySelectorAll("#telaCustoLote .clVisaoBtn").forEach(b => b.classList.toggle("clVisaoAtiva", b.dataset.visao === visao));
+    let grade = document.getElementById("clGrade"), tabela = document.getElementById("clTabelaCaixa");
+    if (grade) grade.hidden = visao === "tabela";
+    if (tabela) tabela.hidden = visao !== "tabela";
+    try { localStorage.setItem("custoLoteVisao", visao); } catch (e) {}
+}
+
+function alternarAjudaCustoLote() {
+    let ajuda = document.getElementById("clAjuda"), btn = document.getElementById("clBtnAjuda");
+    if (!ajuda) return;
+    ajuda.hidden = !ajuda.hidden;
+    if (btn) btn.setAttribute("aria-expanded", String(!ajuda.hidden));
+}
+
+function desenharCustoLote() {
+    let grade = document.getElementById("clGrade");
+    if (!grade) return;
+    let rs = v => "R$ " + formatarMoeda(v);
+    let linhas = custoLoteLinhas;
+
+    // indicadores do topo (sempre do conjunto inteiro, não do filtro)
+    let comAnimais = linhas.filter(l => l.headcount > 0);
+    let andamento = linhas.filter(l => situacaoCustoLote(l) === "andamento");
+    let noLucro = linhas.filter(l => l.custoRestante < 0);
+    let prejuizo = linhas.filter(l => situacaoCustoLote(l) === "prejuizo");
+    let soma = (lista, f) => lista.reduce((t, l) => t + f(l), 0);
+    let lotesTxt = n => n === 1 ? "1 lote" : n + " lotes";
+    let set = (id, txt) => { let el = document.getElementById(id); if (el) el.innerText = txt; };
+    set("clKpiAnimais", soma(comAnimais, l => l.headcount));
+    set("clKpiAnimaisSub", "em " + lotesTxt(comAnimais.length));
+    set("clKpiRecuperar", rs(soma(andamento, l => l.custoRestante)));
+    set("clKpiRecuperarSub", lotesTxt(andamento.length));
+    set("clKpiLucro", rs(soma(noLucro, l => -l.custoRestante)));
+    set("clKpiLucroSub", lotesTxt(noLucro.length));
+    set("clKpiPrejuizo", rs(soma(prejuizo, l => l.custoRestante)));
+    set("clKpiPrejuizoSub", lotesTxt(prejuizo.length));
+    set("clResumo", linhas.length ? `${lotesTxt(linhas.length)} no ciclo atual` : "");
+
+    document.querySelectorAll("#telaCustoLote .ltChip").forEach(b => b.classList.toggle("ltChipAtivo", b.dataset.filtro === custoLoteFiltro));
+    document.querySelectorAll("#telaCustoLote .clKpi").forEach(b => b.classList.toggle("clKpiAtivo", b.dataset.filtro === custoLoteFiltro));
+
+    let busca = ((document.getElementById("clBusca") || {}).value || "").trim().toLowerCase();
+    let ordem = (document.getElementById("clOrdem") || {}).value || "animais";
+    let visiveis = linhas.filter(l => custoLotePassaFiltro(l, custoLoteFiltro) && (!busca || l.nome.toLowerCase().includes(busca)));
+    let comparar = {
+        animais: (a, b) => b.headcount - a.headcount || b.custoRestante - a.custoRestante,
+        recuperar: (a, b) => b.custoRestante - a.custoRestante,
+        lucro: (a, b) => a.custoRestante - b.custoRestante,
+        recuperado: (a, b) => percentualRecuperadoLote(a) - percentualRecuperadoLote(b),
+        nome: (a, b) => a.nome.localeCompare(b.nome, "pt-BR")
+    }[ordem] || (() => 0);
+    visiveis.sort((a, b) => comparar(a, b) || a.nome.localeCompare(b.nome, "pt-BR"));
+
+    if (visiveis.length === 0) {
+        grade.innerHTML = `<p class="ltVazio">${linhas.length ? "Nenhum lote nesse filtro." : "Nenhum dado de lote disponível ainda."}</p>`;
+        return;
+    }
+    grade.innerHTML = visiveis.map(cartaoCustoLote).join("");
+    visiveis.forEach(l => { if (l.headcount > 0) simularVendaCustoLote(l.nome); });
+}
+
+const SELOS_CUSTO_LOTE = {
+    andamento: ["A recuperar", "clSeloAndamento"],
+    lucro: ["No lucro", "clSeloLucro"],
+    lucroEncerrado: ["Encerrado no lucro", "clSeloLucro"],
+    prejuizo: ["Prejuízo", "clSeloPrejuizo"],
+    zerado: ["Encerrado", "clSeloZerado"]
+};
+
+function cartaoCustoLote(l) {
+    let rs = v => "R$ " + formatarMoeda(v);
+    let esc = escaparHtmlPesagem;
+    let s = situacaoCustoLote(l);
+    let [seloTexto, seloClasse] = SELOS_CUSTO_LOTE[s];
+    let pct = percentualRecuperadoLote(l);
+    let restanteAbs = Math.abs(l.custoRestante);
+    let destaque = {
+        andamento: ["Custo restante", rs(restanteAbs), "ainda não voltou em vendas"],
+        lucro: ["Lucro já garantido", rs(restanteAbs), "as vendas já pagaram o lote"],
+        lucroEncerrado: ["Lucro do ciclo", rs(restanteAbs), "lote todo vendido"],
+        prejuizo: ["Prejuízo realizado", rs(restanteAbs), "vendas não cobriram o custo"],
+        zerado: ["Resultado do ciclo", rs(0), "empatou"]
+    }[s];
+    let porAnimal = l.headcount > 0 && s === "andamento" ? rs(l.custoMedio) : "—";
+    let porKg = l.headcount > 0 && s === "andamento" && l.kgAtual > 0 ? rs(l.custoPorKg) : "—";
+    let dias = l.diasEmPosse !== null && l.diasEmPosse !== undefined
+        ? `<span class="clDias" title="Desde a 1ª entrada deste ciclo (${l.primeiraCompraISO.split("-").reverse().join("/")})">${ICONES_CUSTO_LOTE.calendario}${l.diasEmPosse} ${l.diasEmPosse === 1 ? "dia" : "dias"}</span>` : "";
+    let nomeAttr = jsonAtributo(l.nome);
+    let id = idSimuladorCustoLote(l.nome);
+    let sim = custoLoteSimulacoes[l.nome] || {};
+
+    return `
+        <article class="clCartao clCartao_${s}">
+            <div class="clCartaoTopo">
+                <span class="ltCartaoIcone" style="--corKpi:${l.headcount > 0 ? "#fbbf24" : "#94a3b8"}">${ICONES_REL_LOTE.boi}</span>
+                <h4 title="${esc(l.nome)}">${esc(l.nome)}</h4>
+                <span class="clSelo ${seloClasse}">${seloTexto}</span>
+            </div>
+            <div class="clCartaoCabecas">
+                <b>${l.headcount}</b><span>${l.headcount === 1 ? "animal" : "animais"}</span>
+                ${dias}
+            </div>
+            <div class="clDestaque">
+                <span class="clDestaqueRotulo">${destaque[0]}</span>
+                <b class="clDestaqueValor">${destaque[1]}</b>
+                <span class="clDestaqueSub">${destaque[2]}</span>
+            </div>
+            <div class="clPorUnidade">
+                <div><span>Por animal</span><b>${porAnimal}</b></div>
+                <div><span>Por kg</span><b>${porKg}</b></div>
+                <div><span>Kg no lote</span><b>${l.headcount > 0 && l.kgAtual > 0 ? formatarPeso(Math.round(l.kgAtual * 10) / 10) + " kg" : "—"}</b></div>
+            </div>
+            <div class="clRecuperado">
+                <div class="clRecuperadoTopo"><span>Recuperado em vendas</span><b>${pct.toFixed(1).replace(".", ",")}%</b></div>
+                <div class="clBarra"><i style="width:${Math.min(100, Math.max(0, pct)).toFixed(1)}%"></i>${pct > 100 ? `<em style="width:${Math.min(100, pct - 100).toFixed(1)}%"></em>` : ""}</div>
+                <small>${rs(l.g.receitaVenda)} de ${rs(l.gastoTotal)} investidos</small>
+            </div>
+            <div class="clComposicao">
+                <div><i style="--c:#60a5fa"></i><span>Compra</span><b>${rs(l.g.custoCompra)}</b></div>
+                <div><i style="--c:#fb923c"></i><span>Insumos/despesas</span><b>${rs(l.g.custoInsumos)}</b></div>
+                <div><i style="--c:#3ddc84"></i><span>Receita</span><b>${rs(l.g.receitaVenda)}</b></div>
+            </div>
+            ${l.headcount > 0 ? `
+            <details class="clSim" id="${id}" ${sim.aberto ? "open" : ""} ontoggle='lembrarSimuladorCustoLote(${nomeAttr})'>
+                <summary>${ICONES_CUSTO_LOTE.calculadora}<span>Simular venda</span><svg class="clSimSeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></summary>
+                <div class="clSimCorpo">
+                    <div class="clSimModos" role="group" aria-label="Como vender">
+                        <button type="button" class="clSimModo${sim.modo !== "kg" ? " clSimModoAtivo" : ""}" data-modo="animal" onclick='trocarModoSimuladorCustoLote(${nomeAttr}, "animal")'>Por animal</button>
+                        <button type="button" class="clSimModo${sim.modo === "kg" ? " clSimModoAtivo" : ""}" data-modo="kg" onclick='trocarModoSimuladorCustoLote(${nomeAttr}, "kg")'>Por kg</button>
+                    </div>
+                    <div class="clSimCampos">
+                        <label><span>Animais</span><input type="number" min="1" max="${l.headcount}" step="1" class="clSimQtd" value="${sim.qtd || l.headcount}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
+                        <label><span class="clSimPrecoRotulo">${sim.modo === "kg" ? "Preço por kg" : "Preço por animal"}</span><input type="text" inputmode="decimal" class="clSimPreco" placeholder="R$ 0,00" value="${esc(sim.preco || "")}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
+                        <label class="clSimCampoPeso"${sim.modo === "kg" ? "" : " hidden"}><span>Peso médio (kg)</span><input type="text" inputmode="decimal" class="clSimPeso" value="${esc(sim.peso || (l.kgAtual > 0 ? String(Math.round(l.kgAtual / l.headcount * 10) / 10).replace(".", ",") : ""))}" oninput='simularVendaCustoLote(${nomeAttr})'></label>
+                    </div>
+                    <div class="clSimResultado"></div>
+                </div>
+            </details>` : ""}
+            <div class="ltCartaoAcoes">
+                <button class="ltBtnRelatorio btnVerRelLote" onclick='abrirRelatorioLote(${nomeAttr})' title="Ver o relatório aqui na tela">${ICONES_REL_LOTE.verRelatorio}Ver relatório</button>
+                <button class="ltBtnIcone btnPdfRelLote" onclick='gerarRelatorioLotePDF(${nomeAttr})' title="Baixar o relatório em PDF" aria-label="Baixar PDF">${ICONES_REL_LOTE.baixarPdf}</button>
+            </div>
+        </article>`;
+}
+
+function idSimuladorCustoLote(nome) {
+    return "clSim_" + Array.from(nome).map(c => c.charCodeAt(0).toString(36)).join("_");
+}
+
+function lembrarSimuladorCustoLote(nome) {
+    let el = document.getElementById(idSimuladorCustoLote(nome));
+    if (!el) return;
+    custoLoteSimulacoes[nome] = Object.assign(custoLoteSimulacoes[nome] || {}, { aberto: el.open });
+}
+
+function trocarModoSimuladorCustoLote(nome, modo) {
+    let el = document.getElementById(idSimuladorCustoLote(nome));
+    if (!el) return;
+    el.querySelectorAll(".clSimModo").forEach(b => b.classList.toggle("clSimModoAtivo", b.dataset.modo === modo));
+    el.querySelector(".clSimCampoPeso").hidden = modo !== "kg";
+    el.querySelector(".clSimPrecoRotulo").innerText = modo === "kg" ? "Preço por kg" : "Preço por animal";
+    custoLoteSimulacoes[nome] = Object.assign(custoLoteSimulacoes[nome] || {}, { modo });
+    simularVendaCustoLote(nome);
+}
+
+// Mesmo modelo do simulador do celular (atualizarSimuladorVenda em app.js):
+// o lote é um investimento só, e só existe lucro depois que o custo restante
+// inteiro volta em venda -- resultado e custo do que sobra vêm da MESMA
+// conta, pra nunca mostrar os dois positivos ao mesmo tempo.
+function simularVendaCustoLote(nome) {
+    let el = document.getElementById(idSimuladorCustoLote(nome));
+    let l = custoLoteLinhas.find(x => x.nome === nome);
+    if (!el || !l) return;
+    let rs = v => "R$ " + formatarMoeda(v);
+    let modo = el.querySelector(".clSimModoAtivo").dataset.modo;
+    let campoQtd = el.querySelector(".clSimQtd");
+    let qtd = Math.min(l.headcount, Math.max(0, Math.floor(Number(campoQtd.value) || 0)));
+    let preco = lerValorBR(el.querySelector(".clSimPreco").value) || 0;
+    let peso = lerValorBR(el.querySelector(".clSimPeso").value) || 0;
+    custoLoteSimulacoes[nome] = Object.assign(custoLoteSimulacoes[nome] || {}, {
+        aberto: el.open, modo, qtd: campoQtd.value, preco: el.querySelector(".clSimPreco").value, peso: el.querySelector(".clSimPeso").value
+    });
+
+    let custo = Math.max(l.custoRestante, 0);
+    let equilibrioAnimal = l.headcount > 0 ? custo / l.headcount : 0;
+    let equilibrioKg = l.kgAtual > 0 ? custo / l.kgAtual : 0;
+    let saida = el.querySelector(".clSimResultado");
+    let dica = custo <= 0
+        ? `<p class="clSimDica">As vendas já pagaram este lote: qualquer venda daqui pra frente é lucro.</p>`
+        : `<p class="clSimDica">Empata vendendo todos a <b>${rs(equilibrioAnimal)}</b> por animal${equilibrioKg > 0 ? ` ou <b>${rs(equilibrioKg)}</b> por kg` : ""}.</p>`;
+    if (!(qtd > 0 && preco > 0 && (modo === "animal" || peso > 0))) {
+        saida.innerHTML = dica;
+        return;
+    }
+    let valorVenda = modo === "kg" ? preco * peso * qtd : preco * qtd;
+    let resultado = valorVenda - custo;
+    let restantes = l.headcount - qtd;
+    let custoQueFica = Math.max(custo - valorVenda, 0);
+    let linhaRestantes = restantes > 0
+        ? `<div class="clSimLinha"><span>Ficam ${restantes} ${restantes === 1 ? "animal" : "animais"}</span><b>${custoQueFica > 0 ? rs(custoQueFica / restantes) + " por animal" : "já pagos (lucro)"}</b></div>`
+        : "";
+    let positivo = resultado >= 0;
+    saida.innerHTML = `
+        <div class="clSimLinha"><span>Venda de ${qtd} ${qtd === 1 ? "animal" : "animais"}</span><b>${rs(valorVenda)}</b></div>
+        <div class="clSimLinha"><span>Custo restante do lote</span><b>${rs(custo)}</b></div>
+        ${linhaRestantes}
+        <div class="clSimTotal ${positivo ? "clSimLucro" : "clSimPrejuizo"}">
+            <span>${restantes > 0 ? (positivo ? "Lote já pago, sobra" : "Ainda falta recuperar") : (positivo ? "Lucro do lote" : "Prejuízo do lote")}</span>
+            <b>${rs(Math.abs(resultado))}</b>
+        </div>
+        ${dica}`;
+}
+
+// atalho no Dashboard pra tela nova, com o resumo do que importa
+function atualizarAtalhoCustoLoteDashboard() {
+    let el = document.getElementById("dashAtalhoCustoLoteResumo");
+    if (!el) return;
+    let comAnimais = custoLoteLinhas.filter(l => l.headcount > 0);
+    if (custoLoteLinhas.length === 0) return;
+    let recuperar = custoLoteLinhas.filter(l => situacaoCustoLote(l) === "andamento").reduce((t, l) => t + l.custoRestante, 0);
+    let animais = comAnimais.reduce((t, l) => t + l.headcount, 0);
+    el.innerText = `${animais} ${animais === 1 ? "animal" : "animais"} em ${comAnimais.length} ${comAnimais.length === 1 ? "lote" : "lotes"} · R$ ${formatarMoeda(recuperar)} ainda a recuperar`;
+}
+
+const ICONES_CUSTO_LOTE = {
+    "calendario": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"></rect><path d=\"M16 3v4M8 3v4M3 10h18\"></path></svg>",
+    "calculadora": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"2.5\" width=\"14\" height=\"19\" rx=\"2\"></rect><path d=\"M8 6.5h8v3H8z\"></path><path d=\"M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01\"></path></svg>"
+};
 
 // ========================================
 // RELATÓRIO PDF DO LOTE

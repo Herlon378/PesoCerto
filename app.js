@@ -3783,6 +3783,12 @@ async function sincronizarUmaVez(){
             if(typeof mostrarResultadoMensal === "function") mostrarResultadoMensal();
             if(typeof mostrarCustoPorLote === "function") mostrarCustoPorLote();
         }
+        // tela Custo por Lote (computador): atualiza junto, menos enquanto
+        // alguém está digitando no simulador -- redesenhar tiraria o cursor
+        let telaCustoLote = document.getElementById("telaCustoLote");
+        if(telaCustoLote && telaCustoLote.classList.contains("ativa") && !telaCustoLote.contains(document.activeElement) && typeof mostrarCustoPorLote === "function"){
+            mostrarCustoPorLote();
+        }
 
         if(idsRejeitadosPermissao.length > 0 || idsRejeitadosSaidas.length > 0 || idsRejeitadosVacas.length > 0 || idsRejeitadosNascimentos.length > 0){
             let partes = [];
