@@ -1,7 +1,27 @@
 (function () {
     let original = window.trocarTela;
+    // no gerenciamento quem rola é a PÁGINA (não cada tela), então a posição
+    // era uma só pra todas: rolar Relatórios e trocar pro Dashboard abria o
+    // Dashboard lá embaixo, "rolado junto". Cada tela guarda a sua posição --
+    // a primeira vez abre no topo, voltar pra uma tela volta onde parou.
+    let rolagemPorTela = {};
     window.trocarTela = function (id) {
+        let atual = document.querySelector(".tela.ativa");
+        let trocouDeTela = !atual || atual.id !== id;
+        if (atual && trocouDeTela) rolagemPorTela[atual.id] = window.scrollY;
         original(id);
+        if (trocouDeTela) {
+            let alvo = rolagemPorTela[id] || 0;
+            window.scrollTo(0, alvo);
+            // a tela pode ainda estar carregando os dados (fica mais baixa que
+            // a posição guardada): tenta de novo depois que ela se desenhar --
+            // só se a pessoa não rolou nesse meio-tempo
+            let ondeFicou = window.scrollY;
+            if (alvo > 0 && ondeFicou < alvo) setTimeout(() => {
+                let ativa = document.querySelector(".tela.ativa");
+                if (ativa && ativa.id === id && Math.abs(window.scrollY - ondeFicou) < 2) window.scrollTo(0, alvo);
+            }, 600);
+        }
         document.body.classList.remove("menuCelularAberto");
         document.querySelectorAll(".navDesktop [data-tela]").forEach(b => {
             b.classList.toggle("navAtivo", b.dataset.tela === id);
