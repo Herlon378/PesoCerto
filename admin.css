@@ -2941,3 +2941,224 @@ body.modoDesktop .dashAtalhoCustoLote:hover { border-color: rgba(244,114,182,0.5
     .clPorUnidade > div { padding: 7px 8px; }
     .clPorUnidade b { font-size: 12.5px; white-space: normal; overflow: visible; }
 }
+
+/* ========================================
+   DASHBOARD (redesenho 2026-11): patrimônio em destaque com minigráfico,
+   rosca interativa, blocos clicáveis, movimento do gado com os próprios
+   filtros, gráficos de evolução e resultado mensal, próximas contas
+   ======================================== */
+.dbCabecalho { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.dbData { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: 0.3px; color: #60a5fa; margin-bottom: 4px; }
+body.modoDesktop .dbCabecalho h1 { margin: 0; font-size: 28px; line-height: 1.15; color: #fff; }
+.dbCabecalho p { margin: 4px 0 0; font-size: 14px; color: var(--ink-muted); }
+
+.dbRotulo { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-muted); }
+body.modoDesktop .dbInfo {
+    display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin: 0; padding: 0; border-radius: 50%; cursor: help;
+    color: var(--ink-muted); background: transparent; border: none; box-shadow: none; vertical-align: middle;
+}
+body.modoDesktop .dbInfo:hover, body.modoDesktop .dbInfo:focus-visible { color: #fff; background: rgba(255,255,255,0.08); }
+.dbInfo svg { width: 15px; height: 15px; }
+.dbDica {
+    position: fixed; z-index: 970; max-width: 300px; padding: 8px 11px; border-radius: 9px; pointer-events: none;
+    font-size: 12.5px; line-height: 1.45; font-weight: 600; color: #fff; text-transform: none; letter-spacing: 0;
+    background: #0b1222; border: 1px solid rgba(110,170,255,0.35); box-shadow: 0 10px 24px -8px rgba(0,0,0,0.7);
+}
+.dbDica[hidden] { display: none; }
+body.modoDesktop .dbBtnLink {
+    display: inline-flex; align-items: center; gap: 5px; width: auto; height: 30px; margin: 0; padding: 0 10px; border-radius: 8px; cursor: pointer;
+    font-size: 12.5px; font-weight: 700; color: #9cc8ff; background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.28); box-shadow: none; white-space: nowrap;
+}
+body.modoDesktop .dbBtnLink:hover { color: #fff; background: rgba(96,165,250,0.2); }
+.dbBtnLink svg { width: 14px; height: 14px; }
+.dbVazio { margin: 0; padding: 24px; text-align: center; font-size: 13px; color: var(--ink-muted); }
+
+/* destaque: patrimônio + composição */
+.dbHero { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+.dbPatrimonio {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 6px; padding: 22px 24px 18px; border-radius: 20px; color: #fff;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(96,165,250,0.35), transparent 55%), linear-gradient(135deg, #1e3a8a, #1d4ed8 55%, #2563eb);
+    border: 1px solid rgba(147,197,253,0.35); box-shadow: 0 18px 40px -22px rgba(37,99,235,0.8);
+}
+.dbPatrimonio .dbRotulo { color: rgba(219,234,254,0.85); }
+.dbPatrimonio .dbInfo { color: rgba(219,234,254,0.8) !important; }
+.dbPatrimonioTopo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.dbPatrimonioValor { position: relative; z-index: 1; font-size: 44px; line-height: 1.1; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.dbVariacao { font-size: 12.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.dbVariacao[hidden] { display: none; }
+.dbSobe { color: #bbf7d0; background: rgba(34,197,94,0.22); border: 1px solid rgba(134,239,172,0.4); }
+.dbDesce { color: #fecaca; background: rgba(239,68,68,0.22); border: 1px solid rgba(252,165,165,0.4); }
+.dbSparkline { flex: 1 1 64px; min-height: 64px; margin: 2px -24px 0; color: #bfdbfe; }
+.dbSparkline svg { display: block; width: 100%; height: 100%; }
+.dbSparkline .dbLinha { stroke: #dbeafe; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.dbSaldoInicial { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(191,219,254,0.2); font-size: 12.5px; color: rgba(219,234,254,0.85); }
+body.modoDesktop .dbPatrimonio .dbBtnLink { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+body.modoDesktop .dbPatrimonio .dbBtnLink:hover { background: rgba(255,255,255,0.22); }
+
+.dbComposicao { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border-strong); }
+.dbDonutCaixa { position: relative; align-self: center; width: 170px; height: 170px; }
+.dbComposicao .donutSvg { width: 170px; height: 170px; margin: 0; }
+.dbComposicao .donutFatia { cursor: pointer; pointer-events: stroke; transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease, opacity 0.2s ease, stroke-width 0.2s ease; }
+.dbComposicao .donutFatia.dbParteAtiva { stroke-width: 18; }
+.dbComposicao .dbParteApagada { opacity: 0.3; }
+.dbDonutCentro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center; }
+.dbDonutCentro span { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-muted); }
+.dbDonutCentro b { font-size: 17px; color: #fff; font-variant-numeric: tabular-nums; }
+.dbDonutCentro small { font-size: 12px; font-weight: 700; color: #9cc8ff; min-height: 1em; }
+.dbComposicao .donutLegendaItem { padding: 5px 8px; margin: 0 -8px; border-radius: 8px; cursor: pointer; transition: background-color 0.15s ease, opacity 0.2s ease; }
+.dbComposicao .donutLegendaItem.dbParteAtiva { background: rgba(255,255,255,0.06); }
+
+/* blocos do patrimônio (clicáveis) */
+.dbBlocos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+body.modoDesktop .dbBloco {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: auto; height: auto; margin: 0; padding: 14px; border-radius: 16px; cursor: pointer;
+    text-align: left; font: inherit; color: inherit; box-shadow: none;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--cor) 10%, transparent), transparent 55%), var(--surface);
+    border: 1px solid var(--border-strong); transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body.modoDesktop .dbBloco:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cor) 55%, transparent); box-shadow: 0 12px 26px -16px rgba(0,0,0,0.8); }
+.dbBlocoIcone, .dbKpiIcone {
+    width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    color: var(--cor); background: color-mix(in srgb, var(--cor) 16%, transparent); border: 1px solid color-mix(in srgb, var(--cor) 32%, transparent);
+}
+.dbBlocoIcone svg, .dbKpiIcone svg { width: 18px; height: 18px; }
+.dbBlocoRotulo { font-size: 12.5px; font-weight: 600; color: var(--ink-muted); line-height: 1.3; }
+.dbBlocoValor { font-size: 19px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.dbBlocoBarra { display: block; width: 100%; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.07); overflow: hidden; margin-top: 2px; }
+.dbBlocoBarra i { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--cor); transition: width 0.5s ease; }
+.dbBloco small { font-size: 11.5px; color: var(--ink-muted); }
+#patrimonioDividas { color: #ff9a92; }
+
+/* seções */
+.dbSecao { padding: 18px 20px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border-strong); min-width: 0; }
+.dbSecaoTopo { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+body.modoDesktop .dbSecaoTopo h3 { display: flex; align-items: center; gap: 4px; margin: 0 0 3px; font-size: 17px; color: #fff; }
+.dbSecaoTopo p { margin: 0; font-size: 13px; color: var(--ink-muted); }
+.dbSecaoTopo p b { font-variant-numeric: tabular-nums; }
+.dbTextoLucro { color: #3ddc84; }
+.dbTextoPrejuizo { color: #ff8a83; }
+
+.dbMovimento { margin-bottom: 18px; }
+.dbFiltros.dashFiltros { margin: 0; gap: 8px; }
+body.modoDesktop .dbFiltros select { height: 36px; padding: 0 10px; border-radius: 10px; color-scheme: dark; cursor: pointer; }
+body.modoDesktop .dbFiltros .dashBtnLimparFiltros { margin: 0; height: 36px; padding: 0 14px; border-radius: 10px; width: auto; }
+.dbKpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dbKpi {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--cor) 10%, transparent), transparent 70%), var(--surface-sunken); border: 1px solid var(--border-strong);
+}
+.dbKpi .dbKpiIcone { grid-row: span 2; }
+.dbKpiRotulo { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.dbKpiValor { font-size: 21px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dbKpiSaldo { --cor: #34d399; }
+.dbKpi.kpiSaldoPositivo { --cor: #3ddc84; }
+.dbKpi.kpiSaldoPositivo .dbKpiValor { color: #3ddc84; }
+.dbKpi.kpiSaldoNegativo { --cor: #fb7185; }
+.dbKpi.kpiSaldoNegativo .dbKpiValor { color: #ff8a83; }
+.dbComparar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+.dbCompararTitulo { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
+
+/* período + gráficos */
+.dbPeriodoLinha { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-muted); }
+.dbPeriodo { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
+body.modoDesktop .dbPeriodo button { width: auto; height: 30px; margin: 0; padding: 0 12px; border-radius: 7px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-muted); background: transparent; border: none; box-shadow: none; }
+body.modoDesktop .dbPeriodo button:hover { color: #fff; }
+body.modoDesktop .dbPeriodo button.dbPeriodoAtivo { color: #0d1426; background: #60a5fa; }
+.dbGraficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; align-items: start; }
+
+.dbGraficoLinha { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 220px auto; column-gap: 10px; color: #60a5fa; }
+.dbEixoY { display: flex; flex-direction: column; justify-content: space-between; padding: 8px 0; font-size: 11px; color: var(--ink-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.dbArea { position: relative; }
+.dbArea svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.dbArea .dbLinha { stroke: #60a5fa; stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.dbGrade { stroke: rgba(255,255,255,0.06); stroke-width: 1; vector-effect: non-scaling-stroke; }
+body.modoDesktop .dbPonto {
+    position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; padding: 0; border-radius: 50%; cursor: pointer;
+    background: #0d1426; border: 2.5px solid #60a5fa; box-shadow: none; transition: transform 0.15s ease;
+}
+body.modoDesktop .dbPonto:hover, body.modoDesktop .dbPonto:focus-visible { transform: scale(1.35); background: #60a5fa; outline: none; }
+body.modoDesktop .dbPonto.dbPontoUltimo { background: #60a5fa; box-shadow: 0 0 0 5px rgba(96,165,250,0.25); }
+.dbEixoX { grid-column: 2; display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--ink-muted); }
+.dbEixoX span { flex: 1; text-align: center; white-space: nowrap; }
+.dbEixoX span:first-child { text-align: left; }
+.dbEixoX span:last-child { text-align: right; }
+
+.dbGraficoBarras { display: flex; flex-direction: column; }
+.dbBarras { position: relative; display: flex; gap: 6px; height: 200px; }
+.dbBase { position: absolute; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.18); }
+body.modoDesktop .dbColuna { position: relative; flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border-radius: 8px; cursor: pointer; background: transparent; border: none; box-shadow: none; transition: background-color 0.15s ease; }
+body.modoDesktop .dbColuna:hover { background: rgba(255,255,255,0.04); }
+body.modoDesktop .dbColuna.dbColunaAtiva { background: rgba(96,165,250,0.1); }
+.dbColuna i { position: absolute; left: 18%; right: 18%; border-radius: 5px; transition: top 0.4s ease, height 0.4s ease; }
+.dbBarraLucro { background: linear-gradient(180deg, #4ade80, #16a34a); }
+.dbBarraPrejuizo { background: linear-gradient(180deg, #ef4444, #f87171); }
+.dbBarraNeutra { background: rgba(255,255,255,0.15); }
+.dbEixoXBarras { gap: 6px; }
+.dbEixoXBarras span, .dbEixoXBarras span:first-child, .dbEixoXBarras span:last-child { text-align: center; overflow: hidden; text-overflow: clip; }
+.dbResultadoDetalhe { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border); }
+.dbResultadoDetalhe:empty { display: none; }
+.dbDetalheTitulo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.dbDetalheTitulo b { font-size: 14.5px; color: #fff; }
+.dbDetalheTitulo span { font-size: 12px; color: var(--ink-muted); }
+.dbDetalheGrade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.dbDetalheGrade span { display: block; font-size: 11.5px; color: var(--ink-muted); }
+.dbDetalheGrade b { font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dbDetalheTotal.dbTextoLucro b { color: #3ddc84; }
+.dbDetalheTotal.dbTextoPrejuizo b { color: #ff8a83; }
+
+.dbDetalhes { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.dbDetalhes summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #9cc8ff; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+.dbDetalhes summary::-webkit-details-marker { display: none; }
+.dbDetalhes summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.2s ease; }
+.dbDetalhes[open] summary::before { transform: rotate(45deg); }
+.dbDetalhes[open] summary { margin-bottom: 12px; }
+.dbDetalhes .tabelaUsuarios { margin: 0; }
+.dbTabelaRolavel { overflow-x: auto; }
+
+/* rodapé: contas + custo por lote */
+.dbRodape { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: stretch; margin-bottom: 24px; }
+body.modoDesktop .dbRodape .dashAtalhoCustoLote { margin: 0; height: auto; }
+.dbContasLista { display: flex; flex-direction: column; gap: 8px; }
+.dbConta { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border); }
+.dbContaDia { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-strong); line-height: 1; }
+.dbContaDia b { font-size: 16px; color: #fff; }
+.dbContaDia small { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--ink-muted); margin-top: 2px; }
+.dbContaTexto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dbContaTexto b { font-size: 13.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dbContaTexto small { font-size: 12px; color: var(--ink-muted); }
+.dbContaValor { font-size: 14px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dbContaVencida { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.08); }
+.dbContaVencida .dbContaTexto small, .dbContaVencida .dbContaDia b { color: #ff8a83; }
+.dbContaHoje { border-color: rgba(251,191,36,0.4); }
+.dbContaHoje .dbContaTexto small { color: #fbbf24; }
+.dbContasMais { margin: 4px 0 0; font-size: 12px; color: var(--ink-muted); }
+
+@media (max-width: 1200px) {
+    .dbBlocos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dbGraficos { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+    body.modoDesktop .dbCabecalho h1 { font-size: 23px; }
+    .dbHero { grid-template-columns: 1fr; }
+    .dbPatrimonio { padding: 18px 16px 14px; }
+    .dbPatrimonioValor { font-size: 34px; }
+    .dbSparkline { margin: 2px -16px 0; }
+    .dbBlocos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .dbBlocos .dbBloco:last-child { grid-column: 1 / -1; }
+    .dbBlocoValor { font-size: 16px; }
+    .dbSecao { padding: 14px; }
+    .dbFiltros.dashFiltros { width: 100%; }
+    .dbFiltros.dashFiltros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.modoDesktop .dbFiltros select, body.modoDesktop .dbFiltros .dashBtnLimparFiltros { width: 100%; min-width: 0; }
+    .dbKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .dbKpi { grid-template-columns: 1fr; padding: 10px; row-gap: 4px; }
+    .dbKpi .dbKpiIcone { grid-row: auto; width: 30px; height: 30px; }
+    .dbKpiValor { font-size: 17px; }
+    .dbComparar { grid-template-columns: 1fr; gap: 12px; }
+    .dbPeriodoLinha { justify-content: space-between; }
+    .dbGraficoLinha { grid-template-rows: 180px auto; }
+    .dbBarras { height: 170px; gap: 3px; }
+    .dbEixoXBarras { gap: 3px; font-size: 10px; }
+    .dbDetalheGrade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dbRodape { grid-template-columns: 1fr; }
+}

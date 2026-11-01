@@ -2686,6 +2686,9 @@ async function mostrarPatrimonio() {
 
     let somaAtivos = [caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, valorBens].reduce((s, v) => s + Math.max(v, 0), 0);
     atualizarDonutPatrimonio(caixaAcumulado, valorRebanho, valorEstoqueAlmoxarifado, somaAtivos, valorBens);
+    atualizarPercentuaisPatrimonio({ Caixa: caixaAcumulado, Rebanho: valorRebanho, Estoque: valorEstoqueAlmoxarifado, Bens: valorBens, Dividas: dividas }, somaAtivos);
+    atualizarCabecalhoDashboard();
+    desenharProximasContasDashboard();
 }
 
 // Desenha o gráfico de rosca "Composição do Patrimônio" a partir dos mesmos
@@ -2730,6 +2733,9 @@ function atualizarDonutPatrimonio(caixa, rebanho, estoque, total, bens) {
     if (legEstoque) legEstoque.innerText = `R$ ${formatarMoeda(estoque)} (${pct(estoque)}%)`;
     let legBens = document.getElementById("donutLegendaBens");
     if (legBens) legBens.innerText = `R$ ${formatarMoeda(bens)} (${pct(bens)}%)`;
+    // valores pra rosca interativa (centro mostra a parte sob o mouse)
+    dbDonutValores = { rebanho, caixa, estoque, bens, total: Math.max(total, 0) };
+    destacarParteDonut(null);
 }
 
 const NOMES_MESES_RESULTADO = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -2862,6 +2868,13 @@ async function mostrarResultadoMensal() {
         grupo.despesasGerais += (l.tipo === "saida" ? l.valor : -l.valor);
     });
 
+    // mesmos números, em ordem de data, pro gráfico de barras do Dashboard
+    dbResultadoMeses = Object.keys(porMes).sort().map(chave => {
+        let g = porMes[chave];
+        return Object.assign({ chave, resultado: g.receitaVendas - g.custoGadoVendido - g.despesasGerais, semMovimento: g.receitaVendas === 0 && g.custoGadoVendido === 0 && g.despesasGerais === 0 }, g);
+    });
+    desenharGraficoResultadoDashboard();
+
     let chaves = Object.keys(porMes).sort().reverse();
     if (chaves.length === 0) {
         corpo.innerHTML = `<tr><td colspan="5">Nenhum dado disponível ainda.</td></tr>`;
@@ -2927,6 +2940,8 @@ async function mostrarEvolucaoPatrimonio() {
 
     if (meses.length === 0) {
         lista.innerHTML = `<p class="loginSubtitulo" style="text-align:left">Nenhum dado disponível ainda.</p>`;
+        dbEvolucaoMeses = [];
+        desenharGraficoEvolucaoDashboard();
         return;
     }
 
@@ -2960,6 +2975,10 @@ async function mostrarEvolucaoPatrimonio() {
         meses[i].variacaoPct = (anterior !== null && anterior !== 0) ? (meses[i].variacaoAbs / Math.abs(anterior)) * 100 : null;
     }
 
+    // gráfico de linha do Dashboard + minigráfico do cartão do patrimônio
+    dbEvolucaoMeses = meses;
+    desenharGraficoEvolucaoDashboard();
+
     let maxAbs = Math.max(1, ...meses.map(m => Math.abs(m.patrimonio)));
 
     lista.innerHTML = meses.map(m => {
@@ -2983,6 +3002,303 @@ async function mostrarEvolucaoPatrimonio() {
         `;
     }).join("");
 }
+
+// ========================================
+// DASHBOARD: gráficos, rosca interativa, próximas contas, cabeçalho
+// ========================================
+// Só desenha -- os números vêm de mostrarPatrimonio, mostrarEvolucaoPatrimonio
+// e mostrarResultadoMensal (acima), que continuam fazendo as contas e
+// preenchendo a lista/tabela de sempre (agora dentro de "Ver mês a mês").
+let dbEvolucaoMeses = [];
+let dbResultadoMeses = [];
+let dbMesResultadoSelecionado = null;
+let dbDonutValores = null;
+let dbPeriodoGraficos = 12;
+try { let p = localStorage.getItem("dashPeriodoGraficos"); if (p !== null && ["0", "6", "12"].includes(p)) dbPeriodoGraficos = Number(p); } catch (e) {}
+
+function atualizarCabecalhoDashboard() {
+    let hora = new Date().getHours();
+    let set = (id, txt) => { let el = document.getElementById(id); if (el) el.innerText = txt; };
+    set("dbSaudacaoPeriodo", hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite");
+    let data = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    set("dbData", data.charAt(0).toUpperCase() + data.slice(1));
+    let fazenda = "";
+    try { fazenda = localStorage.getItem("fazendaNome") || ""; } catch (e) {}
+    set("dbSubtitulo", fazenda ? `Aqui está o resumo da ${fazenda}.` : "Aqui está o resumo da sua propriedade.");
+}
+
+// quanto cada parte representa do patrimônio (barrinha + % em cada bloco)
+function atualizarPercentuaisPatrimonio(partes, somaAtivos) {
+    Object.keys(partes).forEach(chave => {
+        let pct = somaAtivos > 0 ? Math.max(partes[chave], 0) / somaAtivos * 100 : 0;
+        let barra = document.getElementById("dbPct" + chave + "Barra");
+        let texto = document.getElementById("dbPct" + chave);
+        if (barra) barra.style.width = Math.min(100, pct).toFixed(1) + "%";
+        if (texto) texto.innerText = pct > 0 ? `${pct < 1 ? pct.toFixed(1).replace(".", ",") : Math.round(pct)}% ${chave === "Dividas" ? "dos ativos" : "do patrimônio"}` : "—";
+    });
+}
+
+// ---------- rosca: passar o mouse (ou tocar) numa fatia/legenda mostra a parte no centro ----------
+const NOMES_PARTES_DONUT = { rebanho: "Rebanho", caixa: "Caixa", estoque: "Insumos", bens: "Bens" };
+function destacarParteDonut(parte) {
+    let v = dbDonutValores;
+    if (!v) return;
+    let set = (id, txt) => { let el = document.getElementById(id); if (el) el.innerText = txt; };
+    document.querySelectorAll("#telaDashboard .dbComposicao [data-parte]").forEach(el => {
+        el.classList.toggle("dbParteApagada", !!parte && el.dataset.parte !== parte);
+        el.classList.toggle("dbParteAtiva", !!parte && el.dataset.parte === parte);
+    });
+    if (!parte) {
+        set("dbDonutCentroRotulo", "Ativos");
+        set("dbDonutCentroValor", "R$ " + formatarMoedaCurta(v.total));
+        set("dbDonutCentroPct", "");
+        return;
+    }
+    let valor = v[parte] || 0;
+    set("dbDonutCentroRotulo", NOMES_PARTES_DONUT[parte]);
+    set("dbDonutCentroValor", "R$ " + formatarMoedaCurta(valor));
+    set("dbDonutCentroPct", v.total > 0 ? Math.round(Math.max(valor, 0) / v.total * 100) + "%" : "");
+}
+
+// "R$ 1,2 mi" / "R$ 165,7 mil" pra caber no centro da rosca e nos eixos
+function formatarMoedaCurta(valor) {
+    let abs = Math.abs(valor), sinal = valor < 0 ? "−" : "";
+    if (abs >= 1e6) return sinal + (abs / 1e6).toFixed(abs >= 1e7 ? 1 : 2).replace(".", ",") + " mi";
+    if (abs >= 1e4) return sinal + (abs / 1e3).toFixed(1).replace(".", ",") + " mil";
+    return sinal + formatarMoeda(abs);
+}
+
+function trocarPeriodoGraficosDashboard(meses) {
+    dbPeriodoGraficos = meses;
+    try { localStorage.setItem("dashPeriodoGraficos", String(meses)); } catch (e) {}
+    desenharGraficosDashboard();
+}
+
+function recortarPeriodoDashboard(lista) {
+    return dbPeriodoGraficos > 0 ? lista.slice(-dbPeriodoGraficos) : lista.slice();
+}
+
+function rotuloMesCurto(m) {
+    return NOMES_MESES_RESULTADO[m.mes].slice(0, 3) + "/" + String(m.ano).slice(2);
+}
+
+function desenharGraficosDashboard() {
+    document.querySelectorAll("#telaDashboard .dbPeriodo button").forEach(b => b.classList.toggle("dbPeriodoAtivo", Number(b.dataset.meses) === dbPeriodoGraficos));
+    desenharGraficoEvolucaoDashboard();
+    desenharGraficoResultadoDashboard();
+}
+
+// área + linha num SVG esticado (preserveAspectRatio none) e os pontos como
+// botões HTML por cima, em % -- assim o gráfico acompanha a largura sem
+// deformar as bolinhas, e cada ponto tem a dica ao passar o mouse
+function montarAreaDashboard(valores, idGradiente, comPontos, dicas) {
+    let n = valores.length;
+    let min = Math.min(...valores), max = Math.max(...valores);
+    let faixa = max - min;
+    if (faixa === 0) { faixa = Math.abs(max) * 0.1 || 1; min -= faixa / 2; max += faixa / 2; }
+    else { min -= faixa * 0.12; max += faixa * 0.12; faixa = max - min; }
+    let x = i => n === 1 ? 50 : 3 + i / (n - 1) * 94;
+    let y = v => 6 + (1 - (v - min) / faixa) * 88;
+    let pontos = valores.map((v, i) => [x(i), y(v)]);
+    let linha = pontos.map((p, i) => (i ? "L" : "M") + p[0].toFixed(2) + " " + p[1].toFixed(2)).join(" ");
+    let area = linha + ` L${pontos[n - 1][0].toFixed(2)} 100 L${pontos[0][0].toFixed(2)} 100 Z`;
+    let svg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs><linearGradient id="${idGradiente}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity="0.35"></stop><stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop></linearGradient></defs>
+        ${comPontos ? [25, 50, 75].map(g => `<line class="dbGrade" x1="0" x2="100" y1="${g}" y2="${g}"></line>`).join("") : ""}
+        <path d="${area}" fill="url(#${idGradiente})" stroke="none"></path>
+        <path d="${linha}" class="dbLinha" fill="none"></path>
+    </svg>`;
+    let botoes = comPontos ? pontos.map((p, i) => `<button type="button" class="dbPonto${i === n - 1 ? " dbPontoUltimo" : ""}" style="left:${p[0]}%; top:${p[1]}%" data-dica-grafico="${escaparHtmlPesagem(dicas[i])}" aria-label="${escaparHtmlPesagem(dicas[i])}"></button>`).join("") : "";
+    return { svg, botoes, min, max };
+}
+
+function desenharGraficoEvolucaoDashboard() {
+    let caixa = document.getElementById("dbGraficoEvolucao");
+    let spark = document.getElementById("dbSparkline");
+    let chip = document.getElementById("dbVariacaoPatrimonio");
+    if (!caixa) return;
+    let meses = recortarPeriodoDashboard(dbEvolucaoMeses);
+    if (meses.length === 0) {
+        caixa.innerHTML = `<p class="dbVazio">Nenhum dado disponível ainda.</p>`;
+        if (spark) spark.innerHTML = "";
+        if (chip) chip.hidden = true;
+        return;
+    }
+    let rs = v => "R$ " + formatarMoeda(v);
+    let dicas = meses.map(m => {
+        let variacao = m.variacaoAbs === null ? "primeiro mês" : `${m.variacaoAbs >= 0 ? "▲" : "▼"} ${m.variacaoPct !== null ? Math.abs(m.variacaoPct).toFixed(1).replace(".", ",") + "%" : rs(Math.abs(m.variacaoAbs))} no mês`;
+        return `${NOMES_MESES_RESULTADO[m.mes]}/${m.ano}: ${rs(m.patrimonio)} (${variacao})`;
+    });
+    let g = montarAreaDashboard(meses.map(m => m.patrimonio), "dbGradEvolucao", true, dicas);
+    let passo = Math.ceil(meses.length / 8);
+    caixa.innerHTML = `
+        <div class="dbEixoY"><span>${formatarMoedaCurta(g.max)}</span><span>${formatarMoedaCurta((g.max + g.min) / 2)}</span><span>${formatarMoedaCurta(g.min)}</span></div>
+        <div class="dbArea">${g.svg}${g.botoes}</div>
+        <div class="dbEixoX">${meses.map((m, i) => `<span>${i % passo === 0 || i === meses.length - 1 ? rotuloMesCurto(m) : ""}</span>`).join("")}</div>`;
+
+    let primeiro = meses[0], ultimo = meses[meses.length - 1];
+    let diff = ultimo.patrimonio - primeiro.patrimonio;
+    let resumo = document.getElementById("dbEvolucaoResumo");
+    if (resumo) resumo.innerText = meses.length > 1
+        ? `${diff >= 0 ? "Cresceu" : "Caiu"} ${rs(Math.abs(diff))} de ${rotuloMesCurto(primeiro)} a ${rotuloMesCurto(ultimo)}`
+        : "Patrimônio no fim de cada mês";
+
+    // minigráfico no cartão do patrimônio + variação do último mês
+    if (spark) spark.innerHTML = meses.length > 1 ? montarAreaDashboard(meses.map(m => m.patrimonio), "dbGradSpark", false).svg : "";
+    if (chip) {
+        if (ultimo.variacaoAbs === null) chip.hidden = true;
+        else {
+            let subiu = ultimo.variacaoAbs >= 0;
+            chip.hidden = false;
+            chip.className = "dbVariacao " + (subiu ? "dbSobe" : "dbDesce");
+            chip.innerText = `${subiu ? "▲" : "▼"} ${ultimo.variacaoPct !== null ? Math.abs(ultimo.variacaoPct).toFixed(1).replace(".", ",") + "%" : rs(Math.abs(ultimo.variacaoAbs))} em ${rotuloMesCurto(ultimo)}`;
+            chip.title = `${NOMES_MESES_RESULTADO[ultimo.mes]}/${ultimo.ano} comparado com o mês anterior`;
+        }
+    }
+}
+
+function desenharGraficoResultadoDashboard() {
+    let caixa = document.getElementById("dbGraficoResultado");
+    if (!caixa) return;
+    let meses = recortarPeriodoDashboard(dbResultadoMeses);
+    let resumo = document.getElementById("dbResultadoResumo");
+    if (meses.length === 0) {
+        caixa.innerHTML = `<p class="dbVazio">Nenhum dado disponível ainda.</p>`;
+        document.getElementById("dbResultadoDetalhe").innerHTML = "";
+        return;
+    }
+    let rs = v => "R$ " + formatarMoeda(v);
+    let maxPos = Math.max(0, ...meses.map(m => m.resultado));
+    let maxNeg = Math.max(0, ...meses.map(m => -m.resultado));
+    let total = (maxPos + maxNeg) || 1;
+    let base = maxPos / total * 100;
+    if (!meses.some(m => m.chave === dbMesResultadoSelecionado)) {
+        let comMovimento = meses.filter(m => !m.semMovimento);
+        dbMesResultadoSelecionado = (comMovimento.length ? comMovimento[comMovimento.length - 1] : meses[meses.length - 1]).chave;
+    }
+    caixa.innerHTML = `
+        <div class="dbBarras">
+            <span class="dbBase" style="top:${base}%"></span>
+            ${meses.map(m => {
+                let altura = Math.abs(m.resultado) / total * 100;
+                let topo = m.resultado >= 0 ? base - altura : base;
+                let classe = m.semMovimento ? "dbBarraNeutra" : m.resultado >= 0 ? "dbBarraLucro" : "dbBarraPrejuizo";
+                let dica = `${NOMES_MESES_RESULTADO[m.mes]}/${m.ano}: ${m.semMovimento ? "sem vendas" : (m.resultado >= 0 ? "lucro de " : "prejuízo de ") + rs(Math.abs(m.resultado))}`;
+                return `<button type="button" class="dbColuna${m.chave === dbMesResultadoSelecionado ? " dbColunaAtiva" : ""}" onclick="selecionarMesResultadoDashboard('${m.chave}')" data-dica-grafico="${escaparHtmlPesagem(dica)}" aria-label="${escaparHtmlPesagem(dica)}">
+                    <i class="${classe}" style="top:${topo}%; height:max(${altura}%, 3px)"></i>
+                </button>`;
+            }).join("")}
+        </div>
+        <div class="dbEixoX dbEixoXBarras">${meses.map(m => `<span>${rotuloMesCurto(m)}</span>`).join("")}</div>`;
+
+    let acumulado = meses.reduce((t, m) => t + m.resultado, 0);
+    let comVenda = meses.filter(m => !m.semMovimento);
+    let melhor = comVenda.slice().sort((a, b) => b.resultado - a.resultado)[0];
+    if (resumo) resumo.innerHTML = `Acumulado no período: <b class="${acumulado >= 0 ? "dbTextoLucro" : "dbTextoPrejuizo"}">${acumulado >= 0 ? "▲" : "▼"} ${rs(Math.abs(acumulado))}</b>${melhor && melhor.resultado > 0 ? ` · melhor mês: ${rotuloMesCurto(melhor)}` : ""}`;
+    desenharDetalheMesResultado();
+}
+
+function selecionarMesResultadoDashboard(chave) {
+    dbMesResultadoSelecionado = chave;
+    document.querySelectorAll("#dbGraficoResultado .dbColuna").forEach(b => b.classList.toggle("dbColunaAtiva", b.getAttribute("onclick").includes("'" + chave + "'")));
+    desenharDetalheMesResultado();
+}
+
+function desenharDetalheMesResultado() {
+    let el = document.getElementById("dbResultadoDetalhe");
+    let m = dbResultadoMeses.find(x => x.chave === dbMesResultadoSelecionado);
+    if (!el || !m) return;
+    let rs = v => "R$ " + formatarMoeda(v);
+    let margem = m.receitaVendas > 0 ? (m.resultado / m.receitaVendas * 100).toFixed(1).replace(".", ",") + "% da receita" : "";
+    el.innerHTML = `
+        <div class="dbDetalheTitulo"><b>${NOMES_MESES_RESULTADO[m.mes]}/${m.ano}</b>${margem && !m.semMovimento ? `<span>${margem}</span>` : ""}</div>
+        <div class="dbDetalheGrade">
+            <div><span>Receita de vendas</span><b>${rs(m.receitaVendas)}</b></div>
+            <div><span>Custo do gado vendido</span><b>− ${rs(m.custoGadoVendido)}</b></div>
+            <div><span>Despesas gerais</span><b>− ${rs(m.despesasGerais)}</b></div>
+            <div class="dbDetalheTotal ${m.semMovimento ? "" : m.resultado >= 0 ? "dbTextoLucro" : "dbTextoPrejuizo"}"><span>Resultado</span><b>${m.semMovimento ? "sem vendas" : (m.resultado >= 0 ? "▲ " : "▼ ") + rs(Math.abs(m.resultado))}</b></div>
+        </div>`;
+}
+
+// ---------- próximas contas a pagar ----------
+function desenharProximasContasDashboard() {
+    let lista = document.getElementById("dbContasLista");
+    if (!lista) return;
+    let agora = new Date();
+    let hojeISO = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+    let parcelas = [];
+    contasPagarCacheAdmin.forEach(c => (c.parcelas || []).forEach(p => {
+        if (p.paga) return;
+        let venc = extrairDataISO(p.dataVencimento) || (p.dataVencimento && /^\d{4}-\d{2}-\d{2}/.test(p.dataVencimento) ? p.dataVencimento.slice(0, 10) : null);
+        parcelas.push({ descricao: c.descricao || "Conta", numero: p.numero, de: c.numeroParcelas || (c.parcelas || []).length, valor: Number(p.valor) || 0, venc });
+    }));
+    parcelas.sort((a, b) => (a.venc || "9999").localeCompare(b.venc || "9999"));
+    let emAberto = parcelas.reduce((t, p) => t + p.valor, 0);
+    let vencidas = parcelas.filter(p => p.venc && p.venc < hojeISO).length;
+    let resumo = document.getElementById("dbContasResumo");
+    if (resumo) resumo.innerText = parcelas.length
+        ? `R$ ${formatarMoeda(emAberto)} em aberto${vencidas ? ` · ${vencidas} ${vencidas === 1 ? "vencida" : "vencidas"}` : ""}`
+        : "Nenhuma conta em aberto";
+    if (parcelas.length === 0) {
+        lista.innerHTML = `<p class="dbVazio">Tudo pago por aqui.</p>`;
+        return;
+    }
+    let dias = iso => Math.round((new Date(iso + "T00:00:00") - new Date(hojeISO + "T00:00:00")) / 86400000);
+    lista.innerHTML = parcelas.slice(0, 4).map(p => {
+        let d = p.venc ? dias(p.venc) : null;
+        let situacao = d === null ? ["Sem vencimento", ""] : d < 0 ? [`Vencida há ${-d} ${d === -1 ? "dia" : "dias"}`, "dbContaVencida"] : d === 0 ? ["Vence hoje", "dbContaHoje"] : d <= 7 ? [`Vence em ${d} ${d === 1 ? "dia" : "dias"}`, "dbContaHoje"] : [`Vence em ${p.venc.split("-").reverse().join("/")}`, ""];
+        let dia = p.venc ? p.venc.split("-") : null;
+        return `
+            <div class="dbConta ${situacao[1]}">
+                <span class="dbContaDia">${dia ? `<b>${dia[2]}</b><small>${NOMES_MESES_RESULTADO[Number(dia[1]) - 1].slice(0, 3)}</small>` : "<b>—</b>"}</span>
+                <span class="dbContaTexto"><b>${escaparHtmlPesagem(p.descricao)}</b><small>Parcela ${p.numero}/${p.de} · ${situacao[0]}</small></span>
+                <b class="dbContaValor">R$ ${formatarMoeda(p.valor)}</b>
+            </div>`;
+    }).join("") + (parcelas.length > 4 ? `<p class="dbContasMais">+ ${parcelas.length - 4} ${parcelas.length - 4 === 1 ? "parcela" : "parcelas"} depois dessas</p>` : "");
+}
+
+// ---------- dicas (mouse/foco/toque) e rosca interativa ----------
+document.addEventListener("DOMContentLoaded", () => {
+    let tela = document.getElementById("telaDashboard");
+    let dica = document.getElementById("dbDica");
+    if (!tela || !dica) return;
+    let alvoAtual = null;
+    function mostrar(alvo) {
+        let texto = alvo.dataset.dica || alvo.dataset.dicaGrafico;
+        if (!texto) return;
+        alvoAtual = alvo;
+        dica.innerText = texto;
+        dica.hidden = false;
+        let r = alvo.getBoundingClientRect();
+        let largura = dica.offsetWidth, altura = dica.offsetHeight;
+        let esquerda = Math.min(window.innerWidth - largura - 8, Math.max(8, r.left + r.width / 2 - largura / 2));
+        let topo = r.top - altura - 10;
+        if (topo < 70) topo = r.bottom + 10;
+        dica.style.left = esquerda + "px";
+        dica.style.top = topo + "px";
+    }
+    function esconder() { dica.hidden = true; alvoAtual = null; }
+    tela.addEventListener("mouseover", e => { let a = e.target.closest("[data-dica], [data-dica-grafico]"); if (a) mostrar(a); });
+    tela.addEventListener("mouseout", e => { if (e.target.closest("[data-dica], [data-dica-grafico]")) esconder(); });
+    tela.addEventListener("focusin", e => { let a = e.target.closest("[data-dica], [data-dica-grafico]"); if (a) mostrar(a); });
+    tela.addEventListener("focusout", esconder);
+    // no celular não tem "passar o mouse": tocar no (i) mostra a explicação
+    tela.addEventListener("click", e => { let a = e.target.closest(".dbInfo"); if (a) { e.preventDefault(); dica.hidden ? mostrar(a) : esconder(); } });
+    // ao rolar a dica acompanha o ponto; some só quando ele sai da tela
+    window.addEventListener("scroll", () => {
+        if (dica.hidden || !alvoAtual) return;
+        let r = alvoAtual.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) esconder();
+        else mostrar(alvoAtual);
+    }, { passive: true });
+
+    let composicao = tela.querySelector(".dbComposicao");
+    if (composicao) {
+        composicao.addEventListener("mouseover", e => { let p = e.target.closest("[data-parte]"); destacarParteDonut(p ? p.dataset.parte : null); });
+        composicao.addEventListener("mouseleave", () => destacarParteDonut(null));
+        composicao.addEventListener("click", e => { let p = e.target.closest("[data-parte]"); destacarParteDonut(p ? p.dataset.parte : null); });
+    }
+});
 
 // ========================================
 // SUB-CAIXAS (centros de custo — nunca mudam os totais gerais)

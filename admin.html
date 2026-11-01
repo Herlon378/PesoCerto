@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=10">
-    <link rel="stylesheet" href="admin.css?v=39">
+    <link rel="stylesheet" href="admin.css?v=40">
 </head>
 <body class="modoDesktop">
 
@@ -278,206 +278,218 @@
 </div>
 
 <div id="telaDashboard" class="tela">
-    <h2>Dashboard</h2>
+    <header class="dbCabecalho">
+        <div>
+            <span class="dbData" id="dbData"></span>
+            <h1><span id="dbSaudacaoPeriodo">Olá</span>, <span id="saudacaoNome">Herlon</span></h1>
+            <p id="dbSubtitulo">Aqui está o resumo da sua propriedade.</p>
+        </div>
+    </header>
 
-    <div class="dashFiltros">
-        <select id="filtroMes" onchange="mostrarDashboard()">
-            <option value="">Mês: Todos</option>
-            <option value="0">Janeiro</option>
-            <option value="1">Fevereiro</option>
-            <option value="2">Março</option>
-            <option value="3">Abril</option>
-            <option value="4">Maio</option>
-            <option value="5">Junho</option>
-            <option value="6">Julho</option>
-            <option value="7">Agosto</option>
-            <option value="8">Setembro</option>
-            <option value="9">Outubro</option>
-            <option value="10">Novembro</option>
-            <option value="11">Dezembro</option>
-        </select>
-        <select id="filtroAno" onchange="mostrarDashboard()">
-            <option value="">Ano: Todos</option>
-        </select>
-        <select id="filtroLote" onchange="mostrarDashboard()">
-            <option value="">Lote: Todos</option>
-        </select>
-        <button class="dashBtnLimparFiltros" onclick="limparFiltrosDashboard()">Limpar filtros</button>
-    </div>
-    <p class="loginSubtitulo" style="text-align:left; margin-top:-8px; margin-bottom:16px">
-        Esses filtros afetam só os números logo abaixo (Animais ativos, Saldo, Kg, Animais movimentados e o comparativo Compra × Venda). Patrimônio Total, Evolução, Resultado Mensal e Custo por Lote são sempre a visão completa do rancho — patrimônio e caixa não têm como ser "de um lote só".
-    </p>
-
-    <div class="saudacaoDash">
-        <h1>Olá, <span id="saudacaoNome">Herlon</span>!</h1>
-        <p>Aqui está o resumo da sua propriedade.</p>
-    </div>
-
-    <div class="kpiRow4">
-        <div class="kpiCard kpiCorAzul">
-            <span class="kpiIcone">💰</span>
-            <div class="kpiTextos">
-                <span class="kpiLabel">Saldo (venda − compra)</span>
-                <span class="kpiValor" id="dashSaldo">R$ 0,00</span>
+    <section class="dbHero">
+        <div class="dbPatrimonio">
+            <div class="dbPatrimonioTopo">
+                <span class="dbRotulo">Patrimônio total hoje <button class="dbInfo" type="button" data-dica="Tudo que é seu hoje: o dinheiro em caixa (desde o saldo inicial) + o valor investido no gado que ainda está nos lotes + os insumos parados no almoxarifado + os bens, menos as contas a pagar em aberto." aria-label="Como é calculado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg></button></span>
+                <span class="dbVariacao" id="dbVariacaoPatrimonio" hidden></span>
+            </div>
+            <span class="dbPatrimonioValor" id="patrimonioTotal">R$ 0,00</span>
+            <div class="dbSparkline" id="dbSparkline"></div>
+            <div class="dbSaldoInicial">
+                <span id="saldoInicialInfo">Nenhum saldo inicial definido ainda.</span>
+                <button class="dbBtnLink" type="button" onclick="abrirModalSaldoInicial()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>Definir saldo inicial</button>
             </div>
         </div>
-        <div class="kpiCard kpiCorVerde">
-            <span class="kpiIcone">⚖️</span>
-            <div class="kpiTextos">
-                <span class="kpiLabel">Kg movimentado</span>
-                <span class="kpiValor" id="dashKgTotal">0 kg</span>
-            </div>
-        </div>
-        <div class="kpiCard kpiCorVioleta">
-            <span class="kpiIcone">🐂</span>
-            <div class="kpiTextos">
-                <span class="kpiLabel">Animais movimentados</span>
-                <span class="kpiValor" id="dashAnimaisTotal">0</span>
-            </div>
-        </div>
-        <div class="kpiCard kpiCorDourado">
-            <span class="kpiIcone">🐄</span>
-            <div class="kpiTextos">
-                <span class="kpiLabel">Animais ativos no rebanho</span>
-                <span class="kpiValor" id="dashAtivos">0</span>
-            </div>
-        </div>
-    </div>
 
-    <div class="dashComparativo painelPatrimonio">
-        <span class="dashSecaoTitulo">💼 Patrimônio Total</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:6px">
-            Tudo que é seu hoje: o dinheiro em caixa (desde o início) + o valor investido no gado que ainda está nos lotes + os insumos parados no almoxarifado. Acompanhar esse número mês a mês mostra se seu capital está crescendo ou encolhendo — diferente de olhar só uma compra ou uma venda isolada.
-        </p>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-            <span id="saldoInicialInfo">Nenhum saldo inicial definido ainda.</span>
-            <button class="btnPequeno" style="height:28px; padding:0 10px; font-size:12px" onclick="abrirModalSaldoInicial()">✏️ Definir Saldo Inicial</button>
-        </p>
-        <div class="painelPatrimonioGrade">
-            <div class="painelPatrimonioEsquerda">
-                <div class="dashHero" style="margin-bottom:14px">
-                    <span class="dashHeroLabel">Patrimônio Total (hoje)</span>
-                    <span class="dashHeroValor" id="patrimonioTotal">R$ 0,00</span>
-                </div>
-                <div class="dashKpiRow" style="margin-bottom:0">
-                    <div class="statTile">
-                        <span class="statTileLabel">💵 Caixa acumulado</span>
-                        <span class="statTileValor" id="patrimonioCaixa">R$ 0,00</span>
-                    </div>
-                    <div class="statTile">
-                        <span class="statTileLabel">🐄 Valor do rebanho vivo</span>
-                        <span class="statTileValor" id="patrimonioRebanho">R$ 0,00</span>
-                    </div>
-                    <div class="statTile">
-                        <span class="statTileLabel">📦 Insumos no almoxarifado</span>
-                        <span class="statTileValor" id="patrimonioEstoque">R$ 0,00</span>
-                    </div>
-                    <button class="statTile statTileBens" onclick="trocarTela('telaPatrimonio'); abrirTelaPatrimonio();" title="Ver os bens">
-                        <span class="statTileLabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-5h6v5"></path><path d="M10 10h4"></path></svg>Bens (veículos, máquinas...)</span>
-                        <span class="statTileValor" id="patrimonioBens">R$ 0,00</span>
-                    </button>
-                    <button class="statTile statTileDividas" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();" title="Ver as contas a pagar">
-                        <span class="statTileLabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"></path><path d="M8 9h8M8 13h8"></path></svg>Contas a pagar em aberto</span>
-                        <span class="statTileValor" id="patrimonioDividas">R$ 0,00</span>
-                    </button>
-                </div>
-            </div>
-            <div class="painelPatrimonioDireita">
-                <span class="donutTitulo">Composição do Patrimônio</span>
+        <div class="dbComposicao">
+            <span class="dbRotulo">Composição do patrimônio</span>
+            <div class="dbDonutCaixa">
                 <svg class="donutSvg" viewBox="0 0 120 120">
                     <circle class="donutTrilha" cx="60" cy="60" r="50"></circle>
-                    <circle id="donutFatiaRebanho" class="donutFatia donutCorRebanho" cx="60" cy="60" r="50"></circle>
-                    <circle id="donutFatiaCaixa" class="donutFatia donutCorCaixa" cx="60" cy="60" r="50"></circle>
-                    <circle id="donutFatiaEstoque" class="donutFatia donutCorEstoque" cx="60" cy="60" r="50"></circle>
-                    <circle id="donutFatiaBens" class="donutFatia donutCorBens" cx="60" cy="60" r="50"></circle>
+                    <circle id="donutFatiaRebanho" class="donutFatia donutCorRebanho" data-parte="rebanho" cx="60" cy="60" r="50"></circle>
+                    <circle id="donutFatiaCaixa" class="donutFatia donutCorCaixa" data-parte="caixa" cx="60" cy="60" r="50"></circle>
+                    <circle id="donutFatiaEstoque" class="donutFatia donutCorEstoque" data-parte="estoque" cx="60" cy="60" r="50"></circle>
+                    <circle id="donutFatiaBens" class="donutFatia donutCorBens" data-parte="bens" cx="60" cy="60" r="50"></circle>
                 </svg>
-                <div class="donutLegenda">
-                    <div class="donutLegendaItem"><span class="donutDot donutCorRebanho"></span>Rebanho <b id="donutLegendaRebanho">R$ 0,00 (0%)</b></div>
-                    <div class="donutLegendaItem"><span class="donutDot donutCorCaixa"></span>Caixa <b id="donutLegendaCaixa">R$ 0,00 (0%)</b></div>
-                    <div class="donutLegendaItem"><span class="donutDot donutCorEstoque"></span>Insumos <b id="donutLegendaEstoque">R$ 0,00 (0%)</b></div>
-                    <div class="donutLegendaItem"><span class="donutDot donutCorBens"></span>Bens <b id="donutLegendaBens">R$ 0,00 (0%)</b></div>
-                </div>
+                <div class="dbDonutCentro"><span id="dbDonutCentroRotulo">Ativos</span><b id="dbDonutCentroValor">R$ 0,00</b><small id="dbDonutCentroPct"></small></div>
             </div>
+            <div class="donutLegenda">
+                <div class="donutLegendaItem" data-parte="rebanho"><span class="donutDot donutCorRebanho"></span>Rebanho <b id="donutLegendaRebanho">R$ 0,00 (0%)</b></div>
+                <div class="donutLegendaItem" data-parte="caixa"><span class="donutDot donutCorCaixa"></span>Caixa <b id="donutLegendaCaixa">R$ 0,00 (0%)</b></div>
+                <div class="donutLegendaItem" data-parte="estoque"><span class="donutDot donutCorEstoque"></span>Insumos <b id="donutLegendaEstoque">R$ 0,00 (0%)</b></div>
+                <div class="donutLegendaItem" data-parte="bens"><span class="donutDot donutCorBens"></span>Bens <b id="donutLegendaBens">R$ 0,00 (0%)</b></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="dbBlocos">
+        <button class="dbBloco" style="--cor:#34d399" onclick="trocarTela('telaFluxoCaixa'); abrirTelaFluxoCaixa();" title="Abrir o Fluxo de Caixa">
+            <span class="dbBlocoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span>
+            <span class="dbBlocoRotulo">Caixa acumulado</span>
+            <b class="dbBlocoValor" id="patrimonioCaixa">R$ 0,00</b>
+            <span class="dbBlocoBarra"><i id="dbPctCaixaBarra"></i></span><small id="dbPctCaixa"></small>
+        </button>
+        <button class="dbBloco" style="--cor:#60a5fa" onclick="abrirTelaCustoLote()" title="Abrir o Custo por Lote">
+            <span class="dbBlocoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span>
+            <span class="dbBlocoRotulo">Rebanho vivo</span>
+            <b class="dbBlocoValor" id="patrimonioRebanho">R$ 0,00</b>
+            <span class="dbBlocoBarra"><i id="dbPctRebanhoBarra"></i></span><small id="dbPctRebanho"></small>
+        </button>
+        <button class="dbBloco" style="--cor:#fb923c" onclick="trocarTela('telaAlmoxarifado'); mostrarDashboardProdutos();" title="Abrir o Almoxarifado">
+            <span class="dbBlocoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>
+            <span class="dbBlocoRotulo">Insumos no almoxarifado</span>
+            <b class="dbBlocoValor" id="patrimonioEstoque">R$ 0,00</b>
+            <span class="dbBlocoBarra"><i id="dbPctEstoqueBarra"></i></span><small id="dbPctEstoque"></small>
+        </button>
+        <button class="dbBloco" style="--cor:#818cf8" onclick="trocarTela('telaPatrimonio'); abrirTelaPatrimonio();" title="Ver os bens">
+            <span class="dbBlocoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-5h6v5"></path><path d="M10 10h4"></path></svg></span>
+            <span class="dbBlocoRotulo">Bens (veículos, máquinas...)</span>
+            <b class="dbBlocoValor" id="patrimonioBens">R$ 0,00</b>
+            <span class="dbBlocoBarra"><i id="dbPctBensBarra"></i></span><small id="dbPctBens"></small>
+        </button>
+        <button class="dbBloco" style="--cor:#fb7185" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();" title="Ver as contas a pagar">
+            <span class="dbBlocoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5z"></path><path d="M8 9h8M8 13h8"></path></svg></span>
+            <span class="dbBlocoRotulo">Contas a pagar em aberto</span>
+            <b class="dbBlocoValor" id="patrimonioDividas">R$ 0,00</b>
+            <span class="dbBlocoBarra"><i id="dbPctDividasBarra"></i></span><small id="dbPctDividas"></small>
+        </button>
+    </section>
+
+    <section class="dbSecao dbMovimento">
+        <div class="dbSecaoTopo">
+            <div>
+                <h3>Movimento do gado</h3>
+                <p>Compras e vendas no período escolhido. Os filtros valem só para esta parte.</p>
+            </div>
+            <div class="dashFiltros dbFiltros">
+                <select id="filtroMes" onchange="mostrarDashboard()" aria-label="Mês">
+                    <option value="">Mês: Todos</option>
+                    <option value="0">Janeiro</option>
+                    <option value="1">Fevereiro</option>
+                    <option value="2">Março</option>
+                    <option value="3">Abril</option>
+                    <option value="4">Maio</option>
+                    <option value="5">Junho</option>
+                    <option value="6">Julho</option>
+                    <option value="7">Agosto</option>
+                    <option value="8">Setembro</option>
+                    <option value="9">Outubro</option>
+                    <option value="10">Novembro</option>
+                    <option value="11">Dezembro</option>
+                </select>
+                <select id="filtroAno" onchange="mostrarDashboard()" aria-label="Ano">
+                    <option value="">Ano: Todos</option>
+                </select>
+                <select id="filtroLote" onchange="mostrarDashboard()" aria-label="Lote">
+                    <option value="">Lote: Todos</option>
+                </select>
+                <button class="dashBtnLimparFiltros" onclick="limparFiltrosDashboard()">Limpar</button>
+            </div>
+        </div>
+        <div class="dbKpis">
+            <div class="dbKpi dbKpiSaldo">
+                <span class="dbKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>
+                <span class="dbKpiRotulo">Saldo (venda − compra)</span>
+                <b class="dbKpiValor" id="dashSaldo">R$ 0,00</b>
+            </div>
+            <div class="dbKpi" style="--cor:#fbbf24">
+                <span class="dbKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5"></path><path d="M7 8.5v5a5 5 0 0 0 10 0v-5"></path><path d="M9.5 17.5h5"></path><circle cx="10" cy="12" r=".7" fill="currentColor"></circle><circle cx="14" cy="12" r=".7" fill="currentColor"></circle></svg></span>
+                <span class="dbKpiRotulo">Animais no rebanho</span>
+                <b class="dbKpiValor" id="dashAtivos">0</b>
+            </div>
+            <div class="dbKpi" style="--cor:#a78bfa">
+                <span class="dbKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
+                <span class="dbKpiRotulo">Animais movimentados</span>
+                <b class="dbKpiValor" id="dashAnimaisTotal">0</b>
+            </div>
+            <div class="dbKpi" style="--cor:#22d3ee">
+                <span class="dbKpiIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><path d="M5 7h14"></path><path d="M5 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M19 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M8 21h8"></path></svg></span>
+                <span class="dbKpiRotulo">Kg movimentado</span>
+                <b class="dbKpiValor" id="dashKgTotal">0 kg</b>
+            </div>
+        </div>
+        <div class="dbComparar">
+            <div class="dbCompararItem">
+                <span class="dbCompararTitulo">Animais</span>
+                <div class="dashBarLinha"><span class="dashBarRotulo">Compra</span><div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barAnimaisCompra"></div></div><span class="dashBarValor" id="dashComprados">0</span></div>
+                <div class="dashBarLinha"><span class="dashBarRotulo">Venda</span><div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barAnimaisVenda"></div></div><span class="dashBarValor" id="dashVendidos">0</span></div>
+            </div>
+            <div class="dbCompararItem">
+                <span class="dbCompararTitulo">Quilos</span>
+                <div class="dashBarLinha"><span class="dashBarRotulo">Compra</span><div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barKgCompra"></div></div><span class="dashBarValor" id="dashKgCompra">0</span></div>
+                <div class="dashBarLinha"><span class="dashBarRotulo">Venda</span><div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barKgVenda"></div></div><span class="dashBarValor" id="dashKgVenda">0</span></div>
+            </div>
+            <div class="dbCompararItem">
+                <span class="dbCompararTitulo">Faturamento</span>
+                <div class="dashBarLinha"><span class="dashBarRotulo">Compra</span><div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barValorCompra"></div></div><span class="dashBarValor" id="dashValorCompra">0</span></div>
+                <div class="dashBarLinha"><span class="dashBarRotulo">Venda</span><div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barValorVenda"></div></div><span class="dashBarValor" id="dashValorVenda">0</span></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="dbPeriodoLinha">
+        <span>Período dos gráficos</span>
+        <div class="dbPeriodo" role="group" aria-label="Período dos gráficos">
+            <button type="button" data-meses="6" onclick="trocarPeriodoGraficosDashboard(6)">6 meses</button>
+            <button type="button" data-meses="12" class="dbPeriodoAtivo" onclick="trocarPeriodoGraficosDashboard(12)">12 meses</button>
+            <button type="button" data-meses="0" onclick="trocarPeriodoGraficosDashboard(0)">Tudo</button>
         </div>
     </div>
 
-    <div class="dashComparativo" style="margin-top:16px">
-        <span class="dashSecaoTitulo">📊 Evolução do Patrimônio</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            Patrimônio Total no fim de cada mês, com a variação em relação ao mês anterior — o jeito mais direto de ver se seu capital está crescendo ou encolhendo com o tempo.
-        </p>
-        <div id="listaEvolucaoPatrimonio"></div>
-    </div>
-
-    <div class="dashComparativo" style="margin-top:16px">
-        <div class="dashLegenda">
-            <span class="dashLegendaItem"><span class="dashDot dashDotCompra"></span>Compra</span>
-            <span class="dashLegendaItem"><span class="dashDot dashDotVenda"></span>Venda</span>
-        </div>
-
-        <div class="dashGradeMini">
-            <div class="dashMiniChart">
-                <span class="dashMiniChartTitulo">Animais</span>
-                <div class="dashBarLinha">
-                    <span class="dashBarRotulo">Compra</span>
-                    <div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barAnimaisCompra"></div></div>
-                    <span class="dashBarValor" id="dashComprados">0</span>
-                </div>
-                <div class="dashBarLinha">
-                    <span class="dashBarRotulo">Venda</span>
-                    <div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barAnimaisVenda"></div></div>
-                    <span class="dashBarValor" id="dashVendidos">0</span>
+    <div class="dbGraficos">
+        <section class="dbSecao">
+            <div class="dbSecaoTopo">
+                <div>
+                    <h3>Evolução do patrimônio <button class="dbInfo" type="button" data-dica="Patrimônio total no fim de cada mês, com a variação em relação ao mês anterior — o jeito mais direto de ver se seu capital está crescendo ou encolhendo." aria-label="Como é calculado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg></button></h3>
+                    <p id="dbEvolucaoResumo">Patrimônio no fim de cada mês</p>
                 </div>
             </div>
+            <div class="dbGraficoLinha" id="dbGraficoEvolucao"></div>
+            <details class="dbDetalhes">
+                <summary>Ver mês a mês</summary>
+                <div id="listaEvolucaoPatrimonio"></div>
+            </details>
+        </section>
 
-            <div class="dashMiniChart">
-                <span class="dashMiniChartTitulo">Quilos</span>
-                <div class="dashBarLinha">
-                    <span class="dashBarRotulo">Compra</span>
-                    <div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barKgCompra"></div></div>
-                    <span class="dashBarValor" id="dashKgCompra">0</span>
-                </div>
-                <div class="dashBarLinha">
-                    <span class="dashBarRotulo">Venda</span>
-                    <div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barKgVenda"></div></div>
-                    <span class="dashBarValor" id="dashKgVenda">0</span>
-                </div>
-            </div>
-
-            <div class="dashMiniChart">
-                <span class="dashMiniChartTitulo">Faturamento</span>
-                <div class="dashBarLinha">
-                    <span class="dashBarRotulo">Compra</span>
-                    <div class="dashBarTrilha"><div class="dashBarFill dashBarCompra" id="barValorCompra"></div></div>
-                    <span class="dashBarValor" id="dashValorCompra">0</span>
-                </div>
-                <div class="dashBarLinha">
-                    <span class="dashBarRotulo">Venda</span>
-                    <div class="dashBarTrilha"><div class="dashBarFill dashBarVenda" id="barValorVenda"></div></div>
-                    <span class="dashBarValor" id="dashValorVenda">0</span>
+        <section class="dbSecao">
+            <div class="dbSecaoTopo">
+                <div>
+                    <h3>Resultado mensal <button class="dbInfo" type="button" data-dica="Lucro ou prejuízo real de cada mês: receita de vendas menos o custo do gado vendido (compra dos animais + despesas lançadas no lote) menos as despesas gerais sem lote (salário, combustível e o pagamento dos insumos no mês em que a conta foi paga)." aria-label="Como é calculado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg></button></h3>
+                    <p id="dbResultadoResumo">Lucro ou prejuízo de cada mês</p>
                 </div>
             </div>
-        </div>
+            <div class="dbGraficoBarras" id="dbGraficoResultado"></div>
+            <div class="dbResultadoDetalhe" id="dbResultadoDetalhe"></div>
+            <details class="dbDetalhes">
+                <summary>Ver tabela mês a mês</summary>
+                <div class="dbTabelaRolavel"><table class="tabelaUsuarios">
+                    <thead>
+                        <tr><th>Mês</th><th>Receita de Vendas</th><th>Custo do Gado Vendido</th><th>Despesas Gerais</th><th>Resultado do Mês</th></tr>
+                    </thead>
+                    <tbody id="corpoTabelaResultadoMensal"></tbody>
+                </table></div>
+            </details>
+        </section>
     </div>
 
-    <div class="dashComparativo" style="margin-top:16px">
-        <span class="dashSecaoTitulo">📈 Resultado Mensal</span>
-        <p class="loginSubtitulo" style="text-align:left; margin-bottom:14px">
-            Lucro ou prejuízo real de cada mês: receita de vendas menos o custo do gado vendido (compra dos animais + despesas lançadas no lote, como frete e comissão) menos as despesas gerais sem lote (salário, combustível, e o pagamento dos insumos no mês em que a conta foi paga). A baixa de insumos no lote aparece só no Custo por Lote, pra mostrar quanto cada lote consumiu — não entra aqui de novo, senão o mesmo dinheiro contaria duas vezes.
-        </p>
-        <table class="tabelaUsuarios">
-            <thead>
-                <tr><th>Mês</th><th>Receita de Vendas</th><th>Custo do Gado Vendido</th><th>Despesas Gerais</th><th>Resultado do Mês</th></tr>
-            </thead>
-            <tbody id="corpoTabelaResultadoMensal"></tbody>
-        </table>
-    </div>
+    <div class="dbRodape">
+        <section class="dbSecao dbContas">
+            <div class="dbSecaoTopo">
+                <div>
+                    <h3>Próximas contas a pagar</h3>
+                    <p id="dbContasResumo">Parcelas em aberto, da mais próxima pra mais distante</p>
+                </div>
+                <button class="dbBtnLink" type="button" onclick="trocarTela('telaContasPagar'); abrirTelaContasPagar();">Ver todas<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+            </div>
+            <div class="dbContasLista" id="dbContasLista"></div>
+        </section>
 
-<button class="dashAtalhoCustoLote" id="dashAtalhoCustoLote" onclick="abrirTelaCustoLote()">
-        <span class="ltKpiIcone" style="--corKpi:#f472b6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6"></circle><path d="M10.6 7.4H8.2a1.2 1.2 0 0 0 0 2.4h1.6a1.2 1.2 0 0 1 0 2.4H7.4"></path><path d="M9 5.8v.9M9 12.3v.9"></path><path d="M14 20h7M15 16h6M18 12h3"></path></svg></span>
-        <span class="dashAtalhoTexto"><b>Custo por Lote</b><span id="dashAtalhoCustoLoteResumo">Quanto cada lote custou, quanto já voltou em vendas e quanto falta recuperar</span></span>
-        <span class="dashAtalhoAbrir">Abrir<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
-    </button>
+        <button class="dashAtalhoCustoLote" id="dashAtalhoCustoLote" onclick="abrirTelaCustoLote()">
+            <span class="ltKpiIcone" style="--corKpi:#f472b6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6"></circle><path d="M10.6 7.4H8.2a1.2 1.2 0 0 0 0 2.4h1.6a1.2 1.2 0 0 1 0 2.4H7.4"></path><path d="M9 5.8v.9M9 12.3v.9"></path><path d="M14 20h7M15 16h6M18 12h3"></path></svg></span>
+            <span class="dashAtalhoTexto"><b>Custo por Lote</b><span id="dashAtalhoCustoLoteResumo">Quanto cada lote custou, quanto já voltou em vendas e quanto falta recuperar</span></span>
+            <span class="dashAtalhoAbrir">Abrir<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </button>
+    </div>
+    <div class="dbDica" id="dbDica" role="tooltip" hidden></div>
 </div>
 
 <div id="telaCustoLote" class="tela">
@@ -1303,8 +1315,8 @@
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="db.js?v=4"></script>
-<script src="app.js?v=27"></script>
-<script src="admin.js?v=45"></script>
+<script src="app.js?v=28"></script>
+<script src="admin.js?v=46"></script>
 
 <!-- relatório do lote na tela (o PDF continua disponível no botão de baixo) -->
 <div id="modalRelatorioLote" class="modalRelatorioLote" style="display:none" onclick="if(event.target === this) fecharRelatorioLote()">

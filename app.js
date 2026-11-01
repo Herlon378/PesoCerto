@@ -1521,7 +1521,7 @@ function mostrarDashboard(){
         let positivo = saldo >= 0;
         elSaldo.innerText = (positivo ? "▲ R$ " : "▼ R$ ") + formatarMoeda(Math.abs(saldo));
         // o número fica branco; quem muda é o cartão (verde lucro / vermelho prejuízo)
-        let cartaoSaldo = elSaldo.closest(".kpiCard");
+        let cartaoSaldo = elSaldo.closest(".kpiCard, .dbKpi");
         if(cartaoSaldo){
             cartaoSaldo.classList.toggle("kpiSaldoPositivo", positivo);
             cartaoSaldo.classList.toggle("kpiSaldoNegativo", !positivo);
