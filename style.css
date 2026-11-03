@@ -2405,3 +2405,6 @@ textarea {
 .lrRotulo { display: block; margin: 10px 0 4px; font-size: 13px; font-weight: 700; }
 .lrCaixa input { width: 100%; box-sizing: border-box; font-size: 18px; }
 .lrTotal { min-height: 22px; margin: 10px 0 4px; font-size: 15px; }
+
+/* venda passou do saldo do lote: só aviso (não trava a pesagem) */
+.qtdAcimaDoSaldo, .qtdAcimaDoSaldo small { color: #fbbf24 !important; }

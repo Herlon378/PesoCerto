@@ -262,16 +262,28 @@ function operacaoTiraAnimais(){
     return v === "venda" || v === "transferencia";
 }
 
-// quantos animais ainda dá pra lançar num critério desta pesagem (venda ou
-// transferência): saldo do lote menos o que outros critérios da MESMA
-// pesagem já lançaram do mesmo lote. null = sem limite.
-function limiteAnimaisCriterio(indice){
+// saldo do lote pra este critério (venda ou transferência): saldo menos o
+// que outros critérios da MESMA pesagem já lançaram do mesmo lote. Pode
+// ser negativo. null = lote sem saldo conhecido.
+function saldoDisponivelCriterio(indice){
     let c = criteriosPesagem[indice];
     if(!c || !operacaoTiraAnimais()) return null;
     let saldo = saldoLoteLocal(c.descricao);
     if(saldo === null) return null;
     let usadosOutros = criteriosPesagem.reduce((s, x, i) => s + (i !== indice && x.descricao === c.descricao ? x.pesos.length : 0), 0);
-    return Math.max(saldo - usadosOutros, 0);
+    return saldo - usadosOutros;
+}
+
+// quantos animais ainda dá pra lançar num critério. VENDA não tem limite
+// (regra do Herlon, 2026-11-02): se pesou mais animais do que o saldo, a
+// venda segue e o lote fica negativo (ex: 10 no saldo, vendeu 11 = -1) --
+// o cartão "Animais" só avisa. TRANSFERÊNCIA continua limitada ao saldo:
+// mandar pro outro lote animais que o sistema não tem bagunçaria o custo
+// dos dois lotes. null = sem limite.
+function limiteAnimaisCriterio(indice){
+    if(!ehModoTransferencia()) return null;
+    let saldo = saldoDisponivelCriterio(indice);
+    return saldo === null ? null : Math.max(saldo, 0);
 }
 
 function saldoPermiteIniciar(){
@@ -1051,9 +1063,13 @@ function atualizarStats(){
     let comRS = n => `<small>R$</small>${formatarMoeda(n)}`;
     let comArroba = n => `${n.toFixed(2).replace(".", ",")}<small>@</small>`;
     if(qtdEl){
-        let limiteSaldo = typeof limiteAnimaisCriterio === "function" ? limiteAnimaisCriterio(criterioAtivoIndex) : null;
-        if(limiteSaldo !== null) qtdEl.innerHTML = `${qtd}<small>/${limiteSaldo}</small>`;
+        // venda/transferência: mostra quantos o lote tem ("11/10"); passou do
+        // saldo numa venda, o número fica amarelo -- só aviso, não trava
+        let saldoCriterio = typeof saldoDisponivelCriterio === "function" ? saldoDisponivelCriterio(criterioAtivoIndex) : null;
+        if(saldoCriterio !== null) qtdEl.innerHTML = `${qtd}<small>/${Math.max(saldoCriterio, 0)}</small>`;
         else qtdEl.innerText = qtd;
+        qtdEl.classList.toggle("qtdAcimaDoSaldo", saldoCriterio !== null && qtd > saldoCriterio);
+        qtdEl.title = saldoCriterio !== null && qtd > saldoCriterio ? `Passou do saldo do lote: vai ficar com ${saldoCriterio - qtd}` : "";
     }
     if(medEl) medEl.innerHTML = comKg(media.toFixed(2).replace(".", ","));
     if(totEl) totEl.innerHTML = comKg(formatarPeso(total));

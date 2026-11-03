@@ -3172,3 +3172,4 @@ body.modoDesktop .navInstalarApp {
 body.modoDesktop .navInstalarApp:hover { color: #fff; background: rgba(96,165,250,0.2); }
 .navInstalarApp svg { width: 16px; height: 16px; }
 @media (display-mode: standalone) { body.modoDesktop .navInstalarApp { display: none; } }
+.ltCartaoNumero small.ltNegativo { color: #ff8a83; }

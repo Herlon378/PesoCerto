@@ -519,7 +519,9 @@ function mostrarLotesTela() {
     let esc = escaparHtmlPesagem;
     let lotes = lotesCacheTela;
     let saldo = l => typeof l.saldo === "number" ? l.saldo : 0;
-    let totalAnimais = lotes.filter(l => l.ativo).reduce((t, l) => t + saldo(l), 0);
+    // lote negativo (vendeu mais do que tinha no saldo) não tira animal do
+    // total do rebanho -- é diferença de contagem daquele lote
+    let totalAnimais = lotes.filter(l => l.ativo).reduce((t, l) => t + Math.max(saldo(l), 0), 0);
     let maior = Math.max(1, ...lotes.map(saldo));
 
     let set = (id, v) => { let el = document.getElementById(id); if (el) el.innerText = v; };
@@ -564,6 +566,7 @@ function mostrarLotesTela() {
             <div class="ltCartaoNumero">
                 <b>${n}</b><span>${n === 1 ? "animal" : "animais"}</span>
                 ${l.ativo && n > 0 ? `<small>${participacao}% do rebanho</small>` : ""}
+                ${n < 0 ? `<small class="ltNegativo" title="Foram vendidos mais animais do que o saldo do lote — confira a contagem">vendeu ${-n} a mais</small>` : ""}
             </div>
             <div class="ltBarra"><i style="width:${n > 0 ? Math.max(3, n / maior * 100) : 0}%"></i></div>
             <button class="ltCartaoTransf" onclick='verTransferenciasDoLote(${jsonAtributo(l.nome)})' title="Ver as transferências deste lote" ${recebidas + enviadas === 0 ? "disabled" : ""}>
