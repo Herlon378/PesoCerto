@@ -185,6 +185,15 @@
 <div id="telaInicial" class="tela">
     <h2>Nova Pesagem</h2>
 
+    <div id="avisoVendaDosPesos" class="avisoVendaPesos" hidden>
+        <span class="avisoVendaPesosIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
+        <div class="avisoVendaPesosTexto">
+            <b id="avisoVendaDosPesosTitulo"></b>
+            <span>Preencha o comprador, os valores e os critérios. Ao tocar em Iniciar Pesagem, os animais já entram calculados, cada um no seu lote.</span>
+        </div>
+        <button type="button" class="avisoVendaPesosCancelar" onclick="cancelarVendaDosPesos()" aria-label="Não usar os pesos da compra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+
     <div class="campoCartao">
         <label class="campoCartaoLabel" for="tipoOperacao">Operação</label>
         <select id="tipoOperacao" onchange="alternarModoOperacao()">
@@ -196,8 +205,8 @@
     </div>
 
     <div class="campoCartao" id="cardNomeVendedor">
-        <label class="campoCartaoLabel" for="nomeVendedor">Nome do vendedor</label>
-        <input id="nomeVendedor" placeholder="Nome do vendedor">
+        <label class="campoCartaoLabel" for="nomeVendedor" id="labelNomeVendedor">Nome do comprador</label>
+        <input id="nomeVendedor" placeholder="Nome do comprador">
         <span class="campoCartaoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
     </div>
 
@@ -803,6 +812,12 @@
             Menu
         </button>
     </div>
+
+    <button id="btnVenderPesosCompra" class="botaoVenderPesos" onclick="venderComPesosDaCompra()" hidden>
+        <span class="botaoVenderPesosIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
+        <span class="botaoVenderPesosTexto"><b>Vender usando estes pesos</b><small id="btnVenderPesosCompraDetalhe"></small></span>
+        <svg class="botaoVenderPesosSeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
 
     <div id="relatorio">
         <div id="listaRelatorios"></div>

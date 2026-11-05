@@ -306,6 +306,11 @@ function ehModoTransferencia(){
 // Nova Pesagem no modo "Transferência entre lotes": não tem vendedor nem
 // preço (o custo é calculado nos relatórios, ver resolverValoresTransferencias),
 // só lote de origem, lote de destino e os animais pesados
+function nomeDaOutraParte(){
+    let el = document.getElementById("tipoOperacao");
+    return el && el.value === "compra" ? "Nome do vendedor" : "Nome do comprador";
+}
+
 function alternarModoOperacao(){
     let transf = ehModoTransferencia();
     if(typeof atualizarBotaoLancamentoRapido === "function") atualizarBotaoLancamentoRapido();
@@ -321,6 +326,13 @@ function alternarModoOperacao(){
     if(titulo) titulo.innerText = transf ? "Transferência" : "Critério 1";
     let labelLote = document.getElementById("labelLote1");
     if(labelLote) labelLote.innerText = transf ? "Lote de origem" : "Lote";
+    // na venda quem se preenche aqui é o comprador (o dado continua no
+    // mesmo campo "vendedor" do registro, só o texto da tela muda)
+    let textoNome = nomeDaOutraParte();
+    let labelNome = document.getElementById("labelNomeVendedor");
+    if(labelNome) labelNome.innerText = textoNome;
+    let inputNome = document.getElementById("nomeVendedor");
+    if(inputNome) inputNome.placeholder = textoNome;
     if(transf){
         if(typeof fecharCriteriosExtras === "function") fecharCriteriosExtras();
         mostrar("btnAdicionarCriterio2", false);
@@ -353,7 +365,7 @@ function iniciarPesagem(){
     let rendEl = document.getElementById("rendimentoArroba");
 
     if(!nv || !nv.value.trim()){
-        alert("Preencha o nome do vendedor!");
+        alert(`Preencha o ${nomeDaOutraParte().toLowerCase()}!`);
         return;
     }
     if(!vKg || !vKg.value.trim()){
@@ -406,7 +418,109 @@ function iniciarPesagem(){
     criterioAtivoIndex = 0;
     pesos = criteriosPesagem[0] ? criteriosPesagem[0].pesos : [];
     if(!saldoPermiteIniciar()) return;
+    // "Vender usando estes pesos" (Relatórios): os animais da compra já
+    // entram calculados, cada um no seu critério
+    if(vendaDosPesosPendente) carregarPesosDaCompraNosCriterios();
     abrirTelaPesagemOuBalanca();
+}
+
+// ========================================
+// VENDER USANDO OS PESOS DE UMA COMPRA
+// ========================================
+// Em Relatórios, com uma compra selecionada: leva os pesos dela pra uma
+// venda nova. Abre a Nova Pesagem já em Venda e com os lotes da compra nos
+// critérios; o operador preenche comprador, valores (e o que mais quiser
+// mudar) e, ao Iniciar Pesagem, os animais já entram na tela de pesagem
+// calculados, cada um no seu lote -- dali dá pra pesar mais ou finalizar.
+// O registro final é uma venda comum (mesmo finalizarPesagem de sempre).
+let vendaDosPesosPendente = null;
+
+// animais (com peso) de uma compra -- a sessão inteira, se ela teve 2-3 lotes
+function animaisDaCompra(r){
+    let animais = [], lotes = [];
+    obterRegistrosDaSessao(r).filter(x => x && (x.tipo || "venda") === "compra").forEach(x => {
+        let lote = x.descricao || "";
+        if(!lotes.includes(lote)) lotes.push(lote);
+        (x.pesos || []).forEach(p => {
+            let kg = Number(p.peso) || 0;
+            if(kg > 0) animais.push({ peso: kg, obs: p.obs || "", lote });
+        });
+    });
+    return { animais, lotes };
+}
+
+function venderComPesosDaCompra(){
+    let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
+    let r = sel ? relatorios[sel.value] : null;
+    if(!r || (r.tipo || "venda") !== "compra"){ alert("Selecione uma compra na lista."); return; }
+    if(pesos.length > 0 || criteriosPesagem.some(c => (c.pesos || []).length > 0)){
+        alert("Já existe uma pesagem em andamento. Finalize ou cancele ela antes.");
+        return;
+    }
+    let { animais, lotes } = animaisDaCompra(r);
+    if(animais.length === 0){ alert("Essa compra foi lançada sem pesar (0 kg) — não tem pesos pra reaproveitar."); return; }
+
+    resetarPesagemAtual(); // formulário limpo, já na Nova Pesagem
+    vendaDosPesosPendente = { animais, lotes: lotes.slice(0, 3), numero: r.numero, vendedor: r.vendedor || "" };
+    let tipoEl = document.getElementById("tipoOperacao");
+    if(tipoEl){ tipoEl.value = "venda"; alternarModoOperacao(); }
+    carregarLotesSelect();
+    vendaDosPesosPendente.lotes.forEach((lote, i) => {
+        let n = i === 0 ? "" : String(i + 1);
+        if(n) mostrarCriterioExtra(i + 1);
+        let select = document.getElementById("descricao" + n);
+        if(select) select.value = lote;
+    });
+    mostrarAvisoVendaDosPesos();
+}
+
+function mostrarAvisoVendaDosPesos(){
+    let aviso = document.getElementById("avisoVendaDosPesos");
+    if(!aviso) return;
+    let p = vendaDosPesosPendente;
+    aviso.hidden = !p;
+    if(!p) return;
+    let kg = p.animais.reduce((t, a) => t + a.peso, 0);
+    document.getElementById("avisoVendaDosPesosTitulo").textContent =
+        `Venda com os pesos da compra${p.numero ? " nº " + p.numero : ""}: ${p.animais.length} ${p.animais.length === 1 ? "animal" : "animais"}, ${formatarPeso(Math.round(kg * 10) / 10)} kg`;
+}
+
+function cancelarVendaDosPesos(){
+    vendaDosPesosPendente = null;
+    mostrarAvisoVendaDosPesos();
+}
+
+// chamado pelo Iniciar Pesagem: põe cada animal no critério certo e calcula
+// o valor pelo preço daquele critério
+function carregarPesosDaCompraNosCriterios(){
+    let p = vendaDosPesosPendente;
+    vendaDosPesosPendente = null;
+    mostrarAvisoVendaDosPesos();
+    if(!p) return;
+    let semCriterio = [];
+    p.animais.forEach(a => {
+        let i;
+        if(criteriosComFaixaPeso()){
+            // critérios com Faixa de Peso: vai pela faixa, igual à pesagem normal
+            i = indiceCriterioPorPeso(a.peso);
+        } else {
+            // pelo lote da compra; se o operador trocou o lote no critério,
+            // pela ordem (1º lote da compra → Critério 1, e assim por diante)
+            i = criteriosPesagem.findIndex(c => c.descricao && c.descricao === a.lote);
+            if(i < 0){ let k = p.lotes.indexOf(a.lote); i = criteriosPesagem[k] ? k : 0; }
+        }
+        let item = i >= 0 ? montarItemPesoCriterio(criteriosPesagem[i], a.peso, a.obs) : null;
+        if(!item){ semCriterio.push(a.peso); return; }
+        criteriosPesagem[i].pesos.push(item);
+    });
+    let primeiro = Math.max(0, criteriosPesagem.findIndex(c => c.pesos.length > 0));
+    criterioAtivoIndex = 0;
+    pesos = criteriosPesagem[0].pesos;
+    if(primeiro !== 0) trocarCriterioAtivo(primeiro);
+    if(typeof salvarPesagemAuto === "function") salvarPesagemAuto();
+    if(semCriterio.length){
+        alert(`${semCriterio.length} ${semCriterio.length === 1 ? "animal ficou" : "animais ficaram"} de fora porque o peso não cabe em nenhuma Faixa de Peso dos critérios: ${semCriterio.map(kg => formatarPeso(kg) + " kg").join(", ")}.`);
+    }
 }
 
 // ========================================
@@ -469,7 +583,7 @@ function abrirLancamentoRapido(){
         return;
     }
     let nv = document.getElementById("nomeVendedor");
-    if(!nv || !nv.value.trim()){ alert("Preencha o nome do vendedor!"); return; }
+    if(!nv || !nv.value.trim()){ alert(`Preencha o ${nomeDaOutraParte().toLowerCase()}!`); return; }
     let op = document.getElementById("tipoOperacao").value;
     let lote = document.getElementById("descricao").value;
     let esc = escaparHtmlPesagem;
@@ -554,6 +668,7 @@ function alternarTipoPesagem(sufixo){
 
 function resetarPesagemAtual() {
     // cancela a sessão INTEIRA -- todos os critérios, não só o ativo
+    if(typeof cancelarVendaDosPesos === "function") cancelarVendaDosPesos();
     criteriosPesagem = [];
     criterioAtivoIndex = 0;
     pesos = [];
@@ -687,6 +802,32 @@ function adicionarPeso(){
     efetivarLancamentoPeso(pesoNum);
 }
 
+// um animal lançado num critério: peso + valor calculado pelo preço do
+// critério (kg, arroba ou por cabeça). Usado pela pesagem normal e pela
+// "venda com os pesos da compra", pros dois darem sempre o mesmo valor.
+// null = critério antigo de faixas de preço sem faixa pra esse peso.
+function montarItemPesoCriterio(criterio, pesoNum, obs){
+    let valorRS;
+    let faixaUsada = null;
+    if(criterio && criterio.tipoPesagem === "faixas"){
+        let calculo = calcularValorFaixa(pesoNum, criterio.faixasPreco);
+        if(!calculo) return null;
+        valorRS = Math.round((calculo.valorRS + Number.EPSILON) * 100) / 100;
+        faixaUsada = { minimo: calculo.faixa.minimo, maximo: calculo.faixa.maximo, tipo: calculo.faixa.tipo, valor: calculo.faixa.valor };
+    } else if(criterio){
+        let preco = parseNumeroLocal(criterio.valorKg);
+        let arrobas = criterio.tipoPesagem === "arroba" ? converterParaArroba(pesoNum, parseNumeroLocal(criterio.rendimento)) : 0;
+        valorRS = criterio.tipoPesagem === "valor_animal" ? preco : (criterio.tipoPesagem === "arroba" ? arrobas : pesoNum) * preco;
+        valorRS = Math.round((valorRS + Number.EPSILON) * 100) / 100;
+    }
+    return {
+        peso: pesoNum,
+        ...(Number.isFinite(valorRS) ? { valorRS } : {}),
+        ...(faixaUsada ? { faixaPreco: faixaUsada } : {}),
+        obs: obs || ""
+    };
+}
+
 function efetivarLancamentoPeso(pesoNum){
     let inputPeso = document.getElementById("displayPeso");
     let inputObs = document.getElementById("obs");
@@ -707,27 +848,9 @@ function efetivarLancamentoPeso(pesoNum){
         alert(`Saldo do lote "${nomeLote}": ${limiteSaldo} animal(is) e ${pesos.length} já lançado(s) nesta pesagem. Não dá pra ${ehModoTransferencia() ? "transferir" : "vender"} mais do que o lote tem.`);
         return;
     }
-    let criterio = criteriosPesagem[criterioAtivoIndex];
-    let valorRS;
-    let faixaUsada = null;
-    if(criterio && criterio.tipoPesagem === "faixas"){
-        let calculo = calcularValorFaixa(pesoNum, criterio.faixasPreco);
-        if(!calculo){ alert(`Peso de ${formatarPeso(pesoNum)} kg sem faixa de preço. Confira as faixas antes de lançar.`); return; }
-        valorRS = Math.round((calculo.valorRS + Number.EPSILON) * 100) / 100;
-        faixaUsada = { minimo: calculo.faixa.minimo, maximo: calculo.faixa.maximo, tipo: calculo.faixa.tipo, valor: calculo.faixa.valor };
-    } else if(criterio){
-        let preco = parseNumeroLocal(criterio.valorKg);
-        let arrobas = criterio.tipoPesagem === "arroba" ? converterParaArroba(pesoNum, parseNumeroLocal(criterio.rendimento)) : 0;
-        valorRS = criterio.tipoPesagem === "valor_animal" ? preco : (criterio.tipoPesagem === "arroba" ? arrobas : pesoNum) * preco;
-        valorRS = Math.round((valorRS + Number.EPSILON) * 100) / 100;
-    }
-
-    pesos.push({
-        peso: pesoNum,
-        ...(Number.isFinite(valorRS) ? { valorRS } : {}),
-        ...(faixaUsada ? { faixaPreco: faixaUsada } : {}),
-        obs: inputObs ? inputObs.value.trim() : ""
-    });
+    let item = montarItemPesoCriterio(criteriosPesagem[criterioAtivoIndex], pesoNum, inputObs ? inputObs.value.trim() : "");
+    if(!item){ alert(`Peso de ${formatarPeso(pesoNum)} kg sem faixa de preço. Confira as faixas antes de lançar.`); return; }
+    pesos.push(item);
 
     if(typeof registrarPesoLancadoBalanca === "function") registrarPesoLancadoBalanca(pesoNum);
     bip();
@@ -1370,6 +1493,15 @@ function mostrarRelatorios(){
 function atualizarSelecaoRelatorio() {
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     document.querySelectorAll(".cardRelatorio").forEach(card => card.classList.toggle("cardRelatorioSelecionado", !!sel && card.contains(sel)));
+    // celular: "Vender usando estes pesos" só aparece com uma compra pesada selecionada
+    let btnVender = document.getElementById("btnVenderPesosCompra");
+    if(btnVender){
+        let rSel = sel ? relatorios[sel.value] : null;
+        let qtd = rSel && (rSel.tipo || "venda") === "compra" ? animaisDaCompra(rSel).animais.length : 0;
+        btnVender.hidden = qtd === 0;
+        let detalhe = document.getElementById("btnVenderPesosCompraDetalhe");
+        if(detalhe && qtd) detalhe.textContent = `${qtd} ${qtd === 1 ? "animal" : "animais"} da compra${rSel.numero ? " nº " + rSel.numero : ""}`;
+    }
     let info = document.getElementById("relatorioSelecionadoInfo");
     let topo = document.querySelector(".relatoriosTopo");
     if(topo) topo.classList.toggle("semSelecao", !sel);
