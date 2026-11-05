@@ -2223,161 +2223,232 @@ function formatarValorKg(input) {
 }
 
 // ========================================
-// EXPORTAÇÃO PDF NATIVA (CAPACITOR)
+// PDF DO RELATÓRIO DE PESAGEM
 // ========================================
-async function gerarPDF() {
-    try {
-        let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
-        if (!sel) {
-            alert("Selecione um relatório primeiro!");
-            return;
-        }
+// Arquivo PDF de verdade, com quantas páginas precisar -- mesma cara e
+// mesmo conteúdo da folha de impressão (prepararImpressao): cabeçalho,
+// dados, quadros de resumo, pesos em duas colunas, totais e assinaturas.
+// Celular: no iPhone abre o "Compartilhar" (Salvar em Arquivos, WhatsApp...);
+// no Android e no computador baixa o arquivo.
+function montarPdfRelatorio(r){
+    let registros = obterRegistrosDaSessao(r);
+    let multiplos = registros.length > 1;
+    let ehCompra = (r.tipo || "venda") === "compra";
+    const { jsPDF } = window.jspdf;
+    let pdf = new jsPDF({ unit: "mm", format: "a4" });
+    const L = 12, R = 198, W = R - L, BASE = 282;
+    const ESCURO = [29, 36, 51], CINZA = [107, 114, 128], AZUL = [43, 90, 163], LINHA = [223, 227, 234], CLARO = [248, 250, 252], ZEBRA = [246, 248, 251];
+    let y = 14;
+    let cor = (c, tipo) => tipo === "fill" ? pdf.setFillColor(...c) : tipo === "draw" ? pdf.setDrawColor(...c) : pdf.setTextColor(...c);
+    let fonte = (tam, negrito) => { pdf.setFont("helvetica", negrito ? "bold" : "normal"); pdf.setFontSize(tam); };
+    let novaPagina = () => { pdf.addPage(); y = 14; };
+    let garantir = altura => { if(y + altura > BASE) novaPagina(); };
+    let cortar = (texto, largura) => {
+        texto = String(texto || "");
+        if(pdf.getTextWidth(texto) <= largura) return texto;
+        while(texto.length > 1 && pdf.getTextWidth(texto + "…") > largura) texto = texto.slice(0, -1);
+        return texto + "…";
+    };
+    let textoPreco = d => d.ehFaixas ? "Por faixa de peso"
+        : d.ehValorAnimal ? "R$ " + formatarMoeda(d.valorKgNum) + " por animal"
+        : d.ehArroba ? "R$ " + formatarMoeda(d.valorKgNum) + " por @ (rend. " + d.rendimentoNum + "%)"
+        : "R$ " + formatarMoeda(d.valorKgNum) + " por kg";
 
-        let indiceReal = parseInt(sel.value);
-        let r = relatorios[indiceReal];
-        if (!r || !r.pesos) {
-            alert("Erro ao ler os dados do relatório selecionado.");
-            return;
-        }
+    // ---------- cabeçalho ----------
+    fonte(9, true); cor(AZUL);
+    pdf.text(cortar(nomeFazendaAtual().toUpperCase(), 120), L, y + 3);
+    fonte(18, true); cor(ESCURO);
+    pdf.text("Relatório de Pesagem" + (r.numero ? " Nº " + r.numero : ""), L, y + 11);
+    let selo = ehCompra ? "COMPRA" : "VENDA";
+    fonte(9, true);
+    let larguraSelo = pdf.getTextWidth(selo) + 10;
+    cor(ehCompra ? [255, 247, 230] : [238, 245, 255], "fill"); cor(ehCompra ? [245, 158, 11] : [96, 165, 250], "draw");
+    pdf.setLineWidth(0.6);
+    pdf.roundedRect(R - larguraSelo, y - 1, larguraSelo, 7, 3.5, 3.5, "FD");
+    cor(ehCompra ? [180, 83, 9] : [29, 78, 216]);
+    pdf.text(selo, R - larguraSelo / 2, y + 3.8, { align: "center" });
+    fonte(7.5, false); cor(CINZA);
+    pdf.text("Emitido em " + new Date().toLocaleString("pt-BR"), R, y + 11, { align: "right" });
+    y += 15;
+    cor(ESCURO, "draw"); pdf.setLineWidth(0.9); pdf.line(L, y, R, y);
+    y += 6;
 
-        // se essa pesagem foi salva junto com outra(s) na mesma sessão
-        // (mais de 1 critério usado), junta tudo num recibo só -- o
-        // vendedor recebe UM pagamento mesmo sendo 2-3 lotes diferentes
-        let registros = obterRegistrosDaSessao(r);
-        let multiplos = registros.length > 1;
-        let totalGeral = 0;
+    // ---------- dados ----------
+    let dados = [
+        [ehCompra ? "VENDEDOR" : "COMPRADOR / VENDEDOR", r.vendedor || "Não informado"],
+        ["DATA DA PESAGEM", calcularDadosCompletos(r).dataHora],
+        [multiplos ? "LOTES" : "LOTE", registros.map(x => x.descricao || "Sem lote").join(", ")],
+        ["LANÇADO POR", r.criadoPor || obterUsuarioLogado() || "—"]
+    ];
+    dados.forEach(([rotulo, valor], i) => {
+        let x = L + i * (W / 4);
+        fonte(7, true); cor(CINZA); pdf.text(rotulo, x, y);
+        fonte(9.5, true); cor(ESCURO); pdf.text(cortar(valor, W / 4 - 3), x, y + 5);
+    });
+    y += 11;
 
-        const { jsPDF } = window.jspdf;
-        let pdf = new jsPDF();
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(20);
-        pdf.text("RELATÓRIO DE PESAGEM", 105, 20, { align: "center" });
-        if(r.numero){
-            pdf.setFontSize(12);
-            pdf.text(`Nº ${r.numero}`, 200, 20, { align: "right" });
-        }
-        pdf.line(10, 25, 200, 25);
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
-        let y = 35;
-        pdf.text(`Vendedor: ${r.vendedor || 'Geral'}`, 10, y);
-        pdf.text(`Data/Hora: ${calcularDadosCompletos(r).dataHora}`, 110, y);
-        y += 10;
-
-        registros.forEach((registro, indiceLote) => {
-            let d = calcularDadosCompletos(registro);
-            totalGeral += d.totalRS;
-
-            if(y > 250){ pdf.addPage(); y = 20; }
-
-            if(multiplos){
-                pdf.setFont("helvetica", "bold");
-                pdf.setFontSize(13);
-                pdf.text(`Lote ${indiceLote + 1}: ${registro.descricao || "Sem Descrição"}`, 10, y);
-                y += 8;
-                pdf.setFontSize(11);
-            } else {
-                pdf.text(`Lote/Desc: ${registro.descricao || 'Sem Descrição'}`, 10, y);
-            pdf.text(d.ehFaixas ? "Preço por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 110, y);
-                y += 7;
-            }
-
-            pdf.setFont("helvetica", "normal");
-            if(multiplos){
-                pdf.text(d.ehFaixas ? "Preço por faixa de peso" : `${d.ehValorAnimal ? "Valor/Animal" : "Valor base/kg"}: R$ ${formatarMoeda(d.valorKgNum)}`, 10, y);
-                pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 110, y);
-                y += 7;
-                pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 10, y);
-                pdf.text(`Subtotal deste lote: R$ ${formatarMoeda(d.totalRS)}`, 110, y);
-                y += 7;
-            } else {
-                pdf.text(`Total de Cabeças: ${d.totalAnimais}`, 10, y);
-                pdf.text(`Peso Acumulado: ${formatarPeso(d.totalKg)} kg`, 110, y);
-                y += 7;
-                pdf.text(`Faturamento Lote: R$ ${formatarMoeda(d.totalRS)}`, 10, y);
-                pdf.text(`Média por Animal: ${d.mediaKg.toFixed(2).replace(".", ",")} kg`, 110, y);
-                y += 7;
-            }
-
-            if(d.ehArroba){
-                pdf.text(`Total em Arrobas: ${d.totalArroba.toFixed(2).replace(".", ",")} @ (Rend. ${d.rendimentoNum}%)`, 10, y);
-                y += 7;
-            }
-
-            y += 3;
-            pdf.setFont("helvetica", "bold");
-            pdf.text(`3 Mais Leves: ${d.leves}`, 10, y);
-            y += 7;
-            pdf.text(`3 Mais Pesados: ${d.pesados}`, 10, y);
-
-            y += 12;
-            pdf.line(10, y - 5, 200, y - 5);
-            pdf.text("Nº", 10, y);
-            pdf.text("Peso (kg)", 40, y);
-            pdf.text("Valor Individual", 90, y);
-            pdf.text("Observação", 150, y);
-            pdf.line(10, y + 2, 200, y + 2);
-
-            pdf.setFont("helvetica", "normal");
-            y += 8;
-
-            registro.pesos.forEach((p, i) => {
-                if (y > 270) {
-                    pdf.addPage();
-                    y = 20;
-                }
-
-                let pAtual = p.peso || 0;
-                let valorInd = d.valorDoItem(pAtual, p);
-                pdf.text(String(i + 1), 10, y);
-                pdf.text(`${formatarPeso(pAtual)} kg`, 40, y);
-                pdf.text(`R$ ${formatarMoeda(valorInd)}`, 90, y);
-                pdf.text(p.obs || "-", 150, y);
-                y += 7;
-            });
-
-            y += 6;
-        });
+    let totalGeral = 0, animaisGeral = 0, kgGeral = 0;
+    registros.forEach((registro, indice) => {
+        let d = calcularDadosCompletos(registro);
+        totalGeral += d.totalRS; animaisGeral += d.totalAnimais; kgGeral += d.totalKg;
+        let lista = registro.pesos || [];
+        let kgs = lista.map(p => Number(p.peso) || 0);
+        let maior = kgs.length ? Math.max(...kgs) : 0, menor = kgs.length ? Math.min(...kgs) : 0;
+        let valorMedio = d.totalAnimais ? d.totalRS / d.totalAnimais : 0;
 
         if(multiplos){
-            if(y > 260){ pdf.addPage(); y = 20; }
-            pdf.line(10, y, 200, y);
-            y += 10;
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(15);
-            pdf.text(`TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}`, 105, y, { align: "center" });
+            garantir(14);
+            y += 3;
+            cor(AZUL, "fill"); pdf.rect(L, y - 4, 1.2, 6, "F");
+            fonte(12, true); cor(ESCURO);
+            let titulo = `Lote ${indice + 1}: ${registro.descricao || "Sem lote"}`;
+            let larguraTitulo = pdf.getTextWidth(titulo);
+            pdf.text(titulo, L + 3.5, y);
+            fonte(8.5, false); cor(CINZA);
+            pdf.text(textoPreco(d), L + 3.5 + larguraTitulo + 3, y);
+            y += 4;
         }
 
-        let pluginsNativos = window.Capacitor ? window.Capacitor.Plugins : null;
-        if (!pluginsNativos || !pluginsNativos.Filesystem || !pluginsNativos.Share) {
-            alert("Salvando arquivo localmente...");
-            pdf.save(nomeArquivoPesagem(r, "pdf"));
-            return;
-        }
+        // ---------- quadros de resumo (4 por linha) ----------
+        let quadros = [
+            ["ANIMAIS", String(d.totalAnimais)],
+            ["PESO TOTAL", formatarPeso(d.totalKg) + " kg"],
+            ["PESO MÉDIO", formatarPeso(Math.round(d.mediaKg * 10) / 10) + " kg"],
+            ["MAIS PESADO", formatarPeso(maior) + " kg"],
+            ["MAIS LEVE", formatarPeso(menor) + " kg"]
+        ];
+        if(!multiplos) quadros.push(["PREÇO", textoPreco(d)]);
+        quadros.push(["VALOR MÉDIO / ANIMAL", "R$ " + formatarMoeda(valorMedio)]);
+        quadros.push(["R$ MÉDIO POR KG", "R$ " + formatarMoeda(d.kgImplicitoMedio)]);
+        if(d.ehArroba) quadros.push(["TOTAL EM ARROBAS", d.totalArroba.toFixed(2).replace(".", ",") + " @"]);
+        quadros.push([multiplos ? "SUBTOTAL DESTE LOTE" : "VALOR TOTAL", "R$ " + formatarMoeda(d.totalRS), true]);
+        let porLinha = 4, gap = 2.5, largura = (W - gap * (porLinha - 1)) / porLinha, alturaQ = 12.5;
+        garantir(Math.ceil(quadros.length / porLinha) * (alturaQ + gap) + 2);
+        y += 2;
+        quadros.forEach(([rotulo, valor, destaque], i) => {
+            let col = i % porLinha;
+            if(i > 0 && col === 0) y += alturaQ + gap;
+            let x = L + col * (largura + gap);
+            cor(destaque ? [236, 253, 243] : CLARO, "fill"); cor(destaque ? [52, 211, 153] : LINHA, "draw");
+            pdf.setLineWidth(0.3);
+            pdf.roundedRect(x, y, largura, alturaQ, 1.8, 1.8, "FD");
+            fonte(6.5, true); cor(CINZA); pdf.text(rotulo, x + 2.5, y + 4.3);
+            fonte(destaque ? 11.5 : 10, true); cor(destaque ? [4, 120, 87] : ESCURO);
+            pdf.text(cortar(valor, largura - 5), x + 2.5, y + 9.8);
+        });
+        y += alturaQ + 5;
 
-        let pdfOutput = pdf.output('datauristring');
-        let base64Data = pdfOutput.split(',')[1];
+        // ---------- pesos em duas colunas (1|2, 3|4...) ----------
+        let temExtra = d.ehArroba || d.ehValorAnimal || d.ehFaixas;
+        let rotuloExtra = d.ehArroba ? "ARROBAS" : "R$ / KG";
+        let meio = (W - 4) / 2;
+        let colunas = temExtra
+            ? [["Nº", 8, "c"], ["PESO", 19, "c"], [rotuloExtra, 17, "c"], ["VALOR", 23, "c"], ["OBS.", meio - 67, "l"]]
+            : [["Nº", 8, "c"], ["PESO", 22, "c"], ["VALOR", 26, "c"], ["OBS.", meio - 56, "l"]];
+        let alturaLinha = 5.6;
+        let cabecalhoTabela = () => {
+            [0, meio + 4].forEach(dx => {
+                cor(ESCURO, "fill"); pdf.rect(L + dx, y, meio, 6.2, "F");
+                fonte(6.8, true); cor([255, 255, 255]);
+                let x = L + dx;
+                colunas.forEach(([t, w, al]) => { pdf.text(t, al === "c" ? x + w / 2 : x + 1.5, y + 4.2, al === "c" ? { align: "center" } : undefined); x += w; });
+            });
+            y += 6.2;
+        };
+        let celulas = (p, i, dx, zebra) => {
+            if(zebra){ cor(ZEBRA, "fill"); pdf.rect(L + dx, y, meio, alturaLinha, "F"); }
+            if(!p) return;
+            let kg = Number(p.peso) || 0, valor = d.valorDoItem(kg, p);
+            let extra = d.ehArroba ? d.arrobaDe(kg).toFixed(2).replace(".", ",") + " @" : ("R$ " + (kg > 0 ? formatarMoeda(valor / kg) : "—"));
+            let textos = temExtra
+                ? [String(i + 1), formatarPeso(kg) + " kg", extra, "R$ " + formatarMoeda(valor), p.obs || ""]
+                : [String(i + 1), formatarPeso(kg) + " kg", "R$ " + formatarMoeda(valor), p.obs || ""];
+            let x = L + dx;
+            colunas.forEach(([, w, al], c) => {
+                fonte(8.3, c === 0); cor(c === 0 || c === colunas.length - 1 ? CINZA : ESCURO);
+                let t = cortar(textos[c], w - 2);
+                pdf.text(t, al === "c" ? x + w / 2 : x + 1.5, y + 3.9, al === "c" ? { align: "center" } : undefined);
+                x += w;
+            });
+        };
+        garantir(6.2 + alturaLinha * 2);
+        cabecalhoTabela();
+        for(let i = 0, linha = 0; i < lista.length; i += 2, linha++){
+            if(y + alturaLinha > BASE){ novaPagina(); cabecalhoTabela(); }
+            celulas(lista[i], i, 0, linha % 2 === 1);
+            celulas(lista[i + 1], i + 1, meio + 4, linha % 2 === 1);
+            cor([229, 231, 235], "draw"); pdf.setLineWidth(0.2);
+            pdf.line(L, y + alturaLinha, L + meio, y + alturaLinha);
+            if(lista[i + 1]) pdf.line(L + meio + 4, y + alturaLinha, R, y + alturaLinha);
+            y += alturaLinha;
+        }
+        if(multiplos){
+            garantir(8);
+            cor([238, 242, 247], "fill"); pdf.rect(L, y, W, 7, "F");
+            cor(ESCURO, "draw"); pdf.setLineWidth(0.5); pdf.line(L, y, R, y);
+            fonte(8.5, true); cor(ESCURO);
+            pdf.text(`Subtotal deste lote: ${d.totalAnimais} animais · ${formatarPeso(d.totalKg)} kg · R$ ${formatarMoeda(d.totalRS)}`, R - 2, y + 4.8, { align: "right" });
+            y += 9;
+        }
+        y += 3;
+    });
+
+    if(multiplos){
+        garantir(14);
+        y += 2;
+        cor(ESCURO, "fill"); pdf.roundedRect(L, y, W, 11, 2, 2, "F");
+        fonte(9, false); cor([203, 213, 225]);
+        pdf.text(`${animaisGeral} animais · ${formatarPeso(kgGeral)} kg`, L + 4, y + 7);
+        fonte(12, true); cor([255, 255, 255]);
+        pdf.text("TOTAL GERAL A PAGAR: R$ " + formatarMoeda(totalGeral), R - 4, y + 7.3, { align: "right" });
+        y += 15;
+    }
+
+    // ---------- assinaturas (nunca separadas da linha) ----------
+    garantir(30);
+    y += 18;
+    cor(ESCURO, "draw"); pdf.setLineWidth(0.4);
+    let larguraAss = (W - 20) / 2;
+    [[L, ehCompra ? "Vendedor" : "Comprador"], [L + larguraAss + 20, nomeFazendaAtual()]].forEach(([x, nome]) => {
+        pdf.line(x, y, x + larguraAss, y);
+        fonte(9, false); cor(ESCURO);
+        pdf.text(cortar(nome, larguraAss), x + larguraAss / 2, y + 5, { align: "center" });
+    });
+
+    // ---------- rodapé com número da página ----------
+    let total = pdf.getNumberOfPages();
+    for(let i = 1; i <= total; i++){
+        pdf.setPage(i);
+        fonte(7.5, false); cor([156, 163, 175]);
+        pdf.text("Relatório gerado pelo PesoCerto", L, 290);
+        pdf.text(`Página ${i} de ${total}`, R, 290, { align: "right" });
+    }
+    return pdf;
+}
+
+async function gerarPDF() {
+    let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
+    if(!sel){ alert("Selecione um relatório primeiro!"); return; }
+    let r = relatorios[parseInt(sel.value)];
+    if(!r || !r.pesos){ alert("Erro ao ler os dados do relatório selecionado."); return; }
+    try {
+        let pdf = montarPdfRelatorio(r);
         let nomeArquivo = nomeArquivoPesagem(r, "pdf");
-
-        const { Filesystem, Share } = pluginsNativos;
-
-        let resultadoSalvar = await Filesystem.writeFile({
-            path: nomeArquivo,
-            data: base64Data,
-            directory: 'CACHE'
-        });
-
-        await Share.share({
-            title: 'Enviar Relatório',
-            text: `Segue em anexo o PDF da pesagem - Vendedor: ${r.vendedor || 'Geral'}`,
-            url: resultadoSalvar.uri,
-            dialogTitle: 'Enviar pelo WhatsApp:'
-        });
-
+        // iPhone/iPad: o "baixar" de site não funciona bem (principalmente com
+        // o app instalado) -- abre o Compartilhar do sistema, que tem
+        // "Salvar em Arquivos", WhatsApp, e-mail...
+        let ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        if(ehIOS && navigator.canShare){
+            let arquivo = new File([pdf.output("blob")], nomeArquivo, { type: "application/pdf" });
+            if(navigator.canShare({ files: [arquivo] })){
+                try { await navigator.share({ files: [arquivo], title: "Relatório de pesagem" }); }
+                catch(e){ if(e && e.name !== "AbortError") throw e; }
+                return;
+            }
+        }
+        pdf.save(nomeArquivo);
     } catch (e) {
-        alert("Ocorreu um erro no processamento do PDF: " + e.message);
+        alert("Ocorreu um erro ao gerar o PDF: " + e.message);
     }
 }
 
