@@ -124,7 +124,98 @@ function somClique(){
 // ========================================
 // NAVEGAÇÃO E TELAS
 // ========================================
+// ========================================
+// BOTÃO VOLTAR DO CELULAR
+// ========================================
+// O app é uma página só: sem avisar o histórico do navegador, o "voltar"
+// do Android fechava o app de qualquer tela. Agora cada tela aberta entra
+// no histórico; o voltar volta pra anterior e, na tela inicial (Menu no
+// celular, Dashboard no computador), sai do app como qualquer aplicativo.
+let historicoTelas = { profundidade: 0, ignorarPops: 0, pelaSeta: false, iniciado: false };
+
+function telaRaizApp(){
+    return document.body && document.body.classList.contains("modoDesktop") ? "telaDashboard" : "telaMenu";
+}
+
+function registrarTelaNoHistorico(id, anterior){
+    if(historicoTelas.pelaSeta || !window.history || !history.pushState) return;
+    if(!historicoTelas.iniciado){
+        historicoTelas.iniciado = true;
+        // a primeira tela fica como "fundo" do histórico; se o app abriu
+        // direto numa tela de dentro (ex: rascunho de pesagem restaurado),
+        // a tela inicial entra por baixo dela pro voltar não fechar o app
+        let raiz = telaRaizApp();
+        try {
+            if(id === raiz || id === "telaLogin") history.replaceState({ tela: id }, "");
+            else { history.replaceState({ tela: raiz }, ""); history.pushState({ tela: id }, ""); historicoTelas.profundidade = 1; }
+        } catch(e) {}
+        return;
+    }
+    if(id === anterior) return;
+    if(id === telaRaizApp() || id === "telaLogin"){
+        // voltou pra tela inicial por um botão do app: tira do histórico as
+        // telas empilhadas, senão o voltar ia passear por elas antes de sair
+        if(historicoTelas.profundidade > 0){
+            historicoTelas.ignorarPops++;
+            history.go(-historicoTelas.profundidade);
+            historicoTelas.profundidade = 0;
+        }
+        return;
+    }
+    try { history.pushState({ tela: id }, ""); historicoTelas.profundidade++; } catch(e) {}
+}
+
+function avisoRapidoTela(texto){
+    let el = document.getElementById("avisoRapidoTela");
+    if(!el){
+        el = document.createElement("div");
+        el.id = "avisoRapidoTela";
+        el.setAttribute("role", "status");
+        el.style.cssText = "position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483002;max-width:88vw;padding:12px 16px;border-radius:12px;font:600 14px/1.35 system-ui,sans-serif;color:#fff;background:#1e293b;border:1px solid rgba(255,255,255,0.18);box-shadow:0 10px 24px rgba(0,0,0,.45);text-align:center;transition:opacity .3s";
+        document.body.appendChild(el);
+    }
+    el.textContent = texto;
+    el.style.opacity = "1";
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.opacity = "0"; }, 2600);
+}
+
+window.addEventListener("popstate", e => {
+    if(historicoTelas.ignorarPops > 0){ historicoTelas.ignorarPops--; return; }
+    let ativa = document.querySelector(".tela.ativa");
+    let atual = ativa ? ativa.id : "";
+    let ficar = () => { try { history.pushState({ tela: atual }, ""); } catch(err) {} };
+    // janela aberta por cima: o voltar fecha só ela, apertando o próprio
+    // "Cancelar/Não" dela (que faz a limpeza certa); janela sem esse botão
+    // (uma pergunta que precisa de resposta) continua aberta
+    let modal = Array.from(document.querySelectorAll(".modal")).find(m => getComputedStyle(m).display !== "none");
+    if(modal){
+        ficar();
+        // "Teve despesa com frete?" precisa de resposta -- o voltar não responde por ela
+        if(modal.id === "modalFrete") return;
+        let cancelar = modal.querySelector(".btn-nao") || Array.from(modal.querySelectorAll("button")).find(b => /^\s*(cancelar|fechar|não)\s*$/i.test(b.textContent));
+        if(cancelar) cancelar.click();
+        return;
+    }
+    // no meio de uma pesagem com animais lançados não sai sem querer
+    let temPesos = (typeof pesos !== "undefined" && pesos.length > 0) || (typeof criteriosPesagem !== "undefined" && criteriosPesagem.some(c => (c.pesos || []).length > 0));
+    if((atual === "telaPesagem" || atual === "telaConectarBalanca") && temPesos){
+        ficar();
+        avisoRapidoTela("Pesagem em andamento: use Cancelar ou Finalizar para sair.");
+        return;
+    }
+    historicoTelas.profundidade = Math.max(0, historicoTelas.profundidade - 1);
+    let destino = (e.state && e.state.tela) || telaRaizApp();
+    let logado = typeof obterToken === "function" && !!obterToken();
+    if(destino === "telaLogin" && logado) destino = telaRaizApp();
+    if(!document.getElementById(destino)) destino = telaRaizApp();
+    historicoTelas.pelaSeta = true;
+    try { trocarTela(destino); } finally { historicoTelas.pelaSeta = false; }
+});
+
 function trocarTela(id){
+    let telaAnterior = document.querySelector(".tela.ativa");
+    registrarTelaNoHistorico(id, telaAnterior ? telaAnterior.id : null);
     document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa"));
     manterSaidaAudioAcordada(id === "telaPesagem");
     let telaAlvo = document.getElementById(id);
