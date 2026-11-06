@@ -190,7 +190,12 @@
 </div>
 
 <div id="telaInicial" class="tela">
-    <h2>Nova Pesagem</h2>
+    <div class="telaHeaderVoltar npTopo">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaMenu')" aria-label="Voltar ao Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Nova Pesagem</h2>
+    </div>
 
     <div id="avisoVendaDosPesos" class="avisoVendaPesos" hidden>
         <span class="avisoVendaPesosIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
@@ -201,142 +206,181 @@
         <button type="button" class="avisoVendaPesosCancelar" onclick="cancelarVendaDosPesos()" aria-label="Não usar os pesos da compra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
 
-    <div class="campoCartao">
-        <label class="campoCartaoLabel" for="tipoOperacao">Operação</label>
-        <select id="tipoOperacao" onchange="alternarModoOperacao()">
+    <!-- Operação: 3 botões grandes. O <select> continua sendo o campo de
+         verdade (o código todo lê dele); os botões só escolhem a opção. -->
+    <div class="npCampo npCampoOperacao">
+        <span class="npRotulo">Operação</span>
+        <div class="npSegmentos npOperacao" data-alvo="tipoOperacao" role="group" aria-label="Operação">
+            <button type="button" data-valor="venda" onclick="escolherSegmentoNovaPesagem('tipoOperacao', 'venda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M5 12l7-7 7 7"></path></svg>Venda</button>
+            <button type="button" data-valor="compra" onclick="escolherSegmentoNovaPesagem('tipoOperacao', 'compra')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M19 12l-7 7-7-7"></path></svg>Compra</button>
+            <button type="button" data-valor="transferencia" onclick="escolherSegmentoNovaPesagem('tipoOperacao', 'transferencia')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg>Transferir</button>
+        </div>
+        <select id="tipoOperacao" class="npOculto" onchange="alternarModoOperacao()" aria-label="Operação">
             <option value="venda">Venda</option>
             <option value="compra">Compra</option>
             <option value="transferencia">Transferência</option>
         </select>
-        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
 
-    <div class="campoCartao" id="cardNomeVendedor">
-        <label class="campoCartaoLabel" for="nomeVendedor" id="labelNomeVendedor">Nome do comprador</label>
-        <input id="nomeVendedor" placeholder="Nome do comprador">
-        <span class="campoCartaoIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+    <div class="npCampo" id="cardNomeVendedor">
+        <label class="npRotulo" for="nomeVendedor" id="labelNomeVendedor">Nome do comprador</label>
+        <div class="npEntrada">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <input id="nomeVendedor" placeholder="Nome do comprador" list="npSugestoesNomes" autocomplete="off" autocapitalize="words" enterkeyhint="next">
+        </div>
+        <datalist id="npSugestoesNomes"></datalist>
     </div>
 
-    <p class="criterioTitulo" id="tituloCriterio1">Critério 1</p>
     <p class="avisoTransferencia" id="avisoTransferencia" style="display:none">Pese os animais que vão mudar de lote. O custo deles é calculado sozinho: só o que o lote de origem <b>ainda não recuperou</b> em vendas, dividido pelos animais que restam — se o lote já deu lucro, eles vão com custo zero e o lucro fica no lote de origem.</p>
-    <div class="campoCartao" id="cardTipoPesagem1">
-        <label class="campoCartaoLabel" for="tipoPesagem">Tipo de Pesagem</label>
-        <select id="tipoPesagem" onchange="alternarTipoPesagem('')">
-            <option value="vivo">Peso Vivo (Kg)</option>
-            <option value="arroba">Arroba (@)</option>
-            <option value="valor_animal">Valor Fixo por Animal</option>
-        </select>
-        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-    </div>
 
-    <div class="campoCartao campoFaixaPeso" id="cardFaixaPeso1">
-        <label class="campoCartaoLabel" for="pesoMin">Faixa de Peso <small>(opcional)</small></label>
-        <div class="faixaPesoLinha"><input id="pesoMin" placeholder="De kg" inputmode="decimal"><span>até</span><input id="pesoMax" placeholder="Até kg" inputmode="decimal"></div>
-    </div>
-
-    <div class="campoCartao" id="campoRendimentoArroba" style="display:none">
-        <label class="campoCartaoLabel" for="rendimentoArroba">% de Rendimento</label>
-        <input id="rendimentoArroba" placeholder="Ex: 50" inputmode="decimal">
-    </div>
-
-    <div class="campoCartao" id="cardValor1">
-        <label class="campoCartaoLabel" for="valorKg">Valor</label>
-        <input id="valorKg" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
-    </div>
-
-    <div class="campoCartao">
-        <label class="campoCartaoLabel" for="descricao" id="labelLote1">Lote</label>
-        <select id="descricao">
-            <option value="">Sem lote</option>
-        </select>
-        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-    </div>
-
-    <div class="campoCartao" id="cardLoteDestino" style="display:none">
-        <label class="campoCartaoLabel" for="loteDestinoTransf">Lote de destino</label>
-        <select id="loteDestinoTransf">
-            <option value="">Selecione o lote</option>
-        </select>
-        <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-    </div>
-
-    <button class="btnAdicionarCriterio" id="btnAdicionarCriterio2" onclick="mostrarCriterioExtra(2)">+ Adicionar Critério 2</button>
-
-    <div id="blocoCriterio2" style="display:none">
-        <p class="criterioTitulo">Critério 2 <button class="btnRemoverCriterio" onclick="removerCriterioExtra(2)">✕ Remover</button></p>
-        <div class="campoCartao">
-            <label class="campoCartaoLabel" for="tipoPesagem2">Tipo de Pesagem</label>
-            <select id="tipoPesagem2" onchange="alternarTipoPesagem('2')">
+    <section class="npCriterio">
+        <header class="npCriterioTopo"><span class="npCriterioNum">1</span><b class="criterioTitulo" id="tituloCriterio1">Critério 1</b></header>
+        <div class="npCampo">
+            <label class="npRotulo" for="descricao" id="labelLote1">Lote</label>
+            <div class="npEntrada npEntradaSelect">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg>
+                <select id="descricao">
+                    <option value="">Sem lote</option>
+                </select>
+            </div>
+        </div>
+        <div class="npCampo" id="cardLoteDestino" style="display:none">
+            <label class="npRotulo" for="loteDestinoTransf">Lote de destino</label>
+            <div class="npEntrada npEntradaSelect">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                <select id="loteDestinoTransf">
+                    <option value="">Selecione o lote</option>
+                </select>
+            </div>
+        </div>
+        <div class="npCampo" id="cardTipoPesagem1">
+            <span class="npRotulo">Cobrar por</span>
+            <div class="npSegmentos npTipo" data-alvo="tipoPesagem" role="group" aria-label="Tipo de pesagem">
+                <button type="button" data-valor="vivo" onclick="escolherSegmentoNovaPesagem('tipoPesagem', 'vivo')">Kg</button>
+                <button type="button" data-valor="arroba" onclick="escolherSegmentoNovaPesagem('tipoPesagem', 'arroba')">Arroba</button>
+                <button type="button" data-valor="valor_animal" onclick="escolherSegmentoNovaPesagem('tipoPesagem', 'valor_animal')">Por animal</button>
+            </div>
+            <select id="tipoPesagem" class="npOculto" onchange="alternarTipoPesagem('')" aria-label="Tipo de pesagem">
                 <option value="vivo">Peso Vivo (Kg)</option>
                 <option value="arroba">Arroba (@)</option>
                 <option value="valor_animal">Valor Fixo por Animal</option>
             </select>
-            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
-        <div class="campoCartao campoFaixaPeso">
-            <label class="campoCartaoLabel" for="pesoMin2">Faixa de Peso <small>(opcional)</small></label>
-            <div class="faixaPesoLinha"><input id="pesoMin2" placeholder="De kg" inputmode="decimal"><span>até</span><input id="pesoMax2" placeholder="Até kg" inputmode="decimal"></div>
+        <div class="npLinha">
+            <div class="npCampo npCampoValor" id="cardValor1">
+                <label class="npRotulo" for="valorKg">Valor <span class="npUnidade" id="valorUnidade">por kg</span></label>
+                <input id="valorKg" class="npValor" placeholder="R$ 0,00" inputmode="decimal" oninput="formatarValorKg(this)">
+            </div>
+            <div class="npCampo npCampoRend" id="campoRendimentoArroba" style="display:none">
+                <label class="npRotulo" for="rendimentoArroba">Rendimento</label>
+                <div class="npEntradaSufixo"><input id="rendimentoArroba" placeholder="50" inputmode="decimal"><span>%</span></div>
+            </div>
         </div>
-        <div class="campoCartao" id="campoRendimentoArroba2" style="display:none">
-            <label class="campoCartaoLabel" for="rendimentoArroba2">% de Rendimento</label>
-            <input id="rendimentoArroba2" placeholder="Ex: 50" inputmode="decimal">
+        <div class="npCampo campoFaixaPeso npFaixa" id="cardFaixaPeso1">
+            <label class="npRotulo" for="pesoMin">Faixa de peso <small>(opcional)</small></label>
+            <div class="faixaPesoLinha"><input id="pesoMin" placeholder="De" inputmode="decimal"><span>até</span><input id="pesoMax" placeholder="Até" inputmode="decimal"><span>kg</span></div>
         </div>
-        <div class="campoCartao">
-            <label class="campoCartaoLabel" for="valorKg2">Valor</label>
-            <input id="valorKg2" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
-        </div>
-        <div class="campoCartao">
-            <label class="campoCartaoLabel" for="descricao2">Lote</label>
-            <select id="descricao2">
-                <option value="">Sem lote</option>
-            </select>
-            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-        </div>
-        <button class="btnAdicionarCriterio" id="btnAdicionarCriterio3" onclick="mostrarCriterioExtra(3)">+ Adicionar Critério 3</button>
+    </section>
+
+    <button class="btnAdicionarCriterio" id="btnAdicionarCriterio2" onclick="mostrarCriterioExtra(2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>Adicionar critério <small>outro lote ou outro preço</small></span></button>
+
+    <div id="blocoCriterio2" style="display:none">
+        <section class="npCriterio">
+            <header class="npCriterioTopo"><span class="npCriterioNum">2</span><b class="criterioTitulo">Critério 2</b><button class="btnRemoverCriterio" onclick="removerCriterioExtra(2)" aria-label="Remover o Critério 2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path></svg>Remover</button></header>
+            <div class="npCampo">
+                <label class="npRotulo" for="descricao2">Lote</label>
+                <div class="npEntrada npEntradaSelect">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg>
+                    <select id="descricao2">
+                        <option value="">Sem lote</option>
+                    </select>
+                </div>
+            </div>
+            <div class="npCampo">
+                <span class="npRotulo">Cobrar por</span>
+                <div class="npSegmentos npTipo" data-alvo="tipoPesagem2" role="group" aria-label="Tipo de pesagem do Critério 2">
+                    <button type="button" data-valor="vivo" onclick="escolherSegmentoNovaPesagem('tipoPesagem2', 'vivo')">Kg</button>
+                    <button type="button" data-valor="arroba" onclick="escolherSegmentoNovaPesagem('tipoPesagem2', 'arroba')">Arroba</button>
+                    <button type="button" data-valor="valor_animal" onclick="escolherSegmentoNovaPesagem('tipoPesagem2', 'valor_animal')">Por animal</button>
+                </div>
+                <select id="tipoPesagem2" class="npOculto" onchange="alternarTipoPesagem('2')" aria-label="Tipo de pesagem do Critério 2">
+                    <option value="vivo">Peso Vivo (Kg)</option>
+                    <option value="arroba">Arroba (@)</option>
+                    <option value="valor_animal">Valor Fixo por Animal</option>
+                </select>
+            </div>
+            <div class="npLinha">
+                <div class="npCampo npCampoValor">
+                    <label class="npRotulo" for="valorKg2">Valor <span class="npUnidade" id="valorUnidade2">por kg</span></label>
+                    <input id="valorKg2" class="npValor" placeholder="R$ 0,00" inputmode="decimal" oninput="formatarValorKg(this)">
+                </div>
+                <div class="npCampo npCampoRend" id="campoRendimentoArroba2" style="display:none">
+                    <label class="npRotulo" for="rendimentoArroba2">Rendimento</label>
+                    <div class="npEntradaSufixo"><input id="rendimentoArroba2" placeholder="50" inputmode="decimal"><span>%</span></div>
+                </div>
+            </div>
+            <div class="npCampo campoFaixaPeso npFaixa">
+                <label class="npRotulo" for="pesoMin2">Faixa de peso <small>(opcional)</small></label>
+                <div class="faixaPesoLinha"><input id="pesoMin2" placeholder="De" inputmode="decimal"><span>até</span><input id="pesoMax2" placeholder="Até" inputmode="decimal"><span>kg</span></div>
+            </div>
+        </section>
+        <button class="btnAdicionarCriterio" id="btnAdicionarCriterio3" onclick="mostrarCriterioExtra(3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>Adicionar critério 3</span></button>
     </div>
 
     <div id="blocoCriterio3" style="display:none">
-        <p class="criterioTitulo">Critério 3 <button class="btnRemoverCriterio" onclick="removerCriterioExtra(3)">✕ Remover</button></p>
-        <div class="campoCartao">
-            <label class="campoCartaoLabel" for="tipoPesagem3">Tipo de Pesagem</label>
-            <select id="tipoPesagem3" onchange="alternarTipoPesagem('3')">
-                <option value="vivo">Peso Vivo (Kg)</option>
-                <option value="arroba">Arroba (@)</option>
-                <option value="valor_animal">Valor Fixo por Animal</option>
-            </select>
-            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-        </div>
-        <div class="campoCartao campoFaixaPeso">
-            <label class="campoCartaoLabel" for="pesoMin3">Faixa de Peso <small>(opcional)</small></label>
-            <div class="faixaPesoLinha"><input id="pesoMin3" placeholder="De kg" inputmode="decimal"><span>até</span><input id="pesoMax3" placeholder="Até kg" inputmode="decimal"></div>
-        </div>
-        <div class="campoCartao" id="campoRendimentoArroba3" style="display:none">
-            <label class="campoCartaoLabel" for="rendimentoArroba3">% de Rendimento</label>
-            <input id="rendimentoArroba3" placeholder="Ex: 50" inputmode="decimal">
-        </div>
-        <div class="campoCartao">
-            <label class="campoCartaoLabel" for="valorKg3">Valor</label>
-            <input id="valorKg3" placeholder="Valor por kg (R$)" inputmode="decimal" oninput="formatarValorKg(this)">
-        </div>
-        <div class="campoCartao">
-            <label class="campoCartaoLabel" for="descricao3">Lote</label>
-            <select id="descricao3">
-                <option value="">Sem lote</option>
-            </select>
-            <span class="campoCartaoSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-        </div>
+        <section class="npCriterio">
+            <header class="npCriterioTopo"><span class="npCriterioNum">3</span><b class="criterioTitulo">Critério 3</b><button class="btnRemoverCriterio" onclick="removerCriterioExtra(3)" aria-label="Remover o Critério 3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path></svg>Remover</button></header>
+            <div class="npCampo">
+                <label class="npRotulo" for="descricao3">Lote</label>
+                <div class="npEntrada npEntradaSelect">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg>
+                    <select id="descricao3">
+                        <option value="">Sem lote</option>
+                    </select>
+                </div>
+            </div>
+            <div class="npCampo">
+                <span class="npRotulo">Cobrar por</span>
+                <div class="npSegmentos npTipo" data-alvo="tipoPesagem3" role="group" aria-label="Tipo de pesagem do Critério 3">
+                    <button type="button" data-valor="vivo" onclick="escolherSegmentoNovaPesagem('tipoPesagem3', 'vivo')">Kg</button>
+                    <button type="button" data-valor="arroba" onclick="escolherSegmentoNovaPesagem('tipoPesagem3', 'arroba')">Arroba</button>
+                    <button type="button" data-valor="valor_animal" onclick="escolherSegmentoNovaPesagem('tipoPesagem3', 'valor_animal')">Por animal</button>
+                </div>
+                <select id="tipoPesagem3" class="npOculto" onchange="alternarTipoPesagem('3')" aria-label="Tipo de pesagem do Critério 3">
+                    <option value="vivo">Peso Vivo (Kg)</option>
+                    <option value="arroba">Arroba (@)</option>
+                    <option value="valor_animal">Valor Fixo por Animal</option>
+                </select>
+            </div>
+            <div class="npLinha">
+                <div class="npCampo npCampoValor">
+                    <label class="npRotulo" for="valorKg3">Valor <span class="npUnidade" id="valorUnidade3">por kg</span></label>
+                    <input id="valorKg3" class="npValor" placeholder="R$ 0,00" inputmode="decimal" oninput="formatarValorKg(this)">
+                </div>
+                <div class="npCampo npCampoRend" id="campoRendimentoArroba3" style="display:none">
+                    <label class="npRotulo" for="rendimentoArroba3">Rendimento</label>
+                    <div class="npEntradaSufixo"><input id="rendimentoArroba3" placeholder="50" inputmode="decimal"><span>%</span></div>
+                </div>
+            </div>
+            <div class="npCampo campoFaixaPeso npFaixa">
+                <label class="npRotulo" for="pesoMin3">Faixa de peso <small>(opcional)</small></label>
+                <div class="faixaPesoLinha"><input id="pesoMin3" placeholder="De" inputmode="decimal"><span>até</span><input id="pesoMax3" placeholder="Até" inputmode="decimal"><span>kg</span></div>
+            </div>
+        </section>
     </div>
 
-    <button class="btnGrande" onclick="iniciarPesagem()">
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width:26px;height:26px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        Iniciar Pesagem
-    </button>
-    <!-- atalho pra compra/venda na perna sem pesar: só aparece em "Valor Fixo por Animal" -->
-    <button class="btnLancamentoRapido" id="btnLancamentoRapido" style="display:none" onclick="abrirLancamentoRapido()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 19l9-7-9-7z"></path><path d="M2 19l9-7-9-7z"></path></svg>
-        <span><b>Lançar sem pesar</b><small>só a quantidade e o valor por animal</small></span>
-    </button>
-    <button class="btnGrande" style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+    <!-- rodapé fixo: Iniciar sempre à mão, sem rolar até o fim -->
+    <div class="npRodape">
+        <!-- atalho pra compra/venda na perna sem pesar: só aparece em "Por animal" -->
+        <button class="btnLancamentoRapido" id="btnLancamentoRapido" style="display:none" onclick="abrirLancamentoRapido()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9z"></path></svg>
+            <span><b>Lançar sem pesar</b><small>só a quantidade e o valor por animal</small></span>
+        </button>
+        <button class="btnGrande npIniciar" onclick="iniciarPesagem()">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"></path></svg>
+            Iniciar Pesagem
+        </button>
+    </div>
 </div>
 
 <div id="modalLancamentoRapido" class="modal">

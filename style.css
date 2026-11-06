@@ -2500,3 +2500,98 @@ textarea {
 @media (max-width: 380px) {
     .cardMenu { padding: 26px 18px; }
 }
+
+/* ========================================
+   NOVA PESAGEM (redesenho 2026-11): botões de escolha, critério em
+   cartão único, valor com unidade, Iniciar fixo no rodapé
+   ======================================== */
+#telaInicial { padding-bottom: 0; }
+#telaInicial .npTopo { margin: 2px 0 14px; }
+#telaInicial .npTopo h2 { margin: 0; font-size: 26px; }
+/* o <select> de verdade fica escondido da vista (os botões mandam nele),
+   mas continua no lugar pra leitor de tela e pros testes */
+.npOculto { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap !important; border: 0 !important; opacity: 0.01; }
+
+.npCampo { position: relative; margin: 0 0 14px; }
+.npRotulo { display: block; margin: 0 0 7px 2px; font-size: 13.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-muted); }
+.npRotulo small { font-weight: 500; opacity: 0.8; }
+.npUnidade { font-weight: 600; color: #9cc8ff; }
+
+/* botões de escolha (segmentos) */
+.npSegmentos { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; padding: 5px; border-radius: 16px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
+.npSegmentos button {
+    display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; height: 50px; margin: 0; padding: 0 6px; border-radius: 12px; cursor: pointer;
+    font: inherit; font-size: 15px; font-weight: 800; white-space: nowrap; color: var(--ink-muted); background: transparent; border: 1px solid transparent; box-shadow: none;
+    -webkit-tap-highlight-color: transparent; transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s ease;
+}
+.npSegmentos button svg { width: 18px; height: 18px; flex-shrink: 0; }
+.npSegmentos button:active { transform: scale(0.97); }
+.npSegmentos button:disabled { opacity: 0.35; cursor: not-allowed; }
+.npSegmentos button.npAtivo { color: #0d1426; background: #60a5fa; box-shadow: 0 6px 16px -8px rgba(96,165,250,0.9); }
+.npOperacao button { height: 56px; font-size: 15.5px; gap: 5px; }
+.npOperacao button svg { width: 16px; height: 16px; }
+.npOperacao button[data-valor="venda"].npAtivo { background: #22c55e; box-shadow: 0 6px 16px -8px rgba(34,197,94,0.9); }
+.npOperacao button[data-valor="compra"].npAtivo { background: #fbbf24; box-shadow: 0 6px 16px -8px rgba(251,191,36,0.9); }
+.npOperacao button[data-valor="transferencia"].npAtivo { background: #60a5fa; }
+
+/* entradas (nome, lote) com ícone */
+.npEntrada { position: relative; display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 0 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.npEntrada:focus-within { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,0.22); }
+.npEntrada > svg { width: 20px; height: 20px; flex-shrink: 0; color: #60a5fa; }
+.npEntrada input, .npEntrada select { flex: 1; min-width: 0; width: 100%; height: 56px; margin: 0; padding: 0; border: none; background: transparent; color: var(--ink); font: inherit; font-size: 19px; font-weight: 700; outline: none; appearance: none; -webkit-appearance: none; }
+.npEntrada input::placeholder { color: var(--ink-muted); font-weight: 500; }
+.npEntradaSelect::after { content: ""; position: absolute; right: 18px; top: 50%; width: 9px; height: 9px; margin-top: -7px; border-right: 2.5px solid var(--ink-muted); border-bottom: 2.5px solid var(--ink-muted); transform: rotate(45deg); pointer-events: none; }
+.npEntradaSelect select { padding-right: 26px; cursor: pointer; }
+.npEntrada select option { color: #111; }
+
+/* critério: um cartão só */
+.npCriterio { margin: 4px 0 14px; padding: 14px 14px 2px; border-radius: 20px; background: linear-gradient(160deg, rgba(96,165,250,0.07), transparent 45%), var(--navy-800); border: 1px solid var(--border-strong); }
+.npCriterio .npEntrada, .npCriterio .npSegmentos { background: var(--surface-sunken); }
+.npCriterioTopo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.npCriterioNum { width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #0d1426; background: #fbbf24; }
+#telaInicial .npCriterioTopo .criterioTitulo { flex: 1; display: block; margin: 0; font-size: 16px; font-weight: 800; color: #fff; }
+#telaInicial .btnRemoverCriterio { display: inline-flex; align-items: center; gap: 5px; height: 32px; margin: 0; padding: 0 10px; border-radius: 9px; font-size: 13px; font-weight: 700; color: #ff8a83; background: rgba(229,83,75,0.1); border: 1px solid rgba(229,83,75,0.3); }
+#telaInicial .btnRemoverCriterio svg { width: 15px; height: 15px; }
+
+/* valor (grande, com R$) + rendimento na mesma linha */
+.npLinha { display: flex; gap: 10px; }
+.npLinha .npCampoValor { flex: 1; min-width: 0; }
+.npLinha .npCampoRend { width: 112px; flex-shrink: 0; }
+input.npValor { display: block; width: 100%; height: 62px; margin: 0; padding: 0 16px; box-sizing: border-box; border-radius: 16px; font: inherit; font-size: 26px; font-weight: 800; letter-spacing: -0.3px; color: #4ade80; background: var(--surface-sunken); border: 1px solid var(--border-strong); outline: none; font-variant-numeric: tabular-nums; }
+input.npValor::placeholder { color: var(--ink-muted); font-weight: 600; }
+input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.2); }
+.npEntradaSufixo { display: flex; align-items: center; height: 62px; padding: 0 12px; box-sizing: border-box; border-radius: 16px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
+.npEntradaSufixo:focus-within { border-color: #60a5fa; }
+.npEntradaSufixo input { flex: 1; min-width: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: none; background: transparent; color: var(--ink); font: inherit; font-size: 22px; font-weight: 800; outline: none; text-align: right; }
+.npEntradaSufixo span { margin-left: 4px; font-size: 18px; font-weight: 700; color: var(--ink-muted); }
+
+/* faixa de peso compacta */
+#telaInicial .npFaixa { padding: 0; margin: 0 0 14px; background: none; border: none; border-radius: 0; }
+#telaInicial .npFaixa .faixaPesoLinha { display: flex; align-items: center; gap: 8px; }
+#telaInicial .npFaixa .faixaPesoLinha input { flex: 1; min-width: 0; width: 100%; height: 48px; margin: 0; padding: 0 12px; box-sizing: border-box; border-radius: 13px; font: inherit; font-size: 18px; font-weight: 700; text-align: center; color: var(--ink); background: var(--surface-sunken); border: 1px solid var(--border-strong); outline: none; }
+#telaInicial .npFaixa .faixaPesoLinha input:focus { border-color: #60a5fa; }
+#telaInicial .npFaixa .faixaPesoLinha span { font-size: 14px; font-weight: 600; color: var(--ink-muted); }
+
+/* adicionar critério */
+#telaInicial .btnAdicionarCriterio { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 0 0 14px; padding: 14px; border-radius: 18px; font: inherit; font-size: 15.5px; font-weight: 800; color: #9cc8ff; background: rgba(96,165,250,0.06); border: 2px dashed rgba(96,165,250,0.35); }
+#telaInicial .btnAdicionarCriterio svg { width: 20px; height: 20px; flex-shrink: 0; }
+#telaInicial .btnAdicionarCriterio span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+#telaInicial .btnAdicionarCriterio small { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+
+#telaInicial .avisoTransferencia { margin: 0 0 14px; }
+
+/* rodapé fixo com o Iniciar */
+.npRodape {
+    position: sticky; bottom: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px;
+    margin: 6px -10px 0; padding: 12px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, rgba(15,23,41,0), var(--navy-900) 28%);
+}
+.npRodape .btnLancamentoRapido { margin: 0; }
+#telaInicial .npIniciar { margin: 0; height: 64px; padding: 0 20px; font-size: 21px; border-radius: 18px; background: linear-gradient(180deg, #22c55e, #15803d); box-shadow: 0 10px 24px -10px rgba(34,197,94,0.8); }
+#telaInicial .npIniciar svg { width: 22px; height: 22px; }
+
+@media (max-width: 370px) {
+    .npSegmentos button { font-size: 14.5px; gap: 4px; }
+    .npOperacao button svg { display: none; }
+    input.npValor { font-size: 23px; }
+}

@@ -128,6 +128,12 @@ function trocarTela(id){
     // atualiza o resumo "Hoje" e a bolinha de mensagens toda vez que o
     // usuário chega no menu principal do celular, não só no login --
     // várias telas voltam direto pra cá com um simples trocarTela('telaMenu')
+    if(id === "telaInicial"){
+        // os botões de Operação/Cobrar por refletem o que estiver nos campos
+        // (rascunho restaurado, venda com os pesos da compra, restrição do usuário)
+        sincronizarSegmentosNovaPesagem();
+        preencherSugestoesNomes();
+    }
     if(id === "telaMenu"){
         atualizarCabecalhoMenu();
         if(typeof atualizarResumoHojeMenu === "function") atualizarResumoHojeMenu();
@@ -347,6 +353,8 @@ function alternarModoOperacao(){
     if(labelNome) labelNome.innerText = textoNome;
     let inputNome = document.getElementById("nomeVendedor");
     if(inputNome) inputNome.placeholder = textoNome;
+    preencherSugestoesNomes();
+    sincronizarSegmentosNovaPesagem();
     if(transf){
         if(typeof fecharCriteriosExtras === "function") fecharCriteriosExtras();
         mostrar("btnAdicionarCriterio2", false);
@@ -677,7 +685,59 @@ function alternarTipoPesagem(sufixo){
     // sobrava um cartão com o rótulo "% de Rendimento" flutuando vazio
     let campoRendEl = document.getElementById("campoRendimentoArroba" + sufixo) || rendEl;
     campoRendEl.style.display = ehArroba ? "block" : "none";
-    if(vKgEl) vKgEl.placeholder = ehArroba ? "Valor por Arroba (R$)" : (ehValorAnimal ? "Valor Fixo por Animal (R$)" : "Valor por kg (R$)");
+    // "Valor por kg / por @ / por animal" ao lado do rótulo do valor
+    let unidadeEl = document.getElementById("valorUnidade" + sufixo);
+    if(unidadeEl) unidadeEl.textContent = ehArroba ? "por @" : (ehValorAnimal ? "por animal" : "por kg");
+    sincronizarSegmentosNovaPesagem();
+}
+
+// ---------- Nova Pesagem: botões de escolha no lugar das listas ----------
+// Operação (Venda/Compra/Transferir) e "Cobrar por" (Kg/Arroba/Por animal)
+// são botões grandes; o <select> de cada um continua sendo o campo de
+// verdade (todo o resto do código lê dele) -- o botão só escolhe a opção e
+// dispara o mesmo "change" de antes. Opção bloqueada pro usuário (ex:
+// operador que só pode comprar) fica com o botão desativado.
+function escolherSegmentoNovaPesagem(idSelect, valor){
+    let select = document.getElementById(idSelect);
+    if(!select) return;
+    let opcao = Array.from(select.options).find(o => o.value === valor);
+    if(!opcao || opcao.disabled || select.value === valor) return;
+    select.value = valor;
+    select.dispatchEvent(new Event("change"));
+}
+
+function sincronizarSegmentosNovaPesagem(){
+    document.querySelectorAll("#telaInicial .npSegmentos[data-alvo]").forEach(grupo => {
+        let select = document.getElementById(grupo.dataset.alvo);
+        if(!select) return;
+        grupo.querySelectorAll("button[data-valor]").forEach(botao => {
+            let opcao = Array.from(select.options).find(o => o.value === botao.dataset.valor);
+            let ativo = select.value === botao.dataset.valor;
+            botao.classList.toggle("npAtivo", ativo);
+            botao.setAttribute("aria-pressed", ativo ? "true" : "false");
+            botao.disabled = !opcao || opcao.disabled;
+        });
+    });
+}
+
+// sugestões no nome do comprador/vendedor: quem já apareceu nas pesagens
+// do mesmo tipo (venda → compradores, compra → vendedores), mais recentes primeiro
+function preencherSugestoesNomes(){
+    let lista = document.getElementById("npSugestoesNomes");
+    if(!lista || typeof relatorios === "undefined") return;
+    let tipoEl = document.getElementById("tipoOperacao");
+    let tipo = tipoEl ? tipoEl.value : "venda";
+    let vistos = new Set(), nomes = [];
+    for(let i = relatorios.length - 1; i >= 0 && nomes.length < 40; i--){
+        let r = relatorios[i];
+        if(!r || (r.tipo || "venda") !== tipo) continue;
+        let nome = String(r.vendedor || "").trim();
+        let chave = nome.toLowerCase();
+        if(!nome || vistos.has(chave)) continue;
+        vistos.add(chave);
+        nomes.push(nome);
+    }
+    lista.innerHTML = nomes.map(n => `<option value="${escaparHtmlPesagem(n)}"></option>`).join("");
 }
 
 function resetarPesagemAtual() {
@@ -1378,9 +1438,10 @@ function mostrarCriterioExtra(n){
     if(n === 2){
         let bloco3 = document.getElementById("blocoCriterio3");
         let btn3 = document.getElementById("btnAdicionarCriterio3");
-        if(btn3 && (!bloco3 || bloco3.style.display !== "block")) btn3.style.display = "block";
+        if(btn3 && (!bloco3 || bloco3.style.display !== "block")) btn3.style.display = "";
     }
     carregarLotesSelect();
+    sincronizarSegmentosNovaPesagem();
 }
 
 function removerCriterioExtra(n){
@@ -1400,7 +1461,9 @@ function removerCriterioExtra(n){
         if(btn3) btn3.style.display = "none";
     }
     let botaoAdicionar = document.getElementById("btnAdicionarCriterio" + n);
-    if(botaoAdicionar) botaoAdicionar.style.display = "block";
+    if(botaoAdicionar) botaoAdicionar.style.display = "";
+    // volta o "Cobrar por" pra Kg (botões e unidade do valor)
+    alternarTipoPesagem(String(n));
 }
 
 // fecha os blocos de Critério 2/3 se tiverem ficado abertos de uma pesagem
@@ -3038,6 +3101,7 @@ function aplicarRestricoesUsuario(){
         });
         selectTipo.value = permTipo;
     }
+    if(typeof sincronizarSegmentosNovaPesagem === "function") sincronizarSegmentosNovaPesagem();
 }
 
 function mostrarTelaLogin(){
