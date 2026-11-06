@@ -1,4 +1,4 @@
-const CACHE_NAME = "pesagem-gado-v192";
+const CACHE_NAME = "pesagem-gado-v193";
 
 const urlsToCache = [
 "./",
@@ -25,7 +25,11 @@ self.skipWaiting();
 event.waitUntil(
 caches.open(CACHE_NAME)
 .then(cache => {
-return cache.addAll(urlsToCache);
+// cache: "reload" = busca cada arquivo direto do servidor, sem usar a
+// cópia que o navegador guarda (o GitHub deixa até 10 min). Sem isso, logo
+// depois de uma atualização o app podia guardar o HTML novo junto com
+// CSS/JS antigos -- tela desmontada e botões sumindo.
+return cache.addAll(urlsToCache.map(url => new Request(url, { cache: "reload" })));
 })
 );
 });
