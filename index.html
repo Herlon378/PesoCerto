@@ -41,10 +41,17 @@
 
 <div id="telaMenu" class="tela">
     <div class="menuHeader">
-        <span class="menuLogo">🐂</span>
-        <div>
+        <span class="menuLogo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4c0 3 1.5 4.5 4 4.5h8c2.5 0 4-1.5 4-4.5" stroke="#fbbf24" stroke-width="2"></path>
+                <path d="M7 8.5v5a5 5 0 0 0 10 0v-5" stroke="#fff" stroke-width="2"></path>
+                <path d="M9.5 17.5h5" stroke="#fff" stroke-width="2"></path>
+                <circle cx="10" cy="12" r=".9" fill="#fff"></circle><circle cx="14" cy="12" r=".9" fill="#fff"></circle>
+            </svg>
+        </span>
+        <div class="menuMarca">
             <h1 class="menuTitulo">Peso<span class="menuTituloDestaque">Certo</span></h1>
-            <p class="menuSubtitulo">Mais controle, melhores resultados</p>
+            <p class="menuSubtitulo"><span id="menuSaudacao">Olá</span><b id="menuNomeUsuario"></b><span class="menuFazenda" id="menuFazenda"></span></p>
         </div>
     </div>
 

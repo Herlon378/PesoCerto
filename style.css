@@ -398,32 +398,71 @@ body {
     transform: scale(0.96);
 }
 
-/* CABEÇALHO */
+/* CABEÇALHO: logo (mesmo touro do ícone do app) + marca + saudação */
 .menuHeader {
+    position: relative;
+    isolation: isolate; /* o brilho atrás do logo fica visível sobre o fundo da tela */
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     margin: 8px 0 14px;
+    flex-shrink: 0;
 }
 
 .menuLogo {
-    font-size: 56px;
+    position: relative;
+    width: 58px;
+    height: 58px;
+    flex-shrink: 0;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(120% 120% at 25% 15%, rgba(255,255,255,0.22), transparent 55%), linear-gradient(145deg, #1e3a8a, #2563eb 60%, #3b82f6);
+    border: 1px solid rgba(147,197,253,0.4);
+    box-shadow: 0 12px 26px -10px rgba(37,99,235,0.85), inset 0 1px 0 rgba(255,255,255,0.25);
 }
+/* brilho suave atrás do logo */
+.menuLogo::before {
+    content: "";
+    position: absolute;
+    inset: -14px;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(59,130,246,0.35), transparent 70%);
+    pointer-events: none;
+}
+.menuLogo svg { width: 36px; height: 36px; }
+
+.menuMarca { min-width: 0; flex: 1; }
 
 .menuTitulo {
-    font-size: 40px;
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.05;
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
 }
 
 .menuTituloDestaque {
-    color: #f5a623;
+    color: #fbbf24;
+    background: linear-gradient(90deg, #fcd34d, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .menuSubtitulo {
-    font-size: 16px;
+    margin: 5px 0 0;
+    font-size: 14px;
     color: var(--ink-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+.menuSubtitulo b { color: #e5edf8; font-weight: 700; }
+.menuFazenda::before { content: " · "; color: var(--ink-faint, #64748b); }
+.menuFazenda:empty { display: none; }
 
 /* ícones modernos em SVG (ficam dentro dos "chips" coloridos), no lugar
    dos emojis antigos -- herdam a cor do texto (stroke="currentColor" no
@@ -2450,4 +2489,14 @@ textarea {
         max-height: none !important;
         overflow: visible !important;
     }
+}
+
+/* menu: em celular estreito (360px) a palavra "Dashboard" alargava a coluna
+   e empurrava o cartão pra fora da tela -- as duas colunas ficam sempre
+   iguais e o título encolhe um pouco se precisar */
+.menuGrade2x2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cardMenu { min-width: 0; }
+.cardMenu strong { font-size: clamp(20px, 6.4vw, 25px); overflow-wrap: anywhere; }
+@media (max-width: 380px) {
+    .cardMenu { padding: 26px 18px; }
 }

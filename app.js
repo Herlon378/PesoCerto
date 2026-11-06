@@ -129,9 +129,23 @@ function trocarTela(id){
     // usuário chega no menu principal do celular, não só no login --
     // várias telas voltam direto pra cá com um simples trocarTela('telaMenu')
     if(id === "telaMenu"){
+        atualizarCabecalhoMenu();
         if(typeof atualizarResumoHojeMenu === "function") atualizarResumoHojeMenu();
         if(typeof atualizarBadgeMensagens === "function") atualizarBadgeMensagens();
     }
+}
+
+// topo do menu do celular: "Boa tarde, Herlon · Estância Reis"
+function atualizarCabecalhoMenu(){
+    let saudacao = document.getElementById("menuSaudacao");
+    if(!saudacao) return;
+    let hora = new Date().getHours();
+    let nome = String(obterUsuarioLogado() || "").trim().split(/\s+/)[0];
+    saudacao.textContent = (hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite") + (nome ? ", " : "");
+    let elNome = document.getElementById("menuNomeUsuario");
+    if(elNome) elNome.textContent = nome;
+    let fazenda = document.getElementById("menuFazenda");
+    if(fazenda) fazenda.textContent = typeof nomeFazendaAtual === "function" ? (nomeFazendaAtual() || "") : "";
 }
 
 function abrirRelatorios(){
