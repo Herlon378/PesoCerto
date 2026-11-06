@@ -3622,6 +3622,8 @@ async function atualizarBadgeMensagens(){
 }
 
 async function abrirTelaMensagensMobile(){
+    // painel "Avisos no celular" (avisos.js) fica no topo dessa tela
+    if(typeof montarPainelAvisos === "function") montarPainelAvisos("painelAvisos");
     await carregarMensagensMobile();
     mostrarMensagensMobile();
 }

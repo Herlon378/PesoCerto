@@ -6946,3 +6946,17 @@ async function alternarLoteFazendaDono(loteId, ativar) {
         alertarModerno(e.message, { titulo: "⚠️ Atenção" });
     }
 }
+
+// ========================================
+// AVISOS NO CELULAR (janela do menu lateral)
+// ========================================
+function abrirModalAvisos() {
+    let modal = document.getElementById("modalAvisos");
+    if (!modal) return;
+    modal.style.display = "flex";
+    if (typeof montarPainelAvisos === "function") montarPainelAvisos("painelAvisosAdmin");
+}
+function fecharModalAvisos() {
+    let modal = document.getElementById("modalAvisos");
+    if (modal) modal.style.display = "none";
+}

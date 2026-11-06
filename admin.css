@@ -3173,3 +3173,7 @@ body.modoDesktop .navInstalarApp:hover { color: #fff; background: rgba(96,165,25
 .navInstalarApp svg { width: 16px; height: 16px; }
 @media (display-mode: standalone) { body.modoDesktop .navInstalarApp { display: none; } }
 .ltCartaoNumero small.ltNegativo { color: #ff8a83; }
+
+/* janela "Avisos no celular" */
+body.modoDesktop .navAvisos { margin-top: 8px; }
+.modalAvisosCaixa { max-width: 460px; text-align: left; }

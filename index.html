@@ -182,10 +182,13 @@
 </div>
 
 <div id="telaMensagens" class="tela">
-    <h2>🔔 Mensagens</h2>
-    <div class="botoesRelatorio">
-        <button style="background:#666" onclick="trocarTela('telaMenu')">← Menu</button>
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaMenu')" aria-label="Voltar ao Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Avisos e mensagens</h2>
     </div>
+    <div id="painelAvisos"></div>
     <div id="listaMensagensMobile"></div>
 </div>
 
@@ -1125,6 +1128,7 @@
 <script src="lib/zxing-browser.min.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+<script src="avisos.js" defer></script>
 <script src="instalar.js" data-nome="PesoCerto" data-icone="icon-192.png" data-chave="curral" defer></script>
 
 <div id="modalLeitorCodigoBarra" class="modal">
