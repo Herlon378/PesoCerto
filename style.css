@@ -2670,3 +2670,18 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
 .acoesCompraLinha .botaoVenderPesosTexto small { font-size: 11.5px; }
 .acoesCompraLinha .botaoVenderPesosSeta { display: none; }
 @media (max-height: 700px) { .faixaConferencia { margin: 0 0 3px; padding: 2px 8px; font-size: 11px; } }
+
+/* peso lançado: flash em tela cheia, visível no sol e sem depender de som.
+   pointer-events: none pra nunca atrapalhar o próximo toque */
+#confirmacaoLancamento {
+    position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    pointer-events: none; opacity: 0; visibility: hidden; color: #fff; text-align: center; background: rgba(22,163,74,0.88);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+#confirmacaoLancamento.confirmacaoVisivel { opacity: 1; visibility: visible; animation: confirmacaoSome 0.75s ease-in forwards; }
+#confirmacaoLancamento svg { width: 84px; height: 84px; }
+#confirmacaoLancamento b { font-size: 58px; line-height: 1.1; font-weight: 800; font-variant-numeric: tabular-nums; }
+#confirmacaoLancamento span { font-size: 22px; font-weight: 800; letter-spacing: 3px; }
+#confirmacaoLancamento small { margin-top: 14px; padding: 8px 14px; border-radius: 10px; font-size: 16px; font-weight: 800; color: #1f2937; background: #fde047; }
+#confirmacaoLancamento small[hidden] { display: none; }
+@keyframes confirmacaoSome { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }

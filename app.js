@@ -27,6 +27,11 @@ let indicePesoParaExcluir = null;
 // duplo e mais longo; saída de áudio mantida acordada durante a pesagem
 // (um tom inaudível contínuo); áudio "destravado" a cada toque na tela; e
 // vibração junto, pra quando o barulho do curral cobrir o som.
+// Mesmo assim ainda falhava às vezes: o som dependia de um caminho só e, com
+// o áudio suspenso, sumia calado (ou saía atrasado, no toque seguinte). Agora
+// lançar um peso avisa por três caminhos independentes: flash verde na tela,
+// vibração e som -- com um segundo caminho de áudio de reserva e aviso de
+// "SEM SOM" na tela quando os dois falham.
 function obterAudioCtx(){
     if(!audioCtx || audioCtx.state === "closed"){
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -34,11 +39,16 @@ function obterAudioCtx(){
     return audioCtx;
 }
 
+// iPhone: sem isso a chave de silencioso corta o bip (Safari 16.4+)
+try{ if(navigator.audioSession) navigator.audioSession.type = "playback"; }catch(e){}
+
 function destravarAudio(){
     try{
         let ctx = obterAudioCtx();
         if(ctx.state !== "running") ctx.resume().catch(() => {});
+        garantirMantenedorAudio();
     }catch(e){}
+    destravarAudioReserva();
 }
 
 ["pointerdown", "touchstart", "keydown"].forEach(evento => {
@@ -52,65 +62,213 @@ document.addEventListener("visibilitychange", () => {
 // tela de pesagem está aberta -- só pra saída de áudio do Android não
 // dormir entre um animal e outro
 let audioMantenedor = null;
+let querMantenedorAudio = false;
 function manterSaidaAudioAcordada(ligar){
+    querMantenedorAudio = ligar;
     try{
-        if(ligar && !audioMantenedor){
-            let ctx = obterAudioCtx();
-            let oscilador = ctx.createOscillator();
-            let ganho = ctx.createGain();
-            oscilador.frequency.value = 20;
-            ganho.gain.value = 0.001;
-            oscilador.connect(ganho);
-            ganho.connect(ctx.destination);
-            oscilador.start();
-            audioMantenedor = { oscilador, ganho };
-        }else if(!ligar && audioMantenedor){
+        if(ligar) garantirMantenedorAudio();
+        else if(audioMantenedor){
             audioMantenedor.oscilador.stop();
             audioMantenedor.oscilador.disconnect();
             audioMantenedor.ganho.disconnect();
             audioMantenedor = null;
         }
-    }catch(e){}
+    }catch(e){ audioMantenedor = null; }
+}
+
+// recria o tom se o áudio tiver sido refeito (senão ele ficava preso no
+// áudio morto e a saída voltava a dormir, engolindo o bip seguinte)
+function garantirMantenedorAudio(){
+    if(!querMantenedorAudio) return;
+    let ctx = obterAudioCtx();
+    if(audioMantenedor && audioMantenedor.ctx === ctx) return;
+    let oscilador = ctx.createOscillator();
+    let ganho = ctx.createGain();
+    oscilador.frequency.value = 20;
+    ganho.gain.value = 0.001;
+    oscilador.connect(ganho);
+    ganho.connect(ctx.destination);
+    oscilador.start();
+    audioMantenedor = { oscilador, ganho, ctx };
 }
 
 // atrasoSegundos permite encadear tons (bip duplo). Envelope curto de
 // subida/descida evita o "estalo" e deixa o volume cheio o tempo todo.
+// Só toca se o áudio estiver rodando AGORA: esperar ele voltar fazia o bip
+// sair no toque seguinte, fora de hora -- pior que não tocar, porque o
+// operador acha que foi o animal seguinte. Devolve se tocou.
 function tocarTom(frequencia, duracaoSegundos, tipoOnda, volume, atrasoSegundos){
     try {
         let ctx = obterAudioCtx();
-        function tocar(){
-            let inicio = ctx.currentTime + 0.02 + (atrasoSegundos || 0);
-            let fim = inicio + duracaoSegundos;
-            let oscilador = ctx.createOscillator();
-            let ganho = ctx.createGain();
-            oscilador.connect(ganho);
-            ganho.connect(ctx.destination);
-            oscilador.frequency.value = frequencia;
-            oscilador.type = tipoOnda;
-            ganho.gain.setValueAtTime(0, inicio);
-            ganho.gain.linearRampToValueAtTime(volume, inicio + 0.005);
-            ganho.gain.setValueAtTime(volume, fim - 0.01);
-            ganho.gain.linearRampToValueAtTime(0, fim);
-            oscilador.start(inicio);
-            oscilador.stop(fim + 0.02);
+        if(ctx.state !== "running"){
+            ctx.resume().catch(() => {});
+            return false;
         }
-        if(ctx.state === "running"){
-            tocar();
-        } else {
-            // tenta retomar; se o Chrome não liberar logo (sem toque na
-            // tela), desiste em vez de soltar vários bips atrasados depois
-            let liberou = false;
-            ctx.resume().then(() => { liberou = true; tocar(); }).catch(() => {});
-            setTimeout(() => { if(!liberou && typeof logBalanca === "function") logBalanca("som bloqueado pelo navegador (toque na tela libera)"); }, 400);
-        }
-    } catch(e){}
+        let inicio = ctx.currentTime + 0.02 + (atrasoSegundos || 0);
+        let fim = inicio + duracaoSegundos;
+        let oscilador = ctx.createOscillator();
+        let ganho = ctx.createGain();
+        oscilador.connect(ganho);
+        ganho.connect(ctx.destination);
+        oscilador.frequency.value = frequencia;
+        oscilador.type = tipoOnda;
+        ganho.gain.setValueAtTime(0, inicio);
+        ganho.gain.linearRampToValueAtTime(volume, inicio + 0.005);
+        ganho.gain.setValueAtTime(volume, fim - 0.01);
+        ganho.gain.linearRampToValueAtTime(0, fim);
+        oscilador.start(inicio);
+        oscilador.stop(fim + 0.02);
+        return true;
+    } catch(e){ return false; }
 }
 
-// "peso lançado": bi-bip agudo e alto + vibração
-function bip(){
+// ---------- som reserva: outro caminho de áudio do aparelho ----------
+// O mesmo bi-bip gravado num arquivo WAV (montado aqui, sem baixar nada) e
+// tocado por um <audio>, que não depende do áudio acima. Entra na hora
+// quando o principal está parado ou travado.
+function montarWavBip(){
+    const taxa = 22050, volume = 0.7;
+    let trechos = [[0, 0.13], [0.19, 0.32]];
+    let total = Math.ceil(taxa * 0.34);
+    let dados = new Int16Array(total);
+    for(let i = 0; i < total; i++){
+        let t = i / taxa;
+        let trecho = trechos.find(x => t >= x[0] && t < x[1]);
+        if(!trecho) continue;
+        let envelope = Math.min(1, (t - trecho[0]) / 0.005, (trecho[1] - t) / 0.005);
+        dados[i] = (Math.sin(2 * Math.PI * 2700 * t) >= 0 ? 1 : -1) * volume * envelope * 32767;
+    }
+    let bytes = new Uint8Array(44 + total * 2);
+    let v = new DataView(bytes.buffer);
+    let texto = (pos, s) => { for(let i = 0; i < s.length; i++) bytes[pos + i] = s.charCodeAt(i); };
+    texto(0, "RIFF"); v.setUint32(4, 36 + total * 2, true); texto(8, "WAVEfmt ");
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, taxa, true); v.setUint32(28, taxa * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    texto(36, "data"); v.setUint32(40, total * 2, true);
+    dados.forEach((amostra, i) => v.setInt16(44 + i * 2, amostra, true));
+    let binario = "";
+    bytes.forEach(b => { binario += String.fromCharCode(b); });
+    return "data:audio/wav;base64," + btoa(binario);
+}
+
+let audioReserva = null, audioReservaDestravado = false, audioReservaTocando = false;
+function obterAudioReserva(){
+    if(!audioReserva){
+        audioReserva = new Audio(montarWavBip());
+        audioReserva.preload = "auto";
+    }
+    return audioReserva;
+}
+
+// iPhone só deixa um <audio> tocar sozinho depois de ele ter tocado uma vez
+// num toque na tela: toca mudo no primeiro toque pra liberar
+function destravarAudioReserva(){
+    if(audioReservaDestravado) return;
+    try{
+        let a = obterAudioReserva();
+        a.muted = true;
+        let p = a.play();
+        if(!p) return;
+        p.then(() => {
+            audioReservaDestravado = true;
+            if(audioReservaTocando) return;
+            a.pause();
+            a.currentTime = 0;
+            a.muted = false;
+        }).catch(() => { a.muted = false; });
+    }catch(e){}
+}
+
+function tocarAudioReserva(){
+    try{
+        let a = obterAudioReserva();
+        audioReservaTocando = true;
+        a.muted = false;
+        a.currentTime = 0;
+        let p = a.play();
+        if(!p){ audioReservaTocando = false; return Promise.resolve(true); }
+        return p.then(() => { audioReservaTocando = false; return true; }).catch(() => { audioReservaTocando = false; return false; });
+    }catch(e){
+        audioReservaTocando = false;
+        return Promise.resolve(false);
+    }
+}
+
+function logSom(msg){ if(typeof logBalanca === "function") logBalanca(msg); }
+
+// bi-bip com garantia: principal se estiver bom, reserva na hora se não.
+// "Rodando" não basta: às vezes o áudio diz que está rodando com o relógio
+// parado e o som sai mudo -- por isso confere se o relógio andou.
+function tocarSomLancamento(aoFalhar){
+    let usarReserva = () => tocarAudioReserva().then(tocou => {
+        if(tocou) return;
+        logSom("sem som: os dois caminhos de áudio falharam");
+        if(aoFalhar) aoFalhar();
+    });
+    let ctx = null;
+    try{ ctx = obterAudioCtx(); }catch(e){}
+    if(!ctx || ctx.state !== "running"){
+        logSom("áudio principal parado (" + (ctx ? ctx.state : "indisponível") + "): tocou o reserva");
+        if(ctx) ctx.resume().catch(() => {});
+        usarReserva();
+        return;
+    }
+    let relogioAntes = ctx.currentTime;
     tocarTom(2700, 0.13, "square", 0.7);
     tocarTom(2700, 0.13, "square", 0.7, 0.19);
+    setTimeout(() => {
+        if(ctx.currentTime !== relogioAntes) return;
+        logSom("áudio principal travado: refeito, tocou o reserva");
+        audioMantenedor = null;
+        audioCtx = null;
+        try{ ctx.close(); }catch(e){}
+        try{ garantirMantenedorAudio(); }catch(e){}
+        usarReserva();
+    }, 120);
+}
+
+// flash verde em tela cheia com o peso: o aviso que não depende de som.
+// Não bloqueia toque nenhum (pointer-events: none no CSS).
+function mostrarConfirmacaoLancamento(pesoNum){
+    let el = document.getElementById("confirmacaoLancamento");
+    if(!el){
+        el = document.createElement("div");
+        el.id = "confirmacaoLancamento";
+        el.setAttribute("role", "status");
+        el.setAttribute("aria-live", "assertive");
+        el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg><b></b><span>LANÇADO</span><small hidden>SEM SOM: toque na tela e confira o volume</small>';
+        document.body.appendChild(el);
+    }
+    el.querySelector("b").textContent = formatarPeso(pesoNum) + " kg";
+    el.querySelector("small").hidden = true;
+    el.classList.remove("confirmacaoVisivel");
+    void el.offsetWidth; // reinicia a animação se dois pesos vierem seguidos
+    el.classList.add("confirmacaoVisivel");
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => el.classList.remove("confirmacaoVisivel"), 750);
+}
+
+function avisarSemSom(){
+    let el = document.getElementById("confirmacaoLancamento");
+    if(!el) return;
+    el.querySelector("small").hidden = false;
+    el.classList.add("confirmacaoVisivel");
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => el.classList.remove("confirmacaoVisivel"), 1800);
+}
+
+// "peso lançado": três avisos independentes -- um falhar não derruba os outros
+function bip(pesoNum){
+    try{ mostrarConfirmacaoLancamento(pesoNum); }catch(e){}
     try{ if(navigator.vibrate) navigator.vibrate([120, 70, 120]); }catch(e){}
+    try{ tocarSomLancamento(avisarSemSom); }catch(e){}
+}
+
+// "NÃO foi lançado": grave e diferente do bi-bip agudo
+function bipAlerta(){
+    tocarTom(520, 0.22, "square", 0.7);
+    tocarTom(520, 0.22, "square", 0.7, 0.3);
+    try{ if(navigator.vibrate) navigator.vibrate(350); }catch(e){}
 }
 
 // clique curto e mais agudo que o bip de "peso lançado" -- feedback sonoro
@@ -219,6 +377,8 @@ function trocarTela(id){
     if(typeof aoTrocarTelaConferencia === "function") aoTrocarTelaConferencia(id);
     document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa"));
     manterSaidaAudioAcordada(id === "telaPesagem");
+    // um toque só ao abrir: o som está ok. O bi-bip fica só pra "peso lançado"
+    if(id === "telaPesagem" && telaAnterior && telaAnterior.id !== "telaPesagem") tocarTom(2700, 0.13, "square", 0.7);
     let telaAlvo = document.getElementById(id);
     if(telaAlvo) {
         telaAlvo.classList.add("ativa");
@@ -968,6 +1128,7 @@ function adicionarPeso(){
     // com um a mais), então confirma antes de lançar em vez de bloquear
     // (pode ser um peso real de bezerro/animal fora do padrão)
     if(pesoNum < 100 || pesoNum > 999){
+        bipAlerta();
         pesoPendenteConfirmacao = pesoNum;
         acaoModalPendente = "peso_fora_padrao";
         document.getElementById("modalAcaoTitulo").innerText = "⚠️ Peso fora do padrão";
@@ -1015,6 +1176,7 @@ function efetivarLancamentoPeso(pesoNum){
         let indice = indiceCriterioPorPeso(pesoNum);
         if(indice < 0){
             let faixas = criteriosPesagem.map((c, i) => `Critério ${i + 1}: ${textoFaixaPeso(c.faixaPeso)}`).join("\n");
+            bipAlerta();
             alert(`Peso de ${formatarPeso(pesoNum)} kg não cabe em nenhuma faixa:\n${faixas}`);
             return;
         }
@@ -1030,8 +1192,8 @@ function efetivarLancamentoPeso(pesoNum){
     if(!item){ alert(`Peso de ${formatarPeso(pesoNum)} kg sem faixa de preço. Confira as faixas antes de lançar.`); return; }
     pesos.push(item);
 
+    bip(pesoNum); // antes de tudo: o peso já entrou, o aviso não pode depender do resto
     if(typeof registrarPesoLancadoBalanca === "function") registrarPesoLancadoBalanca(pesoNum);
-    bip();
     if(inputPeso) inputPeso.value = "";
     if(inputObs) inputObs.value = "";
 
