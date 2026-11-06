@@ -113,8 +113,8 @@ function restaurarPesagem(){
         }
         restaurarFaixaPesoCampos("", criterios[0].faixaPeso);
 
-        // reabre os blocos de Critério 2/3, se o rascunho tinha eles
-        [2, 3].forEach(n => {
+        // reabre os blocos dos critérios extras, se o rascunho tinha eles
+        (typeof NUMEROS_CRITERIOS_EXTRAS !== "undefined" ? NUMEROS_CRITERIOS_EXTRAS : [2, 3]).forEach(n => {
             let criterio = criterios[n - 1];
             if(!criterio || typeof mostrarCriterioExtra !== "function") return;
             mostrarCriterioExtra(n);

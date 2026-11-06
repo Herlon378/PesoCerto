@@ -367,6 +367,49 @@
                 <div class="faixaPesoLinha"><input id="pesoMin3" placeholder="De" inputmode="decimal"><span>até</span><input id="pesoMax3" placeholder="Até" inputmode="decimal"><span>kg</span></div>
             </div>
         </section>
+        <button class="btnAdicionarCriterio" id="btnAdicionarCriterio4" onclick="mostrarCriterioExtra(4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>Adicionar critério 4</span></button>
+    </div>
+
+    <div id="blocoCriterio4" style="display:none">
+        <section class="npCriterio">
+            <header class="npCriterioTopo"><span class="npCriterioNum">4</span><b class="criterioTitulo">Critério 4</b><button class="btnRemoverCriterio" onclick="removerCriterioExtra(4)" aria-label="Remover o Critério 4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path></svg>Remover</button></header>
+            <div class="npCampo">
+                <label class="npRotulo" for="descricao4">Lote</label>
+                <div class="npEntrada npEntradaSelect">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><circle cx="7" cy="7" r="1.3" fill="currentColor"></circle></svg>
+                    <select id="descricao4">
+                        <option value="">Sem lote</option>
+                    </select>
+                </div>
+            </div>
+            <div class="npCampo">
+                <span class="npRotulo">Cobrar por</span>
+                <div class="npSegmentos npTipo" data-alvo="tipoPesagem4" role="group" aria-label="Tipo de pesagem do Critério 4">
+                    <button type="button" data-valor="vivo" onclick="escolherSegmentoNovaPesagem('tipoPesagem4', 'vivo')">Kg</button>
+                    <button type="button" data-valor="arroba" onclick="escolherSegmentoNovaPesagem('tipoPesagem4', 'arroba')">Arroba</button>
+                    <button type="button" data-valor="valor_animal" onclick="escolherSegmentoNovaPesagem('tipoPesagem4', 'valor_animal')">Por animal</button>
+                </div>
+                <select id="tipoPesagem4" class="npOculto" onchange="alternarTipoPesagem('4')" aria-label="Tipo de pesagem do Critério 4">
+                    <option value="vivo">Peso Vivo (Kg)</option>
+                    <option value="arroba">Arroba (@)</option>
+                    <option value="valor_animal">Valor Fixo por Animal</option>
+                </select>
+            </div>
+            <div class="npLinha">
+                <div class="npCampo npCampoValor">
+                    <label class="npRotulo" for="valorKg4">Valor <span class="npUnidade" id="valorUnidade4">por kg</span></label>
+                    <input id="valorKg4" class="npValor" placeholder="R$ 0,00" inputmode="decimal" oninput="formatarValorKg(this)">
+                </div>
+                <div class="npCampo npCampoRend" id="campoRendimentoArroba4" style="display:none">
+                    <label class="npRotulo" for="rendimentoArroba4">Rendimento</label>
+                    <div class="npEntradaSufixo"><input id="rendimentoArroba4" placeholder="50" inputmode="decimal"><span>%</span></div>
+                </div>
+            </div>
+            <div class="npCampo campoFaixaPeso npFaixa">
+                <label class="npRotulo" for="pesoMin4">Faixa de peso <small>(opcional)</small></label>
+                <div class="faixaPesoLinha"><input id="pesoMin4" placeholder="De" inputmode="decimal"><span>até</span><input id="pesoMax4" placeholder="Até" inputmode="decimal"><span>kg</span></div>
+            </div>
+        </section>
     </div>
 
     <!-- rodapé fixo: Iniciar sempre à mão, sem rolar até o fim -->

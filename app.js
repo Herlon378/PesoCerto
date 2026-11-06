@@ -1,3 +1,9 @@
+// quantos critérios (grupos de animais com lote/preço próprios) uma mesma
+// pesagem pode ter -- cada um tem o bloco "blocoCriterioN" na Nova Pesagem
+const MAX_CRITERIOS_PESAGEM = 4;
+const SUFIXOS_CRITERIOS = ["", ...Array.from({ length: MAX_CRITERIOS_PESAGEM - 1 }, (_, i) => String(i + 2))];
+const NUMEROS_CRITERIOS_EXTRAS = SUFIXOS_CRITERIOS.slice(1).map(Number);
+
 // ========================================
 // VARIÁVEIS GLOBAIS
 // ========================================
@@ -399,9 +405,9 @@ function iniciarPesagem(){
         return;
     }
 
-    // mesma validação (valor + rendimento) pros Critérios 2/3, só se
+    // mesma validação (valor + rendimento) pros critérios extras, só se
     // o operador tiver aberto esses blocos
-    for(let n of [2, 3]){
+    for(let n of NUMEROS_CRITERIOS_EXTRAS){
         let bloco = document.getElementById("blocoCriterio" + n);
         if(!bloco || bloco.style.display === "none") continue;
         let vKgN = document.getElementById("valorKg" + n);
@@ -418,7 +424,7 @@ function iniciarPesagem(){
     }
 
     let tipoOperacaoEl = document.getElementById("tipoOperacao");
-    for(let n of ["", "2", "3"]){
+    for(let n of SUFIXOS_CRITERIOS){
         if(n !== ""){
             let bloco = document.getElementById("blocoCriterio" + n);
             if(!bloco || bloco.style.display === "none") continue;
@@ -429,7 +435,7 @@ function iniciarPesagem(){
         }
     }
 
-    let sufixosAbertos = ["", "2", "3"].filter(n => {
+    let sufixosAbertos = SUFIXOS_CRITERIOS.filter(n => {
         if(n === "") return true;
         let bloco = document.getElementById("blocoCriterio" + n);
         return bloco && bloco.style.display !== "none";
@@ -483,7 +489,7 @@ function venderComPesosDaCompra(){
     if(animais.length === 0){ alert("Essa compra foi lançada sem pesar (0 kg) — não tem pesos pra reaproveitar."); return; }
 
     resetarPesagemAtual(); // formulário limpo, já na Nova Pesagem
-    vendaDosPesosPendente = { animais, lotes: lotes.slice(0, 3), numero: r.numero, vendedor: r.vendedor || "" };
+    vendaDosPesosPendente = { animais, lotes: lotes.slice(0, MAX_CRITERIOS_PESAGEM), numero: r.numero, vendedor: r.vendedor || "" };
     let tipoEl = document.getElementById("tipoOperacao");
     if(tipoEl){ tipoEl.value = "venda"; alternarModoOperacao(); }
     carregarLotesSelect();
@@ -592,10 +598,10 @@ function atualizarTotalLancamentoRapido(){
 
 function abrirLancamentoRapido(){
     if(!lancamentoRapidoDisponivel()) return;
-    for(let n of [2, 3]){
+    for(let n of NUMEROS_CRITERIOS_EXTRAS){
         let bloco = document.getElementById("blocoCriterio" + n);
         if(bloco && bloco.style.display !== "none"){
-            alert("O lançamento sem pesar funciona com um critério só. Remova o Critério 2/3 ou use Iniciar Pesagem.");
+            alert("O lançamento sem pesar funciona com um critério só. Remova os outros critérios ou use Iniciar Pesagem.");
             return;
         }
     }
@@ -1354,11 +1360,11 @@ function montarCriteriosPesagem(){
     let anteriores = criteriosPesagem;
     criteriosPesagem = [];
     let indice = 0;
-    for(let n of ["", "2", "3"]){
+    for(let n of SUFIXOS_CRITERIOS){
         let tipoEl = document.getElementById("tipoPesagem" + n);
         let valorEl = document.getElementById("valorKg" + n);
         if(!tipoEl || !valorEl) continue;
-        // Critério 1 sempre entra; 2/3 só se o bloco estiver visível (foi aberto)
+        // Critério 1 sempre entra; os outros só se o bloco estiver visível (foi aberto)
         if(n !== ""){
             let bloco = document.getElementById("blocoCriterio" + n);
             if(!bloco || bloco.style.display === "none") continue;
@@ -1393,7 +1399,7 @@ function atualizarBotoesCriteriosPesagem(){
     linha.style.display = "grid";
     linha.innerHTML = criteriosPesagem.map((c, i) => `
         <button class="criterioBtn${i === criterioAtivoIndex ? " criterioBtnAtivo" : ""}" onclick="trocarCriterioAtivo(${i})">
-            <span class="criterioBtnLabel">Critério ${i + 1}${c.faixaPeso ? " · " + textoFaixaPeso(c.faixaPeso) : ""}</span>
+            <span class="criterioBtnLabel">${criteriosPesagem.length >= 4 ? (i + 1) + "º" : "Critério " + (i + 1)}${c.faixaPeso ? " · " + textoFaixaPeso(c.faixaPeso) : ""}</span>
             <span class="criterioBtnValor">${rotuloCriterio(c, i)}</span>
         </button>
     `).join("");
@@ -1435,16 +1441,21 @@ function mostrarCriterioExtra(n){
     // deixa o botão "+ Adicionar Critério 3" em display:none pra fechar o 3
     // junto), reabrir o Critério 2 nunca devolvia esse botão, então só dava
     // pra configurar 2 critérios, nunca 3
-    if(n === 2){
-        let bloco3 = document.getElementById("blocoCriterio3");
-        let btn3 = document.getElementById("btnAdicionarCriterio3");
-        if(btn3 && (!bloco3 || bloco3.style.display !== "block")) btn3.style.display = "";
+    if(n < MAX_CRITERIOS_PESAGEM){
+        let blocoSeguinte = document.getElementById("blocoCriterio" + (n + 1));
+        let btnSeguinte = document.getElementById("btnAdicionarCriterio" + (n + 1));
+        if(btnSeguinte && (!blocoSeguinte || blocoSeguinte.style.display !== "block")) btnSeguinte.style.display = "";
     }
     carregarLotesSelect();
     sincronizarSegmentosNovaPesagem();
 }
 
 function removerCriterioExtra(n){
+    // os critérios depois deste moram dentro do bloco dele -- saem junto
+    for(let k = MAX_CRITERIOS_PESAGEM; k > n; k--){
+        let blocoK = document.getElementById("blocoCriterio" + k);
+        if(blocoK && blocoK.style.display !== "none") removerCriterioExtra(k);
+    }
     let bloco = document.getElementById("blocoCriterio" + n);
     if(bloco) bloco.style.display = "none";
     ["tipoPesagem", "rendimentoArroba", "valorKg", "descricao", "pesoMin", "pesoMax"].forEach(base => {
@@ -1453,13 +1464,8 @@ function removerCriterioExtra(n){
     });
     let campoRend = document.getElementById("campoRendimentoArroba" + n);
     if(campoRend) campoRend.style.display = "none";
-    // Critério 3 mora dentro do bloco do Critério 2 -- remover o 2 leva o 3 junto
-    if(n === 2){
-        let bloco3 = document.getElementById("blocoCriterio3");
-        if(bloco3) bloco3.style.display = "none";
-        let btn3 = document.getElementById("btnAdicionarCriterio3");
-        if(btn3) btn3.style.display = "none";
-    }
+    let btnSeguinte = document.getElementById("btnAdicionarCriterio" + (n + 1));
+    if(btnSeguinte) btnSeguinte.style.display = "none";
     let botaoAdicionar = document.getElementById("btnAdicionarCriterio" + n);
     if(botaoAdicionar) botaoAdicionar.style.display = "";
     // volta o "Cobrar por" pra Kg (botões e unidade do valor)
@@ -1473,8 +1479,7 @@ function removerCriterioExtra(n){
 // mesmo sem o operador pedir. Chamado ao entrar em Nova Pesagem e depois
 // de cancelar/finalizar, pra garantir sempre um estado limpo.
 function fecharCriteriosExtras(){
-    removerCriterioExtra(3);
-    removerCriterioExtra(2);
+    removerCriterioExtra(2); // leva junto o 3 e o 4
 }
 
 function mostrarRelatorios(){
@@ -3569,7 +3574,7 @@ function carregarLotesSelect(){
         }).join("");
     // preenche o select do Critério 1 e também os dos Critérios 2/3 (só
     // existem no DOM se o operador tiver aberto esses blocos extras)
-    ["descricao", "descricao2", "descricao3"].forEach(id => {
+    SUFIXOS_CRITERIOS.map(n => "descricao" + n).forEach(id => {
         let select = document.getElementById(id);
         if(!select) return;
         let valorAtual = select.value;
