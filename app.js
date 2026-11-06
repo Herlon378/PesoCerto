@@ -171,7 +171,7 @@ function avisoRapidoTela(texto){
         el = document.createElement("div");
         el.id = "avisoRapidoTela";
         el.setAttribute("role", "status");
-        el.style.cssText = "position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483002;max-width:88vw;padding:12px 16px;border-radius:12px;font:600 14px/1.35 system-ui,sans-serif;color:#fff;background:#1e293b;border:1px solid rgba(255,255,255,0.18);box-shadow:0 10px 24px rgba(0,0,0,.45);text-align:center;transition:opacity .3s";
+        el.style.cssText = "position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483002;max-width:88vw;padding:12px 16px;border-radius:12px;font:600 14px/1.35 system-ui,sans-serif;color:#fff;background:#1e293b;border:1px solid rgba(255,255,255,0.18);box-shadow:0 10px 24px rgba(0,0,0,.45);text-align:center;transition:opacity .3s;pointer-events:none";
         document.body.appendChild(el);
     }
     el.textContent = texto;
@@ -216,6 +216,7 @@ window.addEventListener("popstate", e => {
 function trocarTela(id){
     let telaAnterior = document.querySelector(".tela.ativa");
     registrarTelaNoHistorico(id, telaAnterior ? telaAnterior.id : null);
+    if(typeof aoTrocarTelaConferencia === "function") aoTrocarTelaConferencia(id);
     document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa"));
     manterSaidaAudioAcordada(id === "telaPesagem");
     let telaAlvo = document.getElementById(id);
@@ -840,6 +841,8 @@ function preencherSugestoesNomes(){
 function resetarPesagemAtual() {
     // cancela a sessão INTEIRA -- todos os critérios, não só o ativo
     if(typeof cancelarVendaDosPesos === "function") cancelarVendaDosPesos();
+    let eraConferencia = typeof conferenciaEmAndamento === "function" && conferenciaEmAndamento();
+    if(eraConferencia) descartarConferencia();
     criteriosPesagem = [];
     criterioAtivoIndex = 0;
     pesos = [];
@@ -881,6 +884,7 @@ function resetarPesagemAtual() {
 
     localStorage.removeItem("pesagemAtual");
     atualizarStats();
+    if(eraConferencia){ abrirRelatorios(); return; }
     trocarTela("telaInicial");
 }
 
@@ -907,8 +911,11 @@ function solicitarCancelarPesagem(){
 
 function solicitarFinalizarPesagem(){
     acaoModalPendente = "finalizar";
-    document.getElementById("modalAcaoTitulo").innerText = "✅ Finalizar Pesagem";
-    document.getElementById("modalAcaoTexto").innerText = "Tem certeza que deseja finalizar esta pesagem?";
+    let conferindo = typeof conferenciaEmAndamento === "function" && conferenciaEmAndamento();
+    document.getElementById("modalAcaoTitulo").innerText = conferindo ? "Finalizar conferência" : "✅ Finalizar Pesagem";
+    document.getElementById("modalAcaoTexto").innerText = conferindo
+        ? "Salvar a conferência? Ela fica guardada dentro da compra e não altera nada no sistema."
+        : "Tem certeza que deseja finalizar esta pesagem?";
     document.getElementById("linhaCheckboxCiente").style.display = "none";
     document.getElementById("modalConfirmarAcao").style.display = "flex";
 }
@@ -1108,6 +1115,8 @@ function finalizarTransferenciaPesada(){
 }
 
 function finalizarPesagem(){
+    // conferência de peso NUNCA vira pesagem: tem registro próprio (conferencia.js)
+    if(typeof conferenciaEmAndamento === "function" && conferenciaEmAndamento()){ finalizarConferencia(); return; }
     if(ehModoTransferencia()){ finalizarTransferenciaPesada(); return; }
     // garante que o array do critério ativo está com o `pesos` mais recente
     // antes de checar/salvar (já é a mesma referência, isso é só defensivo)
@@ -1419,6 +1428,7 @@ function atualizarStats(){
     if(containerLista) containerLista.innerHTML = listaHTML;
 
     if(typeof atualizarBotoesCriteriosPesagem === "function") atualizarBotoesCriteriosPesagem();
+    if(typeof atualizarFaixaConferencia === "function") atualizarFaixaConferencia();
 }
 
 // ========================================
@@ -1646,6 +1656,7 @@ function mostrarRelatorios(){
                         ${primeiro.criadoPor ? `<b>Lançado por:</b> ${escaparHtmlPesagem(primeiro.criadoPor)}<br>` : ""}
                         <b>Animais:</b> ${totalAnimais} | <b>Total:</b> ${formatarPeso(totalKgGrupo)} kg
                         <span class="valorTotalRelatorio ${tipo === "compra" ? "valorTotalCompra" : "valorTotalVenda"}"><span>${multiplos ? "Total geral" : "Valor total"}</span><b>R$ ${formatarMoeda(valorTotalGrupo)}</b></span>
+                        ${typeof seloConferenciaCartao === "function" ? seloConferenciaCartao(primeiro) : ""}
                     </div>
                 </label>
             </div>
@@ -1670,6 +1681,7 @@ function mostrarRelatorios(){
 function atualizarSelecaoRelatorio() {
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     document.querySelectorAll(".cardRelatorio").forEach(card => card.classList.toggle("cardRelatorioSelecionado", !!sel && card.contains(sel)));
+    if(typeof atualizarBotaoConferencia === "function") atualizarBotaoConferencia(sel ? relatorios[sel.value] : null);
     // celular: "Vender usando estes pesos" só aparece com uma compra pesada selecionada
     let btnVender = document.getElementById("btnVenderPesosCompra");
     if(btnVender){
@@ -2609,24 +2621,26 @@ async function gerarPDF() {
     let r = relatorios[parseInt(sel.value)];
     if(!r || !r.pesos){ alert("Erro ao ler os dados do relatório selecionado."); return; }
     try {
-        let pdf = montarPdfRelatorio(r);
-        let nomeArquivo = nomeArquivoPesagem(r, "pdf");
-        // iPhone/iPad: o "baixar" de site não funciona bem (principalmente com
-        // o app instalado) -- abre o Compartilhar do sistema, que tem
-        // "Salvar em Arquivos", WhatsApp, e-mail...
-        let ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-        if(ehIOS && navigator.canShare){
-            let arquivo = new File([pdf.output("blob")], nomeArquivo, { type: "application/pdf" });
-            if(navigator.canShare({ files: [arquivo] })){
-                try { await navigator.share({ files: [arquivo], title: "Relatório de pesagem" }); }
-                catch(e){ if(e && e.name !== "AbortError") throw e; }
-                return;
-            }
-        }
-        pdf.save(nomeArquivo);
+        await entregarPdf(montarPdfRelatorio(r), nomeArquivoPesagem(r, "pdf"));
     } catch (e) {
         alert("Ocorreu um erro ao gerar o PDF: " + e.message);
     }
+}
+
+// iPhone/iPad: o "baixar" de site não funciona bem (principalmente com o app
+// instalado) -- abre o Compartilhar do sistema, que tem "Salvar em Arquivos",
+// WhatsApp, e-mail...
+async function entregarPdf(pdf, nomeArquivo){
+    let ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if(ehIOS && navigator.canShare){
+        let arquivo = new File([pdf.output("blob")], nomeArquivo, { type: "application/pdf" });
+        if(navigator.canShare({ files: [arquivo] })){
+            try { await navigator.share({ files: [arquivo], title: "Relatório de pesagem" }); }
+            catch(e){ if(e && e.name !== "AbortError") throw e; }
+            return;
+        }
+    }
+    pdf.save(nomeArquivo);
 }
 
 function nomeArquivoPesagem(r, extensao){
@@ -2816,7 +2830,7 @@ function prepararImpressao(){
     if(folha) folha.innerHTML = html;
     // a mesma tela também imprime o extrato do Fluxo de Caixa (computador)
     let telaImp = document.getElementById("telaImpressao");
-    if(telaImp) telaImp.classList.remove("modoExtrato");
+    if(telaImp) telaImp.classList.remove("modoExtrato", "modoConferencia");
     let voltarTexto = document.getElementById("impressaoVoltarTexto");
     if(voltarTexto) voltarTexto.innerText = "Voltar aos relatórios";
     registrosImpressaoAtual = registros;
@@ -3236,7 +3250,7 @@ function limparDadosVisiveis(){
 // guardado de qual fazenda são os dados locais (pesagens, rascunho, caches)
 // -- se alguém entrar com o login de OUTRA fazenda neste aparelho, esses
 // dados são apagados antes, senão sincronizariam na fazenda errada.
-const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "transferenciasPendentes", "despesasFretePendentes", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache"];
+const CHAVES_DADOS_FAZENDA = ["pesagens", "pesagemAtual", "transferenciasPendentes", "despesasFretePendentes", "exclusoesPendentes", "estoqueSaidas", "nascimentos", "vacasMatriz", "lotesCache", "produtosCache", "pastosCache", "conferencias", "conferenciaAtual", "conferenciasExclusoes"];
 
 // "<schema>:<aleatório>"; token sem ":" é de antes do multi-fazenda, e todos
 // eram da fazenda original
@@ -3258,7 +3272,7 @@ function ehDonoSistemaLocal(){
 
 function contarPendentesLocais(){
     let total = 0;
-    ["pesagens", "estoqueSaidas", "nascimentos", "vacasMatriz"].forEach(chave => {
+    ["pesagens", "estoqueSaidas", "nascimentos", "vacasMatriz", "conferencias"].forEach(chave => {
         try{
             let lista = JSON.parse(localStorage.getItem(chave) || "[]");
             if(Array.isArray(lista)) total += lista.filter(item => item && !item.sincronizado).length;
@@ -3268,6 +3282,7 @@ function contarPendentesLocais(){
     try{ total += (JSON.parse(localStorage.getItem("transferenciasPendentes") || "[]") || []).length; }catch(e){}
     try{ total += (JSON.parse(localStorage.getItem("despesasFretePendentes") || "[]") || []).length; }catch(e){}
     if(localStorage.getItem("pesagemAtual")) total += 1;
+    if(localStorage.getItem("conferenciaAtual")) total += 1;
     return total;
 }
 
@@ -4175,6 +4190,8 @@ async function sincronizarUmaVez(){
         // exclusões feitas DURANTE a sincronização também valem
         let exclusoesAgora = JSON.parse(localStorage.getItem("exclusoesPendentes") || "[]");
         relatorios = mesclarComServidor("pesagens", doServidor, exclusoesAgora);
+        // conferências de peso: fila própria, nunca derruba a sincronização
+        if(typeof sincronizarConferencias === "function") await sincronizarConferencias(token);
 
         let telaResultado = document.getElementById("telaResultado");
         if(telaResultado && telaResultado.classList.contains("ativa")){
@@ -4268,6 +4285,7 @@ window.onload = function() {
 
     if(obterToken()){
         irParaTelaPrincipal();
+        if(typeof retomarConferenciaSeHouver === "function") retomarConferenciaSeHouver();
     } else {
         mostrarTelaLogin();
     }

@@ -2,6 +2,8 @@
 // BANCO DE DADOS DE SALVAMENTO DEFINITIVO
 // ========================================
 function salvarPesagem(){
+    // segunda trava: conferência de peso jamais grava em "pesagens"
+    if(typeof conferenciaEmAndamento === "function" && conferenciaEmAndamento()) return;
     let vendedor = document.getElementById("nomeVendedor").value;
     let descricao = document.getElementById("descricao").value;
     let valorKg = document.getElementById("valorKg").value;
@@ -43,6 +45,9 @@ function salvarPesagem(){
    senão uma queda do app no meio de uma pesagem com Critério 2/3 abertos
    perderia os pesos já lançados nos outros critérios */
 function salvarPesagemAuto(){
+    // conferência tem rascunho próprio: restaurar ela como pesagem normal
+    // transformaria a repesagem numa compra de verdade
+    if(typeof conferenciaEmAndamento === "function" && conferenciaEmAndamento()){ salvarRascunhoConferencia(); return; }
     let vendedor = document.getElementById("nomeVendedor").value;
     let tipoEl = document.getElementById("tipoOperacao");
 

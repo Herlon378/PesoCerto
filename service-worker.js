@@ -1,4 +1,4 @@
-const CACHE_NAME = "pesagem-gado-v194";
+const CACHE_NAME = "pesagem-gado-v195";
 
 const urlsToCache = [
 "./",
@@ -10,6 +10,7 @@ const urlsToCache = [
 "manifest-admin.json",
 "instalar.js",
 "avisos.js",
+"conferencia.js",
 "icon-admin-192.png",
 "icon-admin-512.png",
 "icon-admin-180.png",

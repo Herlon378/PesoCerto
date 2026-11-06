@@ -4350,6 +4350,7 @@ function imprimirExtratoCaixa() {
         </footer>`;
 
     document.getElementById("folhaRelatorio").innerHTML = html;
+    document.getElementById("telaImpressao").classList.remove("modoConferencia");
     document.getElementById("telaImpressao").classList.add("modoExtrato");
     let titulo = document.getElementById("impressaoTitulo");
     if (titulo) titulo.innerText = "Extrato de caixa · " + (nomeCaixa ? nomeCaixa + " · " : "") + periodo;

@@ -828,6 +828,7 @@
 </div>
 
 <div id="telaPesagem" class="tela">
+    <div class="faixaConferencia" id="faixaConferencia" hidden><b>CONFERÊNCIA</b><span id="faixaConferenciaTexto"></span></div>
     <div class="sliderConfirm sliderConfirmTopo">
         <div class="sliderTrack" id="sliderTrack">
             <span class="sliderLabelEsquerda"><b>✕</b> Cancelar</span>
@@ -914,11 +915,18 @@
         </button>
     </div>
 
-    <button id="btnVenderPesosCompra" class="botaoVenderPesos" onclick="venderComPesosDaCompra()" hidden>
-        <span class="botaoVenderPesosIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
-        <span class="botaoVenderPesosTexto"><b>Vender usando estes pesos</b><small id="btnVenderPesosCompraDetalhe"></small></span>
-        <svg class="botaoVenderPesosSeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
-    </button>
+    <div class="acoesCompraLinha">
+        <button id="btnVenderPesosCompra" class="botaoVenderPesos" onclick="venderComPesosDaCompra()" hidden>
+            <span class="botaoVenderPesosIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3"></path><path d="M20 17H7l3 3"></path></svg></span>
+            <span class="botaoVenderPesosTexto"><b>Vender usando estes pesos</b><small id="btnVenderPesosCompraDetalhe"></small></span>
+            <svg class="botaoVenderPesosSeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button id="btnConferirPeso" class="botaoConferirPeso" onclick="conferirPesoDaCompra()" hidden>
+            <span class="botaoVenderPesosIcone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><path d="M5 7h14"></path><path d="M5 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M19 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M8 21h8"></path></svg></span>
+            <span class="botaoVenderPesosTexto"><b id="btnConferirPesoTitulo">Conferir peso</b><small id="btnConferirPesoDetalhe"></small></span>
+            <svg class="botaoVenderPesosSeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+    </div>
 
     <div id="relatorio">
         <div id="listaRelatorios"></div>
@@ -1128,6 +1136,7 @@
 <script src="lib/zxing-browser.min.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+<script src="conferencia.js"></script>
 <script src="avisos.js" defer></script>
 <script src="instalar.js" data-nome="PesoCerto" data-icone="icon-192.png" data-chave="curral" defer></script>
 

@@ -2625,3 +2625,48 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
 .valorTotalCompra { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.35); }
 .valorTotalCompra span { color: #fde68a; }
 .infoRelatorio .valorTotalCompra b { color: #fbbf24; }
+
+/* ========================================
+   CONFERÊNCIA DE PESO (ver conferencia.js)
+   ======================================== */
+.botaoConferirPeso {
+    display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 12px; padding: 12px 14px; border-radius: 16px; cursor: pointer; flex-shrink: 0;
+    text-align: left; font: inherit; color: #fff; border: 1px solid rgba(96,165,250,0.45);
+    background: linear-gradient(135deg, rgba(37,99,235,0.35), rgba(30,64,175,0.2));
+}
+.botaoConferirPeso[hidden] { display: none; }
+.botaoConferirPeso:active { transform: scale(0.98); }
+.botaoConferirPeso .botaoVenderPesosIcone { color: #93c5fd; background: rgba(96,165,250,0.16); }
+.botaoConferirPeso .botaoVenderPesosTexto small { color: #bfdbfe; }
+.botaoConferirPeso .botaoVenderPesosSeta { color: #93c5fd; }
+.seloConferencia {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin: 6px 0 0; padding: 8px 12px; border-radius: 10px; cursor: pointer;
+    font: inherit; line-height: 1.2; text-align: left; color: #bfdbfe; background: rgba(59,130,246,0.12); border: 1px solid rgba(96,165,250,0.35); box-shadow: none;
+}
+.seloConferencia span { font-size: 12.5px; font-weight: 700; }
+.infoRelatorio .seloConferencia b { font-size: 14px; font-weight: 800; color: #fff; white-space: nowrap; }
+.faixaConferencia { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 5px 10px; border-radius: 10px; font-size: 12px; color: #dbeafe; background: rgba(37,99,235,0.3); border: 1px solid rgba(96,165,250,0.5); flex-shrink: 0; }
+.faixaConferencia[hidden] { display: none; }
+.faixaConferencia b { font-size: 11px; letter-spacing: 0.5px; color: #fff; }
+.faixaConferencia span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folhaSeloConferencia { color: #1d4ed8 !important; border-color: #60a5fa; background: #eef5ff; }
+.folhaConferenciaNota { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; color: #1e40af !important; background: #eef5ff; }
+.folhaConferenciaAviso { margin: 4px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; color: #92400e !important; background: #fff7e6; }
+.folhaQuadroPerda { background: #fef2f2; border-color: #f87171; }
+.folhaQuadroPerda b { color: #b91c1c !important; font-size: 18px; }
+.acoesConferencia { display: none; gap: 8px; width: 100%; max-width: 900px; margin: 6px auto; box-sizing: border-box; }
+#telaImpressao.modoConferencia .acoesConferencia { display: flex; }
+#telaImpressao.modoConferencia .acaoWhats { display: none; }
+.acoesConferencia button { flex: 1; width: auto; height: 46px; margin: 0; border-radius: 12px; cursor: pointer; font: inherit; font-size: 15px; font-weight: 800; color: #fff; background: #1d4ed8; border: none; box-shadow: none; }
+.acoesConferencia .acoesConferenciaExcluir { color: #ff8a83; background: transparent; border: 1px solid rgba(229,83,75,0.5); }
+@media print { .acoesConferencia, #telaImpressao.modoConferencia .acoesConferencia { display: none !important; } }
+
+/* Relatórios: Vender e Conferir lado a lado, pra não comer a altura da lista */
+.acoesCompraLinha { display: flex; gap: 8px; flex-shrink: 0; }
+.acoesCompraLinha > button { flex: 1 1 0; min-width: 0; margin: 0 0 12px; padding: 10px; gap: 8px; }
+.acoesCompraLinha .botaoVenderPesosIcone { width: 34px; height: 34px; border-radius: 10px; }
+.acoesCompraLinha .botaoVenderPesosIcone svg { width: 18px; height: 18px; }
+.acoesCompraLinha .botaoVenderPesosTexto b { font-size: 13.5px; line-height: 1.2; }
+.acoesCompraLinha .botaoVenderPesosTexto small { font-size: 11.5px; }
+.acoesCompraLinha .botaoVenderPesosSeta { display: none; }
+@media (max-height: 700px) { .faixaConferencia { margin: 0 0 3px; padding: 2px 8px; font-size: 11px; } }
