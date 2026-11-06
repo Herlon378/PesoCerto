@@ -2595,3 +2595,9 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
     .npOperacao button svg { display: none; }
     input.npValor { font-size: 23px; }
 }
+
+/* Nova Pesagem: o rodapé com "Iniciar Pesagem" gruda no fundo da tela. Com
+   100vh o celular conta a altura SEM a barra do navegador, então o fundo
+   ficava atrás da barra e o botão sumia. 100dvh = só a parte visível
+   (navegador antigo sem dvh fica no 100vh de antes). */
+#telaInicial { height: 100vh; height: 100dvh; }
