@@ -2612,3 +2612,16 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
    ficava atrás da barra e o botão sumia. 100dvh = só a parte visível
    (navegador antigo sem dvh fica no 100vh de antes). */
 #telaInicial { height: 100vh; height: 100dvh; }
+
+/* Relatórios: valor total já no cartão, antes de abrir o relatório --
+   verde na venda (entra), amarelo na compra (sai) */
+.infoRelatorio { flex: 1; min-width: 0; }
+.valorTotalRelatorio { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 8px 12px; border-radius: 10px; line-height: 1.2; }
+.valorTotalRelatorio span { font-size: 12.5px; font-weight: 700; letter-spacing: 0.2px; }
+.infoRelatorio .valorTotalRelatorio b { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.valorTotalVenda { background: rgba(34,197,94,0.12); border: 1px solid rgba(74,222,128,0.35); }
+.valorTotalVenda span { color: #86efac; }
+.infoRelatorio .valorTotalVenda b { color: #4ade80; }
+.valorTotalCompra { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.35); }
+.valorTotalCompra span { color: #fde68a; }
+.infoRelatorio .valorTotalCompra b { color: #fbbf24; }

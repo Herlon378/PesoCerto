@@ -1620,6 +1620,9 @@ function mostrarRelatorios(){
 
         let totalAnimais = grupo.reduce((s, item) => s + (item.r.pesos ? item.r.pesos.length : 0), 0);
         let totalKgGrupo = grupo.reduce((s, item) => s + (item.r.pesos ? item.r.pesos.reduce((a, b) => a + (b.peso || 0), 0) : 0), 0);
+        // valor total já no cartão (mesma conta do relatório); vários lotes
+        // da mesma sessão somam, igual ao "total geral" do relatório
+        let valorTotalGrupo = grupo.reduce((s, item) => s + (calcularDadosCompletos(item.r).totalRS || 0), 0);
         let tipo = primeiro.tipo || "venda";
         let tagTipo = tipo === "compra"
             ? `<span class="tagTipo tagTipoCompra">COMPRA</span>`
@@ -1642,6 +1645,7 @@ function mostrarRelatorios(){
                         <b>Data:</b> ${escaparHtmlPesagem(primeiro.data || "Sem data")}<br>
                         ${primeiro.criadoPor ? `<b>Lançado por:</b> ${escaparHtmlPesagem(primeiro.criadoPor)}<br>` : ""}
                         <b>Animais:</b> ${totalAnimais} | <b>Total:</b> ${formatarPeso(totalKgGrupo)} kg
+                        <span class="valorTotalRelatorio ${tipo === "compra" ? "valorTotalCompra" : "valorTotalVenda"}"><span>${multiplos ? "Total geral" : "Valor total"}</span><b>R$ ${formatarMoeda(valorTotalGrupo)}</b></span>
                     </div>
                 </label>
             </div>
