@@ -29,8 +29,8 @@ let indicePesoParaExcluir = null;
 // vibração junto, pra quando o barulho do curral cobrir o som.
 // Mesmo assim ainda falhava às vezes: o som dependia de um caminho só e, com
 // o áudio suspenso, sumia calado (ou saía atrasado, no toque seguinte). Agora
-// lançar um peso avisa por três caminhos independentes: flash verde na tela,
-// vibração e som -- com um segundo caminho de áudio de reserva e aviso de
+// lançar um peso avisa por três caminhos independentes: verde na tela (só o
+// display no manual, tela cheia na balança), vibração e som -- com um segundo caminho de áudio de reserva e aviso de
 // "SEM SOM" na tela quando os dois falham.
 function obterAudioCtx(){
     if(!audioCtx || audioCtx.state === "closed"){
@@ -227,8 +227,9 @@ function tocarSomLancamento(aoFalhar){
     }, 120);
 }
 
-// flash verde em tela cheia com o peso: o aviso que não depende de som.
-// Não bloqueia toque nenhum (pointer-events: none no CSS).
+// balança (ninguém olhando de perto): flash verde em tela cheia com o peso,
+// o aviso que não depende de som. Não bloqueia toque (pointer-events: none).
+const TEMPO_FLASH_MS = 1600, TEMPO_FLASH_SEM_SOM_MS = 2800;
 function mostrarConfirmacaoLancamento(pesoNum){
     let el = document.getElementById("confirmacaoLancamento");
     if(!el){
@@ -241,25 +242,45 @@ function mostrarConfirmacaoLancamento(pesoNum){
     }
     el.querySelector("b").textContent = formatarPeso(pesoNum) + " kg";
     el.querySelector("small").hidden = true;
-    el.classList.remove("confirmacaoVisivel");
+    el.classList.remove("confirmacaoVisivel", "confirmacaoLonga");
     void el.offsetWidth; // reinicia a animação se dois pesos vierem seguidos
     el.classList.add("confirmacaoVisivel");
     clearTimeout(el._timer);
-    el._timer = setTimeout(() => el.classList.remove("confirmacaoVisivel"), 750);
+    el._timer = setTimeout(() => el.classList.remove("confirmacaoVisivel"), TEMPO_FLASH_MS);
 }
 
+// lançamento manual (o operador está olhando a tela): pisca só o display
+function piscarDisplayPeso(){
+    let card = document.querySelector(".pesoAtualCard");
+    if(!card) return;
+    card.classList.remove("pesoLancado");
+    void card.offsetWidth;
+    card.classList.add("pesoLancado");
+    clearTimeout(card._timer);
+    card._timer = setTimeout(() => card.classList.remove("pesoLancado"), 800);
+}
+
+let ultimoLancamentoFoiAutomatico = false;
 function avisarSemSom(){
+    const texto = "SEM SOM: toque na tela e confira o volume";
     let el = document.getElementById("confirmacaoLancamento");
-    if(!el) return;
+    if(!ultimoLancamentoFoiAutomatico || !el){ avisoRapidoTela(texto); return; }
     el.querySelector("small").hidden = false;
-    el.classList.add("confirmacaoVisivel");
+    // reinicia com a animação longa, senão ela apagava antes de dar pra ler
+    el.classList.remove("confirmacaoVisivel");
+    void el.offsetWidth;
+    el.classList.add("confirmacaoVisivel", "confirmacaoLonga");
     clearTimeout(el._timer);
-    el._timer = setTimeout(() => el.classList.remove("confirmacaoVisivel"), 1800);
+    el._timer = setTimeout(() => el.classList.remove("confirmacaoVisivel", "confirmacaoLonga"), TEMPO_FLASH_SEM_SOM_MS);
 }
 
 // "peso lançado": três avisos independentes -- um falhar não derruba os outros
 function bip(pesoNum){
-    try{ mostrarConfirmacaoLancamento(pesoNum); }catch(e){}
+    ultimoLancamentoFoiAutomatico = balancaLancamentoAutomaticoEmCurso;
+    try{
+        if(ultimoLancamentoFoiAutomatico) mostrarConfirmacaoLancamento(pesoNum);
+        else piscarDisplayPeso();
+    }catch(e){}
     try{ if(navigator.vibrate) navigator.vibrate([120, 70, 120]); }catch(e){}
     try{ tocarSomLancamento(avisarSemSom); }catch(e){}
 }
