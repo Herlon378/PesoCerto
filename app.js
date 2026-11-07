@@ -372,6 +372,8 @@ window.addEventListener("popstate", e => {
         ficar();
         // "Teve despesa com frete?" precisa de resposta -- o voltar não responde por ela
         if(modal.id === "modalFrete") return;
+        // "Pesagem em andamento": o voltar só fecha, nunca responde "apagar"
+        if(modal.id === "modalPesagemAndamento"){ fecharPesagemAndamento(); return; }
         let cancelar = modal.querySelector(".btn-nao") || Array.from(modal.querySelectorAll("button")).find(b => /^\s*(cancelar|fechar|não)\s*$/i.test(b.textContent));
         if(cancelar) cancelar.click();
         return;
@@ -1070,6 +1072,67 @@ function resetarPesagemAtual() {
 }
 
 // ========================================
+// PESAGEM EM ANDAMENTO (Nova Pesagem do Menu)
+// ========================================
+// App fechado no meio de uma pesagem: restaurarPesagem() já trouxe os
+// critérios e os pesos pra memória. Em vez de abrir o formulário (e os pesos
+// aparecerem do nada depois do Iniciar), pergunta se continua ou apaga.
+function pesosEmAndamento(){
+    if(!criteriosPesagem.length) return pesos;
+    return criteriosPesagem.reduce((todos, c) => todos.concat(c.pesos || []), []);
+}
+
+function abrirNovaPesagem(){
+    let animais = pesosEmAndamento();
+    if(animais.length === 0){
+        trocarTela("telaInicial");
+        fecharCriteriosExtras();
+        return;
+    }
+    let totalKg = animais.reduce((soma, p) => soma + (Number(p.peso) || 0), 0);
+    let textoAnimais = animais.length === 1 ? "1 animal" : animais.length + " animais";
+    let tipo = (document.getElementById("tipoOperacao") || {}).value || "venda";
+    let quem;
+    if(tipo === "transferencia"){
+        let origem = (criteriosPesagem[0] || {}).descricao || "";
+        quem = "Transferência: " + origem + " para " + document.getElementById("loteDestinoTransf").value;
+    } else {
+        quem = (tipo === "compra" ? "Compra" : "Venda") + ": " + (document.getElementById("nomeVendedor").value.trim() || "sem nome");
+    }
+    document.getElementById("pesagemAndamentoQuem").textContent = quem;
+    document.getElementById("pesagemAndamentoTotais").textContent = textoAnimais + " · " + formatarPeso(totalKg) + " kg"
+        + (criteriosPesagem.length > 1 ? " · " + criteriosPesagem.length + " critérios" : "");
+    document.getElementById("pesagemAndamentoPerda").textContent =
+        (animais.length === 1 ? "O animal lançado será apagado" : "Os " + textoAnimais + " lançados serão apagados") + ". Não tem como desfazer.";
+    mostrarApagarPesagemAndamento(false);
+    document.getElementById("modalPesagemAndamento").style.display = "flex";
+}
+
+// Apagar é em 2 passos, e o "Sim, apagar" fica no lado oposto do "Apagar":
+// um toque duplo sem querer nunca acerta o "Sim, apagar"
+function mostrarApagarPesagemAndamento(mostrar){
+    document.getElementById("pesagemAndamentoPergunta").hidden = mostrar;
+    document.getElementById("pesagemAndamentoApagar").hidden = !mostrar;
+}
+
+function fecharPesagemAndamento(){
+    document.getElementById("modalPesagemAndamento").style.display = "none";
+}
+
+// não passa por iniciarPesagem/montarCriteriosPesagem: os critérios já estão
+// na memória, e os campos do formulário só têm os do critério aberto
+function continuarPesagemAndamento(){
+    fecharPesagemAndamento();
+    trocarCriterioAtivo(criterioAtivoIndex);
+    abrirTelaPesagemOuBalanca();
+}
+
+function apagarPesagemAndamento(){
+    fecharPesagemAndamento();
+    resetarPesagemAtual(); // já termina na Nova Pesagem limpa
+}
+
+// ========================================
 // MODAL CANCELAR / FINALIZAR PESAGEM (ARRASTE)
 // ========================================
 let acaoModalPendente = null;
@@ -1078,7 +1141,8 @@ let acaoModalPendente = null;
 let pesoPendenteConfirmacao = null;
 
 function solicitarCancelarPesagem(){
-    if(pesos.length === 0){
+    // todos os critérios: o aberto pode estar vazio com animais em outro
+    if(pesosEmAndamento().length === 0){
         resetarPesagemAtual();
         return;
     }
@@ -4631,7 +4695,9 @@ function pularConexaoBalanca(){
 
 function voltarDeConectarBalanca(){
     desconectarBalancaBluetooth();
-    trocarTela("telaInicial");
+    // com animais lançados o formulário esconderia os pesos: volta pro Menu,
+    // e o Nova Pesagem pergunta se continua
+    trocarTela(pesosEmAndamento().length > 0 ? telaRaizApp() : "telaInicial");
 }
 
 // a linha "PESO ATUAL" em cima do display vira o status da balança:

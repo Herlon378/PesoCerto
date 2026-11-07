@@ -2693,3 +2693,18 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
     background: #16a34a; animation: pesoLancadoPisca 0.8s ease-out forwards;
 }
 @keyframes pesoLancadoPisca { 0%, 40% { opacity: 0.9; } 100% { opacity: 0; } }
+
+/* Nova Pesagem com pesagem não salva: botões grandes, é tela de curral */
+.pesagemAndamentoBox { width: min(92vw, 380px); box-sizing: border-box; color: #1f2937; }
+.pesagemAndamentoBox h2 { margin: 10px 0 6px; font-size: 21px; color: #111827; }
+.pesagemAndamentoBox p { margin: 0 0 14px; font-size: 16px; line-height: 1.35; color: #374151; }
+.pesagemAndamentoIcone { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; color: #b45309; background: #fef3c7; }
+.pesagemAndamentoIcone svg { width: 30px; height: 30px; }
+.pesagemAndamentoIconePerigo { color: #b91c1c; background: #fee2e2; }
+.pesagemAndamentoResumo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding: 12px; border-radius: 10px; background: #f3f4f6; overflow-wrap: anywhere; }
+.pesagemAndamentoResumo b { font-size: 16px; color: #111827; }
+.pesagemAndamentoResumo span { font-size: 15px; font-weight: 600; color: #374151; }
+.pesagemAndamentoBox .botoes button { flex: 1; min-height: 54px; padding: 12px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+.btnPesagemApagar { color: #b91c1c; background: #fff; border: 2px solid #dc2626; }
+.btnPesagemVoltar { color: #1f2937; background: #e5e7eb; border: none; }
+.btnPesagemApagarSim { color: #fff; background: #dc2626; border: none; }
