@@ -2496,7 +2496,7 @@ textarea {
    iguais e o título encolhe um pouco se precisar */
 .menuGrade2x2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cardMenu { min-width: 0; }
-.cardMenu strong { font-size: clamp(20px, 6.4vw, 25px); overflow-wrap: anywhere; }
+.cardMenu strong { font-size: clamp(18px, 5.8vw, 25px); overflow-wrap: anywhere; }
 @media (max-width: 380px) {
     .cardMenu { padding: 26px 18px; }
 }
