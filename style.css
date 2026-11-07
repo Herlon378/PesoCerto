@@ -2687,12 +2687,13 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
 #confirmacaoLancamento small[hidden] { display: none; }
 @keyframes confirmacaoSome { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
 
-/* lançamento manual: pisca só o display do peso */
+/* lançamento manual: borda verde no display, sem cobrir os dígitos (o operador
+   já pode estar digitando o próximo peso) */
 .pesoAtualCard.pesoLancado::after {
     content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-    background: #16a34a; animation: pesoLancadoPisca 0.8s ease-out forwards;
+    box-shadow: inset 0 0 0 4px #22c55e, inset 0 0 26px rgba(34,197,94,0.6); animation: pesoLancadoPisca 0.8s ease-out forwards;
 }
-@keyframes pesoLancadoPisca { 0%, 40% { opacity: 0.9; } 100% { opacity: 0; } }
+@keyframes pesoLancadoPisca { 0%, 40% { opacity: 1; } 100% { opacity: 0; } }
 
 /* Nova Pesagem com pesagem não salva: botões grandes, é tela de curral */
 .pesagemAndamentoBox { width: min(92vw, 380px); box-sizing: border-box; color: #1f2937; }
