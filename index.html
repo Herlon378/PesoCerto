@@ -114,6 +114,14 @@
             <small>Gerencie suas vacas matrizes.</small>
             <span class="cardMenuSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
         </button>
+        <button class="cardMenu cardMenuCiano" id="btnMenuClientes" style="display:none" onclick="abrirTelaClientes()">
+            <span class="cardMenuIcone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </span>
+            <strong>Clientes</strong>
+            <small>Cadastro e contas para pagamento.</small>
+            <span class="cardMenuSeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+        </button>
     </div>
 
     <div class="cardHoje">
@@ -501,6 +509,15 @@
     </div>
 </div>
 
+<div id="telaClientes" class="tela">
+    <div class="telaHeaderVoltar">
+        <button class="botaoVoltarTela" onclick="trocarTela('telaMenu')" aria-label="Voltar ao Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <h2 class="telaHeaderTitulo">Clientes</h2>
+    </div>
+    <div id="clientesConteudo"></div>
+</div>
 <div id="telaVacasMatrizMobile" class="tela">
     <div class="telaHeaderVoltar">
         <button class="botaoVoltarTela" onclick="trocarTela('telaMenu')" aria-label="Voltar ao Menu">
@@ -1137,6 +1154,7 @@
 <script src="db.js"></script>
 <script src="app.js"></script>
 <script src="conferencia.js"></script>
+<script src="clientes.js"></script>
 <script src="avisos.js" defer></script>
 <script src="instalar.js" data-nome="PesoCerto" data-icone="icon-192.png" data-chave="curral" defer></script>
 

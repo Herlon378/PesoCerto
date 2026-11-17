@@ -1009,6 +1009,9 @@ function preencherSugestoesNomes(){
     let tipoEl = document.getElementById("tipoOperacao");
     let tipo = tipoEl ? tipoEl.value : "venda";
     let vistos = new Set(), nomes = [];
+    // clientes cadastrados (Clientes) vêm primeiro, marcados
+    let cadastrados = typeof nomesClientesParaSugestao === "function" ? nomesClientesParaSugestao() : [];
+    cadastrados.forEach(nome => vistos.add(String(nome).trim().toLowerCase()));
     for(let i = relatorios.length - 1; i >= 0 && nomes.length < 40; i--){
         let r = relatorios[i];
         if(!r || (r.tipo || "venda") !== tipo) continue;
@@ -1018,7 +1021,8 @@ function preencherSugestoesNomes(){
         vistos.add(chave);
         nomes.push(nome);
     }
-    lista.innerHTML = nomes.map(n => `<option value="${escaparHtmlPesagem(n)}"></option>`).join("");
+    lista.innerHTML = cadastrados.map(n => `<option value="${escaparHtmlPesagem(n)}" label="Cliente cadastrado"></option>`).join("")
+        + nomes.map(n => `<option value="${escaparHtmlPesagem(n)}"></option>`).join("");
 }
 
 function resetarPesagemAtual() {
@@ -2666,7 +2670,7 @@ function formatarValorKg(input) {
 // dados, quadros de resumo, pesos em duas colunas, totais e assinaturas.
 // Celular: no iPhone abre o "Compartilhar" (Salvar em Arquivos, WhatsApp...);
 // no Android e no computador baixa o arquivo.
-function montarPdfRelatorio(r){
+function montarPdfRelatorio(r, pagamento){
     let registros = obterRegistrosDaSessao(r);
     let multiplos = registros.length > 1;
     let ehCompra = (r.tipo || "venda") === "compra";
@@ -2840,6 +2844,11 @@ function montarPdfRelatorio(r){
         y += 15;
     }
 
+    // ---------- dados para pagamento (Clientes) ----------
+    if(pagamento && typeof desenharPagamentoPdf === "function"){
+        y = desenharPagamentoPdf(pdf, pagamento, y + 2, L, R, altura => { garantir(altura); return y; });
+    }
+
     // ---------- assinaturas (nunca separadas da linha) ----------
     garantir(30);
     y += 18;
@@ -2867,8 +2876,11 @@ async function gerarPDF() {
     if(!sel){ alert("Selecione um relatório primeiro!"); return; }
     let r = relatorios[parseInt(sel.value)];
     if(!r || !r.pesos){ alert("Erro ao ler os dados do relatório selecionado."); return; }
+    // dados bancários do cliente? (pergunta só pra quem tem acesso a Clientes)
+    let pagamento = typeof perguntarDadosPagamento === "function" ? await perguntarDadosPagamento(obterRegistrosDaSessao(r)) : null;
+    if(pagamento === "cancelar") return;
     try {
-        await entregarPdf(montarPdfRelatorio(r), nomeArquivoPesagem(r, "pdf"));
+        await entregarPdf(montarPdfRelatorio(r, pagamento), nomeArquivoPesagem(r, "pdf"));
     } catch (e) {
         alert("Ocorreu um erro ao gerar o PDF: " + e.message);
     }
@@ -2963,7 +2975,7 @@ function calcularDadosCompletos(r) {
 // ========================================
 // IMPRESSÃO E EXCEL
 // ========================================
-function prepararImpressao(){
+async function prepararImpressao(){
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     if(!sel){ alert("Selecione um relatório"); return; }
 
@@ -2971,6 +2983,9 @@ function prepararImpressao(){
     // mesma pesagem, mais de um critério na mesma sessão? junta num
     // documento só (ver obterRegistrosDaSessao) -- um único valor a pagar
     let registros = obterRegistrosDaSessao(r);
+    // dados bancários do cliente? (pergunta só pra quem tem acesso a Clientes)
+    let pagamento = typeof perguntarDadosPagamento === "function" ? await perguntarDadosPagamento(registros) : null;
+    if(pagamento === "cancelar") return;
     let multiplos = registros.length > 1;
     let ehCompra = (r.tipo || "venda") === "compra";
     let esc = escaparHtmlPesagem;
@@ -3063,6 +3078,8 @@ function prepararImpressao(){
         html += `<section class="folhaTotalGeral"><span>${animaisGeral} animais · ${formatarPeso(kgGeral)} kg</span><b>TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}</b></section>`;
     }
 
+    if(pagamento && typeof htmlPagamentoFolha === "function") html += htmlPagamentoFolha(pagamento);
+
     html += `
         <footer class="folhaRodape">
             <div class="folhaAssinaturas">
@@ -3081,6 +3098,7 @@ function prepararImpressao(){
     let voltarTexto = document.getElementById("impressaoVoltarTexto");
     if(voltarTexto) voltarTexto.innerText = "Voltar aos relatórios";
     registrosImpressaoAtual = registros;
+    pagamentoImpressaoAtual = pagamento;
     let titulo = document.getElementById("impressaoTitulo");
     if(titulo) titulo.innerText = `${ehCompra ? "Compra" : "Venda"}${r.numero ? " nº " + r.numero : ""} · ${r.vendedor || "Sem vendedor"}`;
     trocarTela("telaImpressao");
@@ -3089,9 +3107,10 @@ function prepararImpressao(){
 
 // o relatório aberto na tela de impressão -- usado pelo botão WhatsApp
 let registrosImpressaoAtual = [];
+let pagamentoImpressaoAtual = null; // conta escolhida ao abrir a folha (vai junto no WhatsApp)
 function enviarImpressaoWhatsApp(){
     if(!registrosImpressaoAtual.length) return;
-    window.open("https://wa.me/?text=" + encodeURIComponent(montarMensagemWhatsApp(registrosImpressaoAtual)), "_blank");
+    window.open("https://wa.me/?text=" + encodeURIComponent(montarMensagemWhatsApp(registrosImpressaoAtual, pagamentoImpressaoAtual)), "_blank");
 }
 
 function executarImpressao(){
@@ -3147,7 +3166,7 @@ function exportarExcel(){
 // de 1 (operador usou vários critérios na mesma entrega), cada lote ganha
 // seu próprio bloco de resumo+pesagens e a mensagem fecha com um total
 // geral só, pra facilitar um pagamento único ao vendedor.
-function montarMensagemWhatsApp(registros){
+function montarMensagemWhatsApp(registros, pagamento){
     let r = registros[0];
     let multiplos = registros.length > 1;
     let totalGeral = 0;
@@ -3210,10 +3229,11 @@ function montarMensagemWhatsApp(registros){
     linhas.push(multiplos
         ? "💰 *TOTAL GERAL A PAGAR: R$ " + formatarMoeda(totalGeral) + "*"
         : "💰 *Total: R$ " + formatarMoeda(totalGeral) + "*");
+    if(pagamento && typeof textoPagamentoWhatsApp === "function") linhas.push(...textoPagamentoWhatsApp(pagamento));
     return linhas.join("\n");
 }
 
-function compartilharWhatsApp(){
+async function compartilharWhatsApp(){
     let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
     if(!sel){ alert("Selecione um relatório primeiro!"); return; }
 
@@ -3222,7 +3242,9 @@ function compartilharWhatsApp(){
     if(!r || !r.pesos){ alert("Erro ao ler os dados do relatório selecionado."); return; }
 
     let registros = obterRegistrosDaSessao(r);
-    let mensagem = montarMensagemWhatsApp(registros);
+    let pagamento = typeof perguntarDadosPagamento === "function" ? await perguntarDadosPagamento(registros) : null;
+    if(pagamento === "cancelar") return;
+    let mensagem = montarMensagemWhatsApp(registros, pagamento);
     window.open("https://wa.me/?text=" + encodeURIComponent(mensagem), "_blank");
 }
 
@@ -3583,7 +3605,13 @@ async function atualizarDadosFazendaDoServidor(){
     if(!token || typeof API_URL === "undefined") return;
     try{
         let resp = await fetch(`${API_URL}/api/auth/me`, { headers: { "Authorization": "Bearer " + token } });
-        if(resp.ok) guardarDadosFazenda(await resp.json());
+        if(resp.ok){
+            let dados = await resp.json();
+            guardarDadosFazenda(dados);
+            // permissão de Clientes vale sem precisar sair e entrar de novo
+            if(dados.permissaoClientes) localStorage.setItem("permClientes", dados.permissaoClientes);
+            if(typeof aplicarPermissaoMenuClientes === "function") aplicarPermissaoMenuClientes();
+        }
     }catch(e){}
 }
 
@@ -3637,6 +3665,7 @@ async function enviarLogin(){
         localStorage.setItem("permAlmoxarifado", dados.permissaoAlmoxarifado ? "1" : "");
         localStorage.setItem("permVacasMatriz", dados.permissaoVacasMatriz ? "1" : "");
         localStorage.setItem("permEditarNascimentos", dados.permissaoEditarNascimentos ? "1" : "");
+        localStorage.setItem("permClientes", dados.permissaoClientes || "nenhum");
         guardarDadosFazenda(dados);
         irParaTelaPrincipal();
         atualizarBotaoLogin();
@@ -3665,6 +3694,8 @@ function sair(){
     localStorage.removeItem("permAlmoxarifado");
     localStorage.removeItem("permVacasMatriz");
     localStorage.removeItem("permEditarNascimentos");
+    // clientes guardam CPF e contas bancárias: não ficam no aparelho depois de sair
+    if(typeof limparDadosClientes === "function") limparDadosClientes();
     localStorage.removeItem("produtosCache");
     localStorage.removeItem("pastosCache");
     localStorage.removeItem("fazendaNome");
@@ -3747,6 +3778,8 @@ function atualizarBotaoLogin(){
         let podeVacasMatriz = logado && (obterPapelLogado() === "admin" || obterPermVacasMatriz());
         btnVacasMenu.style.display = podeVacasMatriz ? "flex" : "none";
     }
+    // Clientes (celular e gerenciamento): permissão própria (clientes.js)
+    if(typeof aplicarPermissaoMenuClientes === "function") aplicarPermissaoMenuClientes();
 }
 
 // ========================================
@@ -4345,6 +4378,8 @@ async function sincronizarUmaVez(){
             carregarLotesSelect();
             carregarLotesSelectSaida();
         }
+        // clientes: só leitura, nunca derruba a sincronização
+        if(typeof sincronizarClientes === "function") await sincronizarClientes();
 
         // Almoxarifado: só sincroniza pra quem tem acesso (admin ou permissão
         // concedida), evitando requisições à toa pra todo mundo mais.

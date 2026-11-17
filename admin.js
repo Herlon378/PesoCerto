@@ -189,7 +189,9 @@ function mostrarUsuariosTela() {
         let modulos = [
             u.permissaoAlmoxarifado ? `<span class="usModulo">${I.caixa}Almoxarifado</span>` : "",
             u.permissaoVacasMatriz ? `<span class="usModulo">${I.boi}Vacas Matriz</span>` : "",
-            u.permissaoEditarNascimentos ? `<span class="usModulo">${I.lapis}Editar vacas/nascimentos</span>` : ""
+            u.permissaoEditarNascimentos ? `<span class="usModulo">${I.lapis}Editar vacas/nascimentos</span>` : "",
+            u.permissaoClientes === "ver" ? `<span class="usModulo">Clientes: ver</span>` : "",
+            u.permissaoClientes === "editar" ? `<span class="usModulo">Clientes: editar</span>` : ""
         ].join("");
         let temLimite = u.valorMaximoCompra !== null && u.valorMaximoCompra !== undefined;
         return `
@@ -259,6 +261,7 @@ function abrirModalUsuario(usuarioExistente) {
     document.getElementById("usuarioPermAlmoxarifadoInput").checked = !!(usuarioExistente && usuarioExistente.permissaoAlmoxarifado);
     document.getElementById("usuarioPermVacasMatrizInput").checked = !!(usuarioExistente && usuarioExistente.permissaoVacasMatriz);
     document.getElementById("usuarioPermEditarNascimentosInput").checked = !!(usuarioExistente && usuarioExistente.permissaoEditarNascimentos);
+    document.getElementById("usuarioPermClientesInput").value = (usuarioExistente && usuarioExistente.permissaoClientes) || "nenhum";
     alternarCamposPermissao();
     let erroEl = document.getElementById("usuarioErro");
     if (erroEl) { erroEl.style.display = "none"; erroEl.innerText = ""; }
@@ -296,6 +299,7 @@ async function salvarUsuario() {
         let permissaoAlmoxarifado = document.getElementById("usuarioPermAlmoxarifadoInput").checked;
         let permissaoVacasMatriz = document.getElementById("usuarioPermVacasMatrizInput").checked;
         let permissaoEditarNascimentos = document.getElementById("usuarioPermEditarNascimentosInput").checked;
+        let permissaoClientes = document.getElementById("usuarioPermClientesInput").value;
 
         if (!nome || !usuario || (!usuarioEditandoId && !senha)) {
             mostrarErro("Preencha todos os campos.");
@@ -304,7 +308,7 @@ async function salvarUsuario() {
 
         let resp;
         if (usuarioEditandoId) {
-            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz, permissaoEditarNascimentos };
+            let corpo = { nome, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz, permissaoEditarNascimentos, permissaoClientes };
             if (senha) corpo.senha = senha;
             resp = await fetch(`${API_URL}/api/usuarios/${usuarioEditandoId}`, {
                 method: "PUT",
@@ -315,7 +319,7 @@ async function salvarUsuario() {
             resp = await fetch(`${API_URL}/api/usuarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz, permissaoEditarNascimentos })
+                body: JSON.stringify({ nome, usuario, senha, papel, permissaoTipoPesagem, permissaoDashboard, permissaoRelatorios, valorMaximoCompra, permissaoAlmoxarifado, permissaoVacasMatriz, permissaoEditarNascimentos, permissaoClientes })
             });
         }
         let dados = await resp.json().catch(() => ({}));

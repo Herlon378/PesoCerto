@@ -1,4 +1,4 @@
-const CACHE_NAME = "pesagem-gado-v201";
+const CACHE_NAME = "pesagem-gado-v202";
 
 const urlsToCache = [
 "./",
@@ -19,7 +19,8 @@ const urlsToCache = [
 "icon-512.png",
 "lib/jspdf.umd.min.js",
 "lib/xlsx.full.min.js",
-"lib/zxing-browser.min.js"
+"lib/zxing-browser.min.js",
+    "clientes.js"
 ];
 
 self.addEventListener("install", event => {
