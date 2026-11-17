@@ -3588,6 +3588,8 @@ async function atualizarDadosFazendaDoServidor(){
 }
 
 function irParaTelaPrincipal(){
+    // logou (ou reabriu logado): cadastra este aparelho nos avisos se o celular já permite
+    if(typeof garantirCadastroAvisos === "function") setTimeout(garantirCadastroAvisos, 2500);
     if(document.getElementById("telaMenu")){
         trocarTela("telaMenu");
     } else if(document.getElementById("telaDashboard")){
@@ -4239,7 +4241,7 @@ async function sincronizarUmaVez(){
         if(naoSincronizados.length > 0){
             let resp = await fetch(`${API_URL}/api/pesagens/sync`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, ...(typeof cabecalhoAparelhoPush === "function" ? cabecalhoAparelhoPush() : {}) },
                 body: JSON.stringify({ pesagens: naoSincronizados })
             });
             if(resp.status === 401) sessaoExpirada = true;
@@ -4290,7 +4292,7 @@ async function sincronizarUmaVez(){
         for(let t of [...transfPendentes]){
             let respT = await fetch(`${API_URL}/api/transferencias-lotes`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, ...(typeof cabecalhoAparelhoPush === "function" ? cabecalhoAparelhoPush() : {}) },
                 body: JSON.stringify(t)
             });
             if(respT.ok){

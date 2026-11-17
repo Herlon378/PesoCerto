@@ -822,7 +822,7 @@ async function confirmarTransferenciaLote() {
         // recuperou -- ver resolverValoresTransferencias em app.js)
         let resp = await fetch(`${API_URL}/api/transferencias-lotes`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, ...(typeof cabecalhoAparelhoPush === "function" ? cabecalhoAparelhoPush() : {}) },
             body: JSON.stringify({ id: obterChaveIdempotencia("modalTransferenciaLote"), loteOrigem, loteDestino, quantidade, modoCusto: "automatico", kgTotal, data: dataTransferenciaModal() })
         });
         let dados = await resp.json().catch(() => ({}));

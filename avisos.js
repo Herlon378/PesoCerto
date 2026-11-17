@@ -72,7 +72,7 @@
             body: corpo ? JSON.stringify(corpo) : undefined
         });
         let json = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(json.erro || "Erro " + resp.status);
+        if (!resp.ok) { let erro = new Error(json.erro || "Erro " + resp.status); erro.renovar = !!json.renovar; throw erro; }
         return json;
     }
     function chaveParaBytes(base64) {
@@ -82,7 +82,39 @@
     }
     async function inscricaoAtual() {
         let reg = await navigator.serviceWorker.ready;
-        return reg.pushManager.getSubscription();
+        let sub = await reg.pushManager.getSubscription();
+        lembrarEndpoint(sub);
+        return sub;
+    }
+
+    // o app manda o endereço de avisos deste aparelho junto com as vendas,
+    // compras e transferências: o servidor pula só ESTE aparelho (quem lançou
+    // já sabe), e os outros celulares do mesmo login recebem
+    function lembrarEndpoint(sub) {
+        try {
+            if (sub) localStorage.setItem("pushEndpoint", sub.endpoint);
+            else localStorage.removeItem("pushEndpoint");
+        } catch (e) {}
+    }
+    window.cabecalhoAparelhoPush = function () {
+        let endpoint = null;
+        try { endpoint = localStorage.getItem("pushEndpoint"); } catch (e) {}
+        return endpoint ? { "X-Aparelho-Push": endpoint } : {};
+    };
+
+    // cadastro novo no serviço de avisos do celular (Google/Apple). Um
+    // cadastro velho pode estar vencido sem o celular saber: joga fora e faz
+    // outro, avisando o servidor pra apagar o antigo
+    async function inscricaoNova(config) {
+        let reg = await navigator.serviceWorker.ready;
+        let velha = await reg.pushManager.getSubscription();
+        if (velha) {
+            await api("/api/push/cancelar", { endpoint: velha.endpoint }).catch(() => {});
+            await velha.unsubscribe().catch(() => {});
+        }
+        let sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chaveParaBytes(config.chavePublica) });
+        lembrarEndpoint(sub);
+        return sub;
     }
     function nomeAparelho() {
         if (ehIOS) return "iPhone/iPad";
@@ -155,10 +187,9 @@
             let permissao = await Notification.requestPermission();
             if (permissao !== "granted") { await desenhar(el); return; }
             let config = await api("/api/push/config");
-            let reg = await navigator.serviceWorker.ready;
-            let sub = await reg.pushManager.getSubscription() ||
-                await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chaveParaBytes(config.chavePublica) });
+            let sub = await inscricaoNova(config);
             await api("/api/push/inscrever", { inscricao: sub.toJSON(), categorias: config.categorias, aparelho: nomeAparelho() });
+            marcarDesligado(false);
             await desenhar(el);
             status(el, "Pronto! Toque em \"Enviar aviso de teste\" pra ver como chega.");
         } catch (e) {
@@ -182,12 +213,54 @@
     async function testar(el) {
         try {
             let sub = await inscricaoAtual();
-            await api("/api/push/testar", { endpoint: sub && sub.endpoint });
+            try {
+                await api("/api/push/testar", { endpoint: sub && sub.endpoint });
+            } catch (e) {
+                if (!e.renovar) throw e;
+                // cadastro vencido: refaz com as mesmas escolhas e testa de novo
+                status(el, "Renovando o cadastro de avisos deste aparelho…");
+                let categorias = Array.from(el.querySelectorAll("input[data-categoria]:checked")).map(i => i.dataset.categoria);
+                let config = await api("/api/push/config");
+                sub = await inscricaoNova(config);
+                await api("/api/push/inscrever", { inscricao: sub.toJSON(), categorias: categorias.length ? categorias : config.categorias, aparelho: nomeAparelho() });
+                await api("/api/push/testar", { endpoint: sub.endpoint });
+            }
             status(el, "Aviso de teste enviado. Deve chegar em alguns segundos.");
         } catch (e) {
             status(el, "Não deu pra testar: " + e.message, true);
         }
     }
+
+    // "Desativar" no painel é escolha da pessoa: o app não liga sozinho de novo
+    function marcarDesligado(sim) {
+        try { if (sim) localStorage.setItem("avisosDesligados", "1"); else localStorage.removeItem("avisosDesligados"); } catch (e) {}
+    }
+    function desligadoPelaPessoa() {
+        try { return localStorage.getItem("avisosDesligados") === "1"; } catch (e) { return false; }
+    }
+
+    // Ao abrir o app: com a permissão de notificação já dada no celular, o
+    // aparelho se cadastra sozinho (antes só cadastrava apertando "Ativar
+    // avisos" lá dentro do sininho -- quem liberou só nas configurações do
+    // celular ficava sem receber nada). Também refaz cadastro perdido.
+    async function garantirCadastroAvisos() {
+        try {
+            if (!suportado() || Notification.permission !== "granted" || desligadoPelaPessoa()) return;
+            if (typeof obterToken !== "function" || !obterToken() || !navigator.onLine) return;
+            let config = await api("/api/push/config");
+            if (!config.chavePublica) return;
+            let sub = await inscricaoAtual();
+            if (sub) {
+                let estado = await api("/api/push/estado", { endpoint: sub.endpoint });
+                if (estado.ativa) return;
+            } else {
+                sub = await inscricaoNova(config);
+            }
+            await api("/api/push/inscrever", { inscricao: sub.toJSON(), categorias: config.categorias, aparelho: nomeAparelho() });
+        } catch (e) {}
+    }
+    window.garantirCadastroAvisos = garantirCadastroAvisos;
+    window.addEventListener("load", () => setTimeout(garantirCadastroAvisos, 4000));
 
     async function desativar(el) {
         try {
@@ -196,6 +269,8 @@
                 await api("/api/push/cancelar", { endpoint: sub.endpoint }).catch(() => {});
                 await sub.unsubscribe();
             }
+            lembrarEndpoint(null);
+            marcarDesligado(true);
             await desenhar(el);
         } catch (e) {
             status(el, "Não deu pra desativar: " + e.message, true);
