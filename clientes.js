@@ -168,7 +168,7 @@
     function aplicarPermissaoMenuClientes() {
         let logado = typeof obterToken === "function" && !!obterToken();
         let mostrar = logado && podeVer();
-        document.querySelectorAll("#btnMenuClientes, .navDesktop [data-tela='telaClientes']").forEach(b => { b.style.display = mostrar ? "" : "none"; });
+        document.querySelectorAll("#btnMenuClientes, .navDesktop [data-tela='telaClientes'], #btnPagarRelatorio").forEach(b => { b.style.display = mostrar ? "" : "none"; });
         // celular: número ímpar de cartões no menu -> o último ocupa a linha inteira
         let grade = document.querySelector("#telaMenu .menuGrade2x2");
         if (grade) {
@@ -276,7 +276,10 @@
 
     // Antes de imprimir / PDF / WhatsApp: "Incluir dados bancários do cliente?"
     // Devolve o pagamento escolhido, null (sem dados) ou "cancelar".
-    window.perguntarDadosPagamento = function (registros) {
+    // opcoes.direto (botão Pagar): pula a pergunta "incluir?" e vai direto
+    // pra escolha da conta; Voltar/fechar cancelam
+    window.perguntarDadosPagamento = function (registros, opcoes) {
+        let direto = !!(opcoes && opcoes.direto);
         let comConta = clientesCompletos().filter(c => (c.contas || []).length);
         if (!podeVer() || !comConta.length || !registros || !registros.length) return Promise.resolve(null);
         let r = registros[0];
@@ -318,19 +321,20 @@
                 modal.innerHTML = `<div class="cliModalCaixa">${topo("Qual cliente vai receber?", "Só aparecem clientes com conta para pagamento")}
                     <label class="cliBusca">${SVG.busca}<input type="search" id="cliBuscaPagamento" placeholder="Buscar pelo nome ou CPF" value="${esc(filtro || "")}" autocomplete="off"></label>
                     <div class="cliEscolhas">${lista.map(c => `<button type="button" class="cliEscolha" data-cliente="${c.id}"><b>${esc(c.nome)}</b><small>${c.contas.length} conta${c.contas.length > 1 ? "s" : ""}${c.cidade ? " · " + esc(c.cidade) : ""}</small></button>`).join("") || `<p class="cliVazio">Nenhum cliente encontrado.</p>`}</div>
-                    <div class="cliAcoes"><button type="button" class="cliBotaoSec" data-acao="voltarPergunta">Voltar</button></div></div>`;
+                    <div class="cliAcoes"><button type="button" class="cliBotaoSec" data-acao="${direto ? "cancelar" : "voltarPergunta"}">${direto ? "Cancelar" : "Voltar"}</button></div></div>`;
                 let busca = modal.querySelector("#cliBuscaPagamento");
                 busca.oninput = () => { let pos = busca.selectionStart; passoCliente(busca.value); let b = modal.querySelector("#cliBuscaPagamento"); b.focus(); try { b.setSelectionRange(pos, pos); } catch (e) {} };
             }
             function passoConta() {
                 let contas = clienteAtual.contas;
-                if (!contaId || !contas.some(c => c.id === contaId)) contaId = contas[0].id;
+                // pra pagar, a conta com PIX vem marcada (é a que gera o código)
+                if (!contaId || !contas.some(c => c.id === contaId)) contaId = ((direto && contas.find(c => c.pixChave)) || contas[0]).id;
                 modal.innerHTML = `<div class="cliModalCaixa">${topo("Conta para recebimento", esc(clienteAtual.nome))}
                     <div class="cliEscolhas">${contas.map(c => `<button type="button" class="cliConta${c.id === contaId ? " cliContaAtiva" : ""}" data-conta="${c.id}" aria-pressed="${c.id === contaId}">
                         <span class="cliRadio"></span><span class="cliContaTextos">${linhasConta(c)}</span></button>`).join("")}</div>
                     <div class="cliValorTotal"><span>Valor a pagar</span><b>R$ ${moeda(valor)}</b></div>
                     <div class="cliAcoes"><button type="button" class="cliBotaoSec" data-acao="trocarCliente">Outro cliente</button>
-                    <button type="button" class="cliBotaoPri" data-acao="confirmar">Usar esta conta</button></div></div>`;
+                    <button type="button" class="cliBotaoPri" data-acao="confirmar">${direto ? "Pagar nesta conta" : "Usar esta conta"}</button></div></div>`;
             }
             modal.addEventListener("click", async e => {
                 let b = e.target.closest("[data-acao], [data-cliente], [data-conta]");
@@ -349,9 +353,89 @@
                     terminar(await montarPagamento(clienteAtual, conta, registros));
                 }
             });
-            passoPergunta();
+            if (direto) clienteAtual ? passoConta() : passoCliente("");
+            else passoPergunta();
         });
     };
+
+    // ---------- botão "Pagar" (Relatórios do celular) ----------
+    // Compra selecionada -> escolhe a conta do vendedor -> copia o PIX copia e
+    // cola já com o valor e abre o compartilhar do celular pra escolher o app
+    // do banco. Conta sem PIX: mostra os dados bancários pra transferência.
+    function copiarTexto(texto) {
+        if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(texto).then(() => true, () => copiarAntigo(texto));
+        return Promise.resolve(copiarAntigo(texto));
+    }
+    function copiarAntigo(texto) {
+        try {
+            let campo = document.createElement("textarea");
+            campo.value = texto; campo.setAttribute("readonly", ""); campo.style.cssText = "position:fixed;top:-1000px;opacity:0";
+            document.body.appendChild(campo); campo.select();
+            let ok = document.execCommand("copy"); campo.remove(); return ok;
+        } catch (e) { return false; }
+    }
+    window.pagarRelatorioSelecionado = async function () {
+        let sel = document.querySelector("input[name='relatorioSelecionado']:checked");
+        let r = sel && typeof relatorios !== "undefined" ? relatorios[Number(sel.value)] : null;
+        if (!r) { alert("Selecione na lista a compra que você vai pagar."); return; }
+        if ((r.tipo || "venda") !== "compra") { alert("\u201cPagar\u201d é para compras. Numa venda quem recebe o pagamento é a fazenda."); return; }
+        if (!podeVer()) { alert("Para pagar pelo app você precisa de acesso aos Clientes (dados bancários). Peça ao administrador."); return; }
+        if (!clientesCompletos().some(c => (c.contas || []).length)) { alert("Nenhum cliente com conta para pagamento. Cadastre o vendedor em Clientes, com uma chave PIX."); return; }
+        let registros = typeof obterRegistrosDaSessao === "function" ? obterRegistrosDaSessao(r) : [r];
+        let pag = await window.perguntarDadosPagamento(registros, { direto: true });
+        if (!pag || pag === "cancelar") return;
+        abrirPagamento(pag, r);
+    };
+    function abrirPagamento(p, r) {
+        prepararEstilo();
+        let modal = document.createElement("div");
+        modal.id = "modalPagarPix";
+        modal.className = "modal cliModal";
+        modal.style.display = "flex";
+        let c = p.conta;
+        let podeCompartilhar = !!navigator.share;
+        let dadosBanco = linhasDadosPagamento(p).map(([rot, v]) => rot + ": " + v).join("\n") + "\nValor: R$ " + moeda(p.valor);
+        let corpo = p.copiaECola ? `
+            ${p.qr ? `<div class="cliPixQr">${svgDoQr(p.qr, 210)}</div>` : ""}
+            <p class="cliPixPassos"><b>No app do banco:</b> Pix \u2192 <b>Pix Copia e Cola</b> \u2192 colar o código. O valor já vem preenchido.</p>
+            <code class="cliPixCodigo">${esc(p.copiaECola)}</code>
+            <p class="cliPixStatus" id="cliPixStatus" aria-live="polite"></p>
+            <div class="cliAcoes cliAcoesPix">
+                <button type="button" class="cliBotaoSec" data-acao="copiar">Copiar código</button>
+                ${podeCompartilhar ? `<button type="button" class="cliBotaoPri" data-acao="compartilhar">${SVG.pix}Abrir app do banco</button>` : ""}
+            </div>` : `
+            <p class="cliTexto">Esta conta não tem chave PIX: o pagamento vai por transferência com os dados abaixo.</p>
+            <div class="cliPixDados">${linhasDadosPagamento(p).map(([rot, v]) => `<div><span>${esc(rot)}</span><b>${esc(v)}</b></div>`).join("")}</div>
+            <p class="cliPixStatus" id="cliPixStatus" aria-live="polite"></p>
+            <div class="cliAcoes cliAcoesPix">
+                <button type="button" class="cliBotaoSec" data-acao="copiarDados">Copiar dados</button>
+                ${podeCompartilhar ? `<button type="button" class="cliBotaoPri" data-acao="compartilharDados">Compartilhar</button>` : ""}
+            </div>`;
+        modal.innerHTML = `<div class="cliModalCaixa">
+            <div class="cliModalTopo"><span class="cliIcone">${SVG.pix}</span><div><b>Pagar compra${r.numero ? " nº " + r.numero : ""}</b><small>${esc(c.titular)}${c.pixChave ? " · PIX " + esc(TIPOS_PIX[c.pixTipo] || "") : ""}</small></div>
+                <button type="button" class="btn-nao cliFechar" data-acao="fechar" aria-label="Fechar">${SVG.fechar}</button></div>
+            <div class="cliValorTotal"><span>Valor a pagar</span><b>R$ ${moeda(p.valor)}</b></div>
+            ${corpo}
+        </div>`;
+        document.body.appendChild(modal);
+        let status = texto => { let el = modal.querySelector("#cliPixStatus"); if (el) el.textContent = texto; };
+        // já abre com o código copiado (o toque em "Pagar nesta conta" libera a área de transferência)
+        if (p.copiaECola) copiarTexto(p.copiaECola).then(ok => status(ok ? "Código PIX copiado. Abra o app do banco e cole em Pix Copia e Cola." : "Toque em Copiar código."));
+        modal.addEventListener("click", async e => {
+            let b = e.target.closest("[data-acao]");
+            if (!b) return;
+            let acao = b.dataset.acao;
+            if (acao === "fechar") modal.remove();
+            else if (acao === "copiar") status((await copiarTexto(p.copiaECola)) ? "Código PIX copiado." : "Não deu pra copiar: segure o dedo no código e copie.");
+            else if (acao === "copiarDados") status((await copiarTexto(dadosBanco)) ? "Dados bancários copiados." : "Não deu pra copiar.");
+            else if (acao === "compartilhar" || acao === "compartilharDados") {
+                let texto = acao === "compartilhar" ? p.copiaECola : dadosBanco;
+                await copiarTexto(texto);
+                try { await navigator.share({ title: "PIX " + c.titular + " · R$ " + moeda(p.valor), text: texto }); }
+                catch (err) { if (err && err.name !== "AbortError") status("Código copiado. Abra o app do banco e cole em Pix Copia e Cola."); }
+            }
+        });
+    }
 
     function linhasConta(c) {
         let linhas = [`<b>${esc(c.titular)}</b>`];
@@ -690,6 +774,17 @@
         let s = document.createElement("style");
         s.textContent = `
         .cliModal [hidden] { display: none !important; }
+        .cliPixQr { display: flex; justify-content: center; margin-top: 14px; }
+        .cliPixQr svg { border-radius: 10px; }
+        .cliPixPassos { margin: 12px 0 0; font-size: 14px; line-height: 1.45; color: #c9d3e6; }
+        .cliPixPassos b { color: #fff; }
+        .cliPixCodigo { display: block; margin-top: 10px; padding: 10px 12px; max-height: 92px; overflow-y: auto; border-radius: 10px; font-size: 12px; line-height: 1.4; word-break: break-all; color: #a5f3fc; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); user-select: all; -webkit-user-select: all; }
+        .cliPixStatus { min-height: 18px; margin: 8px 0 0; font-size: 13.5px; font-weight: 600; color: #4ade80; }
+        .cliPixDados { display: grid; gap: 8px; margin-top: 12px; }
+        .cliPixDados div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); }
+        .cliPixDados span { font-size: 13px; color: #a6b0c6; }
+        .cliPixDados b { font-size: 14px; color: #fff; text-align: right; overflow-wrap: anywhere; }
+        .cliAcoesPix button svg { width: 18px; height: 18px; }
         .cliModal { position: fixed; inset: 0; z-index: 990; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: rgba(2,6,16,0.66); }
         .cliModalCaixa { width: min(100%, 520px); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; box-sizing: border-box; padding: 18px; border-radius: 18px; color: #e5edf8; text-align: left;
             background: #111a2b; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 24px 60px rgba(0,0,0,0.55); font-family: inherit; }

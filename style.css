@@ -1469,6 +1469,7 @@ textarea {
 .botaoAcaoImprimir svg { color: #90a4c9; }
 .botaoAcaoPdf svg { color: #f87171; }
 .botaoAcaoMenu svg { color: #6fa3d8; }
+.botaoAcaoPagar svg { color: #34d399; }
 
 /* #relatorio é o único filho flexível de #telaResultado -- cresce pra
    ocupar o espaço que sobra depois do cabeçalho/busca/botões (que são
