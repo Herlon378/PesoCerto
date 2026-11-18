@@ -2878,6 +2878,29 @@ function montarPdfRelatorio(r, pagamento){
     });
 
     if(multiplos){
+        // resumo geral: mesmos quadros (4 por linha) dos lotes
+        let g = calcularResumoGeral(registros);
+        let itens = itensResumoGeral(g);
+        let porLinha = 4, gap = 2.5, largura = (W - gap * (porLinha - 1)) / porLinha, alturaQ = 12.5;
+        let linhasQ = Math.ceil(itens.length / porLinha);
+        garantir(12 + linhasQ * (alturaQ + gap) + (g.notaArroba ? 6 : 0));
+        y += 4;
+        cor(AZUL, "fill"); pdf.rect(L, y - 4, 1.2, 6, "F");
+        fonte(12, true); cor(ESCURO); pdf.text("Resumo geral", L + 3.5, y);
+        let larguraTituloGeral = pdf.getTextWidth("Resumo geral"); // medida na fonte do título
+        fonte(8.5, false); cor(CINZA); pdf.text("todos os lotes", L + 3.5 + larguraTituloGeral + 3, y);
+        y += 3;
+        itens.forEach(([rotulo, valor], i) => {
+            let col = i % porLinha;
+            if(i > 0 && col === 0) y += alturaQ + gap;
+            let x = L + col * (largura + gap);
+            cor(CLARO, "fill"); cor(LINHA, "draw"); pdf.setLineWidth(0.3);
+            pdf.roundedRect(x, y, largura, alturaQ, 1.8, 1.8, "FD");
+            fonte(6.5, true); cor(CINZA); pdf.text(rotulo.toUpperCase(), x + 2.5, y + 4.3);
+            fonte(10, true); cor(ESCURO); pdf.text(cortar(valor, largura - 5), x + 2.5, y + 9.8);
+        });
+        y += alturaQ + 4;
+        if(g.notaArroba){ fonte(8, false); cor(CINZA); pdf.text(g.notaArroba, L, y + 2); y += 6; }
         garantir(14);
         y += 2;
         cor(ESCURO, "fill"); pdf.roundedRect(L, y, W, 11, 2, 2, "F");
@@ -3119,6 +3142,11 @@ async function prepararImpressao(){
     });
 
     if(multiplos){
+        let g = calcularResumoGeral(registros);
+        html += `<h2 class="folhaSecao folhaSecaoGeral">Resumo geral <small>todos os lotes</small></h2><section class="folhaResumo">`;
+        itensResumoGeral(g).forEach(([rotulo, valor]) => { html += quadro(rotulo, valor); });
+        html += `</section>`;
+        if(g.notaArroba) html += `<p class="folhaNotaGeral">${esc(g.notaArroba)}</p>`;
         html += `<section class="folhaTotalGeral"><span>${animaisGeral} animais · ${formatarPeso(kgGeral)} kg</span><b>TOTAL GERAL A PAGAR: R$ ${formatarMoeda(totalGeral)}</b></section>`;
     }
 
@@ -3210,6 +3238,73 @@ function exportarExcel(){
 // de 1 (operador usou vários critérios na mesma entrega), cada lote ganha
 // seu próprio bloco de resumo+pesagens e a mensagem fecha com um total
 // geral só, pra facilitar um pagamento único ao vendedor.
+// ========================================
+// RESUMO GERAL (relatório com mais de um lote)
+// ========================================
+// Só o que dá pra somar entre lotes diferentes. Arroba entra no geral só
+// quando TODOS os lotes são por arroba com o MESMO rendimento -- somar @ de
+// rendimentos diferentes (ou misturar com lote por kg) dá um número que não
+// representa nada; nesses casos a arroba fica só no resumo de cada lote.
+// Animal lançado sem pesar (0 kg) conta nos animais e no valor, mas não
+// nas médias de peso nem nos mais leves/pesados.
+function calcularResumoGeral(registros){
+    let animais = 0, kg = 0, valor = 0, animaisComPeso = 0, arrobas = 0;
+    let todos = [];
+    let rendimentos = new Set(), todosArroba = registros.length > 0;
+    registros.forEach(registro => {
+        let d = calcularDadosCompletos(registro);
+        animais += d.totalAnimais; kg += d.totalKg; valor += d.totalRS;
+        if(d.ehArroba){ arrobas += d.totalArroba; rendimentos.add(d.rendimentoNum); }
+        else todosArroba = false;
+        (registro.pesos || []).forEach(p => {
+            let peso = Number(p.peso) || 0;
+            if(peso > 0){ animaisComPeso++; todos.push({ peso, lote: registro.descricao || "Sem lote" }); }
+        });
+    });
+    let ordenados = todos.slice().sort((a, b) => a.peso - b.peso);
+    let arroba = todosArroba && rendimentos.size === 1 ? {
+        total: arrobas,
+        media: animaisComPeso ? arrobas / animaisComPeso : 0,
+        rsPorArroba: arrobas > 0 ? valor / arrobas : 0,
+        rendimento: [...rendimentos][0]
+    } : null;
+    let temArroba = registros.some(r => r.tipoPesagem === "arroba");
+    return {
+        lotes: registros.length, animais, kg, valor, animaisComPeso,
+        kgMedio: animaisComPeso ? kg / animaisComPeso : 0,
+        valorMedio: animais ? valor / animais : 0,
+        rsPorKg: kg > 0 ? valor / kg : 0,
+        leves: ordenados.slice(0, 3),
+        pesados: ordenados.slice(-3).reverse(),
+        arroba,
+        // por que a arroba não está no geral (pra explicar na folha)
+        notaArroba: temArroba && !arroba ? (todosArroba ? "Arrobas só no resumo de cada lote: os lotes têm rendimentos diferentes." : "Arrobas só no resumo de cada lote: há lotes por kg e por arroba.") : ""
+    };
+}
+
+// [rótulo, valor] na ordem em que aparecem nos três formatos
+function itensResumoGeral(g){
+    let lista = (itens) => itens.map(x => formatarPeso(x.peso)).join(" · ") + " kg";
+    let itens = [
+        ["Lotes", String(g.lotes)],
+        ["Animais", String(g.animais)],
+        ["Peso total", formatarPeso(g.kg) + " kg"]
+    ];
+    if(g.animaisComPeso){
+        itens.push(["Peso médio", formatarMoeda(g.kgMedio).replace(/,00$/, "") + " kg"]);
+        itens.push(["3 mais pesados", lista(g.pesados)]);
+        itens.push(["3 mais leves", lista(g.leves)]);
+    }
+    if(g.arroba){
+        itens.push(["Total em arrobas", formatarArroba4(g.arroba.total)]);
+        itens.push(["Arroba média / animal", formatarArroba4(g.arroba.media)]);
+        itens.push(["R$ médio por @", "R$ " + formatarMoeda4(g.arroba.rsPorArroba)]);
+    }
+    itens.push(["Valor médio / animal", "R$ " + formatarMoeda4(g.valorMedio)]);
+    if(g.kg > 0) itens.push(["R$ médio por kg", "R$ " + formatarMoeda4(g.rsPorKg)]);
+    return itens;
+}
+
 function montarMensagemWhatsApp(registros, pagamento){
     let r = registros[0];
     let multiplos = registros.length > 1;
@@ -3269,6 +3364,14 @@ function montarMensagemWhatsApp(registros, pagamento){
         });
     });
 
+    if(multiplos){
+        let g = calcularResumoGeral(registros);
+        linhas.push("");
+        linhas.push("━━━━━━━━━━━━━━━");
+        linhas.push("📊 *RESUMO GERAL*");
+        itensResumoGeral(g).forEach(([rotulo, valor]) => linhas.push(rotulo + ": " + valor));
+        if(g.notaArroba) linhas.push("_" + g.notaArroba + "_");
+    }
     linhas.push("");
     linhas.push(multiplos
         ? "💰 *TOTAL GERAL A PAGAR: R$ " + formatarMoeda(totalGeral) + "*"
