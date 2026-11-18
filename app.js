@@ -1535,6 +1535,19 @@ function formatarMoeda(n){
     return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// valores UNITÁRIOS dos relatórios (médio por animal, médio por kg) e o
+// total em arrobas: 4 casas depois da vírgula, que é o que a nota fiscal
+// pede no valor unitário/quantidade. Com 2 casas o arredondamento fazia
+// quantidade × valor unitário não bater com o total na hora da nota.
+// Totais em dinheiro continuam com 2 casas (formatarMoeda).
+function formatarMoeda4(n){
+    n = Number(n) || 0;
+    return n.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+}
+function formatarArroba4(n){
+    return formatarMoeda4(n) + " @";
+}
+
 function converterParaArroba(pesoKg, rendimentoPct){
     return (pesoKg * rendimentoPct / 100) / 15;
 }
@@ -2789,9 +2802,9 @@ function montarPdfRelatorio(r, pagamento){
             ["MAIS LEVE", formatarPeso(menor) + " kg"]
         ];
         if(!multiplos) quadros.push(["PREÇO", textoPreco(d)]);
-        quadros.push(["VALOR MÉDIO / ANIMAL", "R$ " + formatarMoeda(valorMedio)]);
-        quadros.push(["R$ MÉDIO POR KG", "R$ " + formatarMoeda(d.kgImplicitoMedio)]);
-        if(d.ehArroba) quadros.push(["TOTAL EM ARROBAS", d.totalArroba.toFixed(2).replace(".", ",") + " @"]);
+        quadros.push(["VALOR MÉDIO / ANIMAL", "R$ " + formatarMoeda4(valorMedio)]);
+        quadros.push(["R$ MÉDIO POR KG", "R$ " + formatarMoeda4(d.kgImplicitoMedio)]);
+        if(d.ehArroba) quadros.push(["TOTAL EM ARROBAS", formatarArroba4(d.totalArroba)]);
         quadros.push([multiplos ? "SUBTOTAL DESTE LOTE" : "VALOR TOTAL", "R$ " + formatarMoeda(d.totalRS), true]);
         let porLinha = 4, gap = 2.5, largura = (W - gap * (porLinha - 1)) / porLinha, alturaQ = 12.5;
         garantir(Math.ceil(quadros.length / porLinha) * (alturaQ + gap) + 2);
@@ -3071,9 +3084,9 @@ async function prepararImpressao(){
         html += quadro("Mais pesado", formatarPeso(maior) + " kg");
         html += quadro("Mais leve", formatarPeso(menor) + " kg");
         if(!multiplos) html += quadro("Preço", textoPreco(d));
-        html += quadro("Valor médio / animal", "R$ " + formatarMoeda(valorMedio));
-        html += quadro("R$ médio por kg", "R$ " + formatarMoeda(d.kgImplicitoMedio));
-        if(d.ehArroba) html += quadro("Total em arrobas", d.totalArroba.toFixed(2).replace(".", ",") + " @");
+        html += quadro("Valor médio / animal", "R$ " + formatarMoeda4(valorMedio));
+        html += quadro("R$ médio por kg", "R$ " + formatarMoeda4(d.kgImplicitoMedio));
+        if(d.ehArroba) html += quadro("Total em arrobas", formatarArroba4(d.totalArroba));
         html += quadro(multiplos ? "Subtotal deste lote" : "Valor total", "R$ " + formatarMoeda(d.totalRS), true);
         html += `</section>`;
 
@@ -3229,12 +3242,12 @@ function montarMensagemWhatsApp(registros, pagamento){
         linhas.push("Peso total: " + formatarPeso(d.totalKg) + " kg");
         linhas.push("Peso médio: " + d.mediaKg.toFixed(2).replace(".", ",") + " kg");
         if(d.ehArroba){
-            linhas.push("Total em arrobas: " + d.totalArroba.toFixed(2).replace(".", ",") + " @ (Rend. " + d.rendimentoNum + "%)");
+            linhas.push("Total em arrobas: " + formatarArroba4(d.totalArroba) + " (Rend. " + d.rendimentoNum + "%)");
         }
         if(d.ehValorAnimal){
-            linhas.push("R$/kg médio (implícito no preço fixo): R$ " + formatarMoeda(d.kgImplicitoMedio));
+            linhas.push("R$/kg médio (implícito no preço fixo): R$ " + formatarMoeda4(d.kgImplicitoMedio));
         }
-        linhas.push("Valor médio por animal: R$ " + formatarMoeda(valorMedio));
+        linhas.push("Valor médio por animal: R$ " + formatarMoeda4(valorMedio));
         linhas.push("3 mais pesados: " + d.pesados);
         linhas.push("3 mais leves: " + d.leves);
         linhas.push((multiplos ? "*Subtotal deste lote: R$ " : "*Faturamento total: R$ ") + formatarMoeda(d.totalRS) + "*");
