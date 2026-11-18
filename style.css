@@ -2723,3 +2723,11 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
 .folhaSecaoGeral { margin-top: 26px; border-left-color: #1d2433; }
 .folhaSecaoGeral small { font-size: 12px; font-weight: 600; color: #6b7280 !important; }
 .folhaNotaGeral { margin: 8px 0 0; font-size: 12px; color: #6b7280 !important; font-style: italic; }
+
+/* dica do teclado: só em computador (mouse); no celular não aparece e não
+   ocupa espaço na tela de pesagem */
+.dicaTecladoPc { display: none; }
+@media (hover: hover) and (pointer: fine) {
+    #telaPesagem .dicaTecladoPc { display: block; margin: 6px 0 0; text-align: center; font-size: 12px; color: var(--ink-muted); }
+    #telaPesagem .dicaTecladoPc b { color: var(--ink); }
+}

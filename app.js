@@ -221,7 +221,9 @@ function tocarSomLancamento(aoFalhar){
         logSom("áudio principal travado: refeito, tocou o reserva");
         audioMantenedor = null;
         audioCtx = null;
-        try{ ctx.close(); }catch(e){}
+        // close() devolve uma promessa: o try sozinho não pegava a recusa
+        // ("Cannot close a closed AudioContext") quando já estava fechado
+        try{ if(ctx.state !== "closed") ctx.close().catch(() => {}); }catch(e){}
         try{ garantirMantenedorAudio(); }catch(e){}
         usarReserva();
     }, 120);
@@ -4761,6 +4763,68 @@ function apagar(){
 function lancarPeso(){
     adicionarPeso();
 }
+
+// ========================================
+// TECLADO DO COMPUTADOR NA TELA DE PESAGEM
+// ========================================
+// Quem abre o app do curral no computador digita o peso no teclado
+// (números de cima ou teclado numérico) e lança com Enter. O display
+// continua readonly -- é isso que impede o teclado do celular de abrir ao
+// tocar nele; celular sem teclado físico não gera essas teclas, então no
+// curral nada muda. Só vale com a tela de pesagem aberta e nenhuma janela
+// por cima (a do "peso fora do padrão" responde a Enter/Esc).
+function teclaNaPesagem(e){
+    if(e.ctrlKey || e.altKey || e.metaKey || !telaPesagemAtiva()) return;
+    let modalAberto = Array.from(document.querySelectorAll(".modal")).find(m => getComputedStyle(m).display !== "none");
+    if(modalAberto){
+        // "Peso fora do padrão, continuar?": Enter confirma, Esc cancela
+        if(modalAberto.id === "modalConfirmarAcao" && acaoModalPendente === "peso_fora_padrao"){
+            if(e.key === "Enter" || e.key === "NumpadEnter"){ e.preventDefault(); confirmarModalAcao(); }
+            // Esc também limpa o visor: senão o próximo peso digitado
+            // grudava no anterior ("50" + "50" = 5050)
+            else if(e.key === "Escape"){ e.preventDefault(); fecharModalAcao(); let d = document.getElementById("displayPeso"); if(d) d.value = ""; }
+        }
+        return;
+    }
+    let alvo = e.target;
+    let digitandoTexto = alvo && (alvo.tagName === "TEXTAREA" || (alvo.tagName === "INPUT" && !alvo.readOnly) || alvo.isContentEditable);
+    if(digitandoTexto){
+        // na Observação as teclas escrevem nela; Enter lança o peso
+        if(alvo.id === "obs" && e.key === "Enter"){ e.preventDefault(); lancarPeso(); }
+        return;
+    }
+    let display = document.getElementById("displayPeso");
+    if(!display) return;
+    // teclado numérico pela POSIÇÃO da tecla (e.code): com o Num Lock
+    // desligado o "3" chega como "PageDown" e a vírgula sem texto nenhum
+    let numpad = /^Numpad([0-9])$/.exec(e.code || "");
+    let digito = numpad ? numpad[1] : (/^[0-9]$/.test(e.key) ? e.key : null);
+    let ehVirgula = e.code === "NumpadDecimal" || e.key === "," || e.key === "." || e.key === "Decimal";
+    if(digito !== null){
+        e.preventDefault();
+        // depois da vírgula, só uma casa (igual ao ",5" da tela)
+        let partes = display.value.split(",");
+        if(partes.length > 1 && partes[1].length >= 1) return;
+        if(display.value.replace(",", "").length >= 6) return;
+        digitar(digito);
+    } else if(ehVirgula){
+        e.preventDefault();
+        if(display.value && !display.value.includes(",")) display.value += ",";
+    } else if(e.key === "Backspace"){
+        e.preventDefault();
+        display.value = display.value.slice(0, -1);
+    } else if(e.key === "Escape" || e.key === "Delete"){
+        e.preventDefault();
+        display.value = "";
+    } else if(e.key === "Enter"){
+        // preventDefault também impede o Enter de "clicar" o último botão
+        // clicado com o mouse (lançaria duas vezes)
+        e.preventDefault();
+        if(display.value.endsWith(",")) display.value = display.value.slice(0, -1);
+        if(display.value) lancarPeso();
+    }
+}
+document.addEventListener("keydown", teclaNaPesagem);
 
 // ========================================
 // BALANÇA BLUETOOTH (indicador Prix Rebanho / Toledo, via BLE)
