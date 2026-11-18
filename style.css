@@ -2709,3 +2709,12 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
 .btnPesagemApagar { color: #b91c1c; background: #fff; border: 2px solid #dc2626; }
 .btnPesagemVoltar { color: #1f2937; background: #e5e7eb; border: none; }
 .btnPesagemApagarSim { color: #fff; background: #dc2626; border: none; }
+
+/* cartão Animais com vários critérios: total grande + subtotal de cada um
+   (o critério aberto em destaque, passou do saldo em amarelo) */
+#telaPesagem .statSubtotais { display: flex; gap: 6px; margin-top: 1px; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 10.5px; line-height: 1.2; font-weight: 600; color: var(--ink-muted); }
+#telaPesagem .statSubtotais[hidden] { display: none; }
+#telaPesagem .statSubtotais .subAtivo, #telaPesagem .qtdSubtotais .subAtivo { color: #7cc0ff; font-weight: 800; }
+#telaPesagem .statSubtotais .subAcima, #telaPesagem .qtdSubtotais .subAcima { color: #fbbf24; }
+#telaPesagem .statValor .qtdSubtotais { margin-left: 4px; letter-spacing: 0; }
+#telaPesagem .qtdSubtotais i { font-style: normal; }

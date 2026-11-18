@@ -1619,11 +1619,42 @@ function atualizarStats(){
     if(qtdEl){
         // venda/transferência: mostra quantos o lote tem ("11/10"); passou do
         // saldo numa venda, o número fica amarelo -- só aviso, não trava
-        let saldoCriterio = typeof saldoDisponivelCriterio === "function" ? saldoDisponivelCriterio(criterioAtivoIndex) : null;
-        if(saldoCriterio !== null) qtdEl.innerHTML = `${qtd}<small>/${Math.max(saldoCriterio, 0)}</small>`;
-        else qtdEl.innerText = qtd;
-        qtdEl.classList.toggle("qtdAcimaDoSaldo", saldoCriterio !== null && qtd > saldoCriterio);
-        qtdEl.title = saldoCriterio !== null && qtd > saldoCriterio ? `Passou do saldo do lote: vai ficar com ${saldoCriterio - qtd}` : "";
+        let saldoDe = i => typeof saldoDisponivelCriterio === "function" ? saldoDisponivelCriterio(i) : null;
+        let varios = typeof criteriosPesagem !== "undefined" && criteriosPesagem.length > 1;
+        let rotuloQtd = document.getElementById("qtdRotulo");
+        let subEl = document.getElementById("qtdCriterios");
+        if(varios){
+            // vários critérios: o número grande é o TOTAL de animais da
+            // pesagem; embaixo, o subtotal de cada critério (o aberto em
+            // destaque). Os "registros" dos Pesos Recentes seguem só o aberto.
+            let contagens = criteriosPesagem.map((c, i) => i === criterioAtivoIndex ? qtd : (c.pesos || []).length);
+            let totalGeral = contagens.reduce((a, b) => a + b, 0);
+            qtdEl.classList.remove("qtdAcimaDoSaldo");
+            let acima = [];
+            // subtotais na MESMA linha do total, em letra menor (<i>, não <span>:
+            // .statCard span vira bloco grande) -- uma linha a
+            // mais aumentava os cartões e a tela de pesagem deixava de caber
+            let partes = contagens.map((n, i) => {
+                let saldo = saldoDe(i);
+                let passou = saldo !== null && n > saldo;
+                if(passou) acima.push(`${i + 1}º critério: vai ficar com ${saldo - n}`);
+                return `<i class="${i === criterioAtivoIndex ? "subAtivo" : ""}${passou ? " subAcima" : ""}">${n}</i>`;
+            });
+            qtdEl.innerHTML = `${totalGeral}<small class="qtdSubtotais">(${partes.join("+")})</small>`;
+            if(subEl) subEl.hidden = true;
+            qtdEl.title = acima.length ? "Passou do saldo do lote: " + acima.join("; ") : "";
+            if(rotuloQtd) rotuloQtd.innerText = "Animais";
+        } else {
+            // venda/transferência: mostra quantos o lote tem ("11/10"); passou do
+            // saldo numa venda, o número fica amarelo -- só aviso, não trava
+            let saldoCriterio = saldoDe(criterioAtivoIndex);
+            if(saldoCriterio !== null) qtdEl.innerHTML = `${qtd}<small>/${Math.max(saldoCriterio, 0)}</small>`;
+            else qtdEl.innerText = qtd;
+            qtdEl.classList.toggle("qtdAcimaDoSaldo", saldoCriterio !== null && qtd > saldoCriterio);
+            qtdEl.title = saldoCriterio !== null && qtd > saldoCriterio ? `Passou do saldo do lote: vai ficar com ${saldoCriterio - qtd}` : "";
+            if(subEl) subEl.hidden = true;
+            if(rotuloQtd) rotuloQtd.innerText = "Animais";
+        }
     }
     if(medEl) medEl.innerHTML = comKg(media.toFixed(2).replace(".", ","));
     if(totEl) totEl.innerHTML = comKg(formatarPeso(total));
