@@ -2792,9 +2792,17 @@ function montarPdfRelatorio(r, pagamento){
             pdf.text(titulo, L + 3.5, y);
             fonte(8.5, false); cor(CINZA);
             pdf.text(textoPreco(d), L + 3.5 + larguraTitulo + 3, y);
-            y += 4;
+            // subtotal do lote à direita do título
+            fonte(11, true); cor([4, 120, 87]);
+            pdf.text("R$ " + formatarMoeda(d.totalRS), R, y, { align: "right" });
+            // uma linha com os números do lote (no lugar dos quadros)
+            fonte(8, false); cor(ESCURO);
+            let linhasLote = pdf.splitTextToSize(linhaResumoLote(d, registro).join("  ·  "), W - 4);
+            pdf.text(linhasLote, L + 3.5, y + 5);
+            y += 5 + linhasLote.length * 3.6;
         }
 
+        if(!multiplos){
         // ---------- quadros de resumo (4 por linha) ----------
         let quadros = [
             ["ANIMAIS", String(d.totalAnimais)],
@@ -2823,6 +2831,7 @@ function montarPdfRelatorio(r, pagamento){
             pdf.text(cortar(valor, largura - 5), x + 2.5, y + 9.8);
         });
         y += alturaQ + 5;
+        }
 
         // ---------- pesos em duas colunas (1|2, 3|4...) ----------
         let temExtra = d.ehArroba || d.ehValorAnimal || d.ehFaixas;
@@ -2831,15 +2840,16 @@ function montarPdfRelatorio(r, pagamento){
         let colunas = temExtra
             ? [["Nº", 8, "c"], ["PESO", 19, "c"], [rotuloExtra, 17, "c"], ["VALOR", 23, "c"], ["OBS.", meio - 67, "l"]]
             : [["Nº", 8, "c"], ["PESO", 22, "c"], ["VALOR", 26, "c"], ["OBS.", meio - 56, "l"]];
-        let alturaLinha = 5.6;
+        let alturaLinha = multiplos ? 4.7 : 5.6; // vários lotes: linhas mais baixas, cabe numa folha
+        let alturaCab = multiplos ? 5.2 : 6.2;
         let cabecalhoTabela = () => {
             [0, meio + 4].forEach(dx => {
-                cor(ESCURO, "fill"); pdf.rect(L + dx, y, meio, 6.2, "F");
+                cor(ESCURO, "fill"); pdf.rect(L + dx, y, meio, alturaCab, "F");
                 fonte(6.8, true); cor([255, 255, 255]);
                 let x = L + dx;
-                colunas.forEach(([t, w, al]) => { pdf.text(t, al === "c" ? x + w / 2 : x + 1.5, y + 4.2, al === "c" ? { align: "center" } : undefined); x += w; });
+                colunas.forEach(([t, w, al]) => { pdf.text(t, al === "c" ? x + w / 2 : x + 1.5, y + alturaCab - 1.9, al === "c" ? { align: "center" } : undefined); x += w; });
             });
-            y += 6.2;
+            y += alturaCab;
         };
         let celulas = (p, i, dx, zebra) => {
             if(zebra){ cor(ZEBRA, "fill"); pdf.rect(L + dx, y, meio, alturaLinha, "F"); }
@@ -2853,7 +2863,7 @@ function montarPdfRelatorio(r, pagamento){
             colunas.forEach(([, w, al], c) => {
                 fonte(8.3, c === 0); cor(c === 0 || c === colunas.length - 1 ? CINZA : ESCURO);
                 let t = cortar(textos[c], w - 2);
-                pdf.text(t, al === "c" ? x + w / 2 : x + 1.5, y + 3.9, al === "c" ? { align: "center" } : undefined);
+                pdf.text(t, al === "c" ? x + w / 2 : x + 1.5, y + alturaLinha - 1.6, al === "c" ? { align: "center" } : undefined);
                 x += w;
             });
         };
@@ -2868,14 +2878,6 @@ function montarPdfRelatorio(r, pagamento){
             if(lista[i + 1]) pdf.line(L + meio + 4, y + alturaLinha, R, y + alturaLinha);
             y += alturaLinha;
         }
-        if(multiplos){
-            garantir(8);
-            cor([238, 242, 247], "fill"); pdf.rect(L, y, W, 7, "F");
-            cor(ESCURO, "draw"); pdf.setLineWidth(0.5); pdf.line(L, y, R, y);
-            fonte(8.5, true); cor(ESCURO);
-            pdf.text(`Subtotal deste lote: ${d.totalAnimais} animais · ${formatarPeso(d.totalKg)} kg · R$ ${formatarMoeda(d.totalRS)}`, R - 2, y + 4.8, { align: "right" });
-            y += 9;
-        }
         y += 3;
     });
 
@@ -2883,7 +2885,7 @@ function montarPdfRelatorio(r, pagamento){
         // resumo geral: mesmos quadros (4 por linha) dos lotes
         let g = calcularResumoGeral(registros);
         let itens = itensResumoGeral(g);
-        let porLinha = 4, gap = 2.5, largura = (W - gap * (porLinha - 1)) / porLinha, alturaQ = 12.5;
+        let porLinha = 4, gap = 2, largura = (W - gap * (porLinha - 1)) / porLinha, alturaQ = 10.5;
         let linhasQ = Math.ceil(itens.length / porLinha);
         garantir(12 + linhasQ * (alturaQ + gap) + (g.notaArroba ? 6 : 0));
         y += 4;
@@ -2898,8 +2900,8 @@ function montarPdfRelatorio(r, pagamento){
             let x = L + col * (largura + gap);
             cor(CLARO, "fill"); cor(LINHA, "draw"); pdf.setLineWidth(0.3);
             pdf.roundedRect(x, y, largura, alturaQ, 1.8, 1.8, "FD");
-            fonte(6.5, true); cor(CINZA); pdf.text(rotulo.toUpperCase(), x + 2.5, y + 4.3);
-            fonte(10, true); cor(ESCURO); pdf.text(cortar(valor, largura - 5), x + 2.5, y + 9.8);
+            fonte(6.5, true); cor(CINZA); pdf.text(rotulo.toUpperCase(), x + 2.5, y + 3.8);
+            fonte(9.5, true); cor(ESCURO); pdf.text(cortar(valor, largura - 5), x + 2.5, y + 8.4);
         });
         y += alturaQ + 4;
         if(g.notaArroba){ fonte(8, false); cor(CINZA); pdf.text(g.notaArroba, L, y + 2); y += 6; }
@@ -2919,8 +2921,8 @@ function montarPdfRelatorio(r, pagamento){
     }
 
     // ---------- assinaturas (nunca separadas da linha) ----------
-    garantir(30);
-    y += 18;
+    garantir(19);
+    y += 11;
     cor(ESCURO, "draw"); pdf.setLineWidth(0.4);
     let larguraAss = (W - 20) / 2;
     [[L, ehCompra ? "Vendedor" : "Comprador"], [L + larguraAss + 20, nomeFazendaAtual()]].forEach(([x, nome]) => {
@@ -3100,8 +3102,10 @@ async function prepararImpressao(){
         let valorMedio = d.totalAnimais ? d.totalRS / d.totalAnimais : 0;
 
         if(multiplos){
-            html += `<h2 class="folhaSecao">Lote ${indice + 1}: ${esc(registro.descricao || "Sem lote")} <small>${textoPreco(d)}</small></h2>`;
-        }
+            // vários lotes: título com o subtotal + uma linha de números
+            html += `<div class="folhaLoteTopo"><h2 class="folhaSecao">Lote ${indice + 1}: ${esc(registro.descricao || "Sem lote")} <small>${textoPreco(d)}</small></h2><b class="folhaLoteSubtotal">R$ ${formatarMoeda(d.totalRS)}</b></div>`;
+            html += `<p class="folhaLoteLinha">${linhaResumoLote(d, registro).map(esc).join(" · ")}</p>`;
+        } else {
         html += `<section class="folhaResumo">`;
         html += quadro("Animais", d.totalAnimais);
         html += quadro("Peso total", formatarPeso(d.totalKg) + " kg");
@@ -3112,8 +3116,9 @@ async function prepararImpressao(){
         html += quadro("Valor médio / animal", "R$ " + formatarMoeda4(valorMedio));
         html += quadro("R$ médio por kg", "R$ " + formatarMoeda4(d.kgImplicitoMedio));
         if(d.ehArroba) html += quadro("Total em arrobas", formatarArroba4(d.totalArroba));
-        html += quadro(multiplos ? "Subtotal deste lote" : "Valor total", "R$ " + formatarMoeda(d.totalRS), true);
+        html += quadro("Valor total", "R$ " + formatarMoeda(d.totalRS), true);
         html += `</section>`;
+        }
 
         // lista de pesos em DUAS colunas lado a lado (1|2, 3|4...) pra usar a
         // folha inteira -- numa tabela só, que quebra de página certinho e
@@ -3132,9 +3137,7 @@ async function prepararImpressao(){
         let lista = registro.pesos || [];
         let nColunas = 4 + (colunaExtra ? 1 : 0);
         let cabecalho = `<th>Nº</th><th>Peso</th>${colunaExtra}<th>Valor</th><th>Obs.</th>`;
-        let subtotal = multiplos
-            ? `<tfoot><tr><td colspan="__COLS__" class="folhaSubtotal">Subtotal deste lote: ${d.totalAnimais} animais · ${formatarPeso(d.totalKg)} kg · <b>R$ ${formatarMoeda(d.totalRS)}</b></td></tr></tfoot>`
-            : "";
+        let subtotal = "";
         let linhasDupla = "";
         for(let i = 0; i < lista.length; i += 2){
             linhasDupla += `<tr>${celulas(lista[i], i)}<td class="folhaDivisor"></td>${celulas(lista[i + 1], i + 1)}</tr>`;
@@ -3145,7 +3148,7 @@ async function prepararImpressao(){
 
     if(multiplos){
         let g = calcularResumoGeral(registros);
-        html += `<h2 class="folhaSecao folhaSecaoGeral">Resumo geral <small>todos os lotes</small></h2><section class="folhaResumo">`;
+        html += `<h2 class="folhaSecao folhaSecaoGeral">Resumo geral <small>todos os lotes</small></h2><section class="folhaResumo folhaResumoCompacto">`;
         itensResumoGeral(g).forEach(([rotulo, valor]) => { html += quadro(rotulo, valor); });
         html += `</section>`;
         if(g.notaArroba) html += `<p class="folhaNotaGeral">${esc(g.notaArroba)}</p>`;
@@ -3240,6 +3243,23 @@ function exportarExcel(){
 // de 1 (operador usou vários critérios na mesma entrega), cada lote ganha
 // seu próprio bloco de resumo+pesagens e a mensagem fecha com um total
 // geral só, pra facilitar um pagamento único ao vendedor.
+// relatório com vários lotes: cada lote ganha UMA linha com os números dele
+// (no lugar dos 9 quadros, que com 4 lotes ocupavam mais papel que os pesos)
+function linhaResumoLote(d, registro){
+    let kgs = (registro.pesos || []).map(p => Number(p.peso) || 0).filter(k => k > 0);
+    let partes = [d.totalAnimais + (d.totalAnimais === 1 ? " animal" : " animais")];
+    if(kgs.length){
+        partes.push(formatarPeso(d.totalKg) + " kg");
+        partes.push("média " + formatarPeso(Math.round(d.totalKg / kgs.length * 10) / 10) + " kg");
+        partes.push("maior " + formatarPeso(Math.max(...kgs)) + " kg");
+        partes.push("menor " + formatarPeso(Math.min(...kgs)) + " kg");
+    }
+    if(d.ehArroba) partes.push(formatarArroba4(d.totalArroba));
+    partes.push("médio/animal R$ " + formatarMoeda4(d.totalAnimais ? d.totalRS / d.totalAnimais : 0));
+    if(d.totalKg > 0) partes.push("R$/kg " + formatarMoeda4(d.kgImplicitoMedio));
+    return partes;
+}
+
 // ========================================
 // RESUMO GERAL (relatório com mais de um lote)
 // ========================================

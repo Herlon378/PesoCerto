@@ -2732,3 +2732,45 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
     #telaPesagem .dicaTecladoPc { display: block; margin: 6px 0 0; text-align: center; font-size: 12px; color: var(--ink-muted); }
     #telaPesagem .dicaTecladoPc b { color: var(--ink); }
 }
+
+/* relatório com vários lotes, compacto: título do lote com o subtotal à
+   direita e uma linha de números (sem os 9 quadros por lote) */
+.folhaLoteTopo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 16px 0 2px; }
+.folhaLoteTopo .folhaSecao { margin: 0; font-size: 15px; }
+.folhaLoteSubtotal { flex-shrink: 0; font-size: 15px; font-weight: 800; color: #047857 !important; }
+.folhaLoteLinha { margin: 2px 0 4px; padding-left: 14px; font-size: 12px; line-height: 1.4; color: #374151 !important; }
+@media print { .folhaLoteTopo { break-after: avoid; page-break-after: avoid; } .folhaLoteLinha { break-after: avoid; page-break-after: avoid; } }
+
+.folhaResumoCompacto { gap: 6px; margin: 8px 0; }
+.folhaResumoCompacto .folhaQuadro { padding: 5px 9px; }
+.folhaResumoCompacto .folhaQuadro b { font-size: 14px; margin-top: 1px; }
+@media print {
+    /* papel: tabela, títulos e assinaturas mais justos (4 lotes / ~30 animais numa folha) */
+    .folhaTabelaDupla td { padding: 1px 6px; font-size: 11.5px; }
+    .folhaTabelaDupla th { padding: 3px 6px; }
+    .folhaTabela { margin: 4px 0 2px; }
+    .folhaLoteTopo { margin-top: 10px; }
+    .folhaSecaoGeral { margin-top: 14px; }
+    .folhaTotalGeral { margin-top: 10px; padding: 9px 14px; }
+    .folhaRodape { margin-top: 8px; }
+    .folhaAssinaturas { margin-bottom: 8px; }
+    .folhaAssinaturas span { margin: 26px 0 4px; }
+}
+
+@media print {
+    /* letra do papel um pouco menor, no tamanho do PDF */
+    #folhaRelatorio { font-size: 12.5px; line-height: 1.3; }
+    .folhaTopo { padding-bottom: 8px; }
+    .folhaTopo h1 { font-size: 20px; }
+    .folhaDados { margin: 8px 0 2px; gap: 6px 14px; }
+    .folhaDados b { font-size: 13px; }
+    .folhaLoteTopo .folhaSecao, .folhaLoteSubtotal { font-size: 14px; }
+    .folhaLoteLinha { font-size: 11px; margin: 1px 0 3px; }
+    .folhaTotalGeral b { font-size: 16px; }
+}
+
+.folhaLoteTopo .folhaSecao small { white-space: nowrap; }
+@media screen and (max-width: 640px) {
+    /* celular: preço do lote inteiro na linha de baixo (não quebra "por / kg") */
+    .folhaLoteTopo .folhaSecao small { display: block; margin: 2px 0 0; }
+}
