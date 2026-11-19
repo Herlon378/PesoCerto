@@ -13,7 +13,8 @@
     const dataBR = d => d ? String(d).slice(0, 10).split("-").reverse().join("/") : "—";
     const quando = d => d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
     const setas = t => esc(t).replace(/ -&gt; /g, " → ");
-    let estado = { aba: "clientes", filtro: "todos", busca: "", lista: [], planos: [] };
+    let estado = { aba: "clientes", filtro: "todos", busca: "", lista: [], planos: [], config: {} };
+    const telefone = d => { d = String(d || ""); return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d; };
 
     async function api(rota, metodo, corpo) {
         let resp = await fetch(API_URL + rota, { method: metodo || "GET", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + obterToken() }, body: corpo ? JSON.stringify(corpo) : undefined });
@@ -29,7 +30,7 @@
         if (!el) return;
         if (!estado.lista.length) el.innerHTML = `<p class="assVazio">Carregando…</p>`;
         try {
-            [estado.lista, estado.planos] = await Promise.all([api("/api/sistema/assinaturas"), api("/api/sistema/planos")]);
+            [estado.lista, estado.planos, estado.config] = await Promise.all([api("/api/sistema/assinaturas"), api("/api/sistema/planos"), api("/api/sistema/assinaturas-config").catch(() => ({}))]);
             desenhar();
         } catch (e) { el.innerHTML = `<p class="assVazio">Não deu para carregar: ${esc(e.message)}</p>`; }
     };
@@ -64,6 +65,12 @@
         let extras = L.reduce((s, a) => s + (a.valor.aPagar > 0 ? a.valor.totalExtras : 0), 0);
         el.innerHTML = `
             <div class="assCabecalho"><div><h2>Assinaturas</h2><small>${L.length} fazenda${L.length === 1 ? "" : "s"} · nada é cobrado ainda: aqui você organiza planos e valores de cada cliente</small></div></div>
+            <div class="assVisivel${estado.config.mostrarPlano ? " assVisivelOn" : ""}">
+                <div><b>${estado.config.mostrarPlano ? "Os clientes veem o plano deles" : "Os clientes ainda não veem o plano"}</b>
+                    <small>${estado.config.mostrarPlano ? "Aparece para o administrador de cada fazenda, em Minha conta. Mudança de plano, valor ou extra vira aviso no sininho dele." : "Ligue quando decidir os valores: cada fazenda recebe um aviso no sininho com o plano dela."}</small>
+                    <small>Suporte no WhatsApp: ${estado.config.suporteWhatsapp ? telefone(estado.config.suporteWhatsapp) : "não definido"}</small></div>
+                <div class="assVisivelAcoes"><button type="button" class="assBotaoSec" data-acao="suporte">WhatsApp do suporte</button><button type="button" class="${estado.config.mostrarPlano ? "assBotaoSec" : "assBotaoPri"}" data-acao="visivel">${estado.config.mostrarPlano ? "Esconder dos clientes" : "Mostrar para os clientes"}</button></div>
+            </div>
             <div class="assKpis">
                 <div class="assKpi"><span>Receita mensal prevista</span><b>${rs(receita)}</b><small>${pagantes.length} pagante${pagantes.length === 1 ? "" : "s"}</small></div>
                 <div class="assKpi"><span>Se todos pagassem</span><b>${rs(cheio)}</b><small>valor cheio, sem os grátis</small></div>
@@ -86,6 +93,8 @@
                 else if (b.dataset.fazenda) abrirFicha(b.dataset.fazenda);
                 else if (b.dataset.plano) abrirPlano(estado.planos.find(p => p.id === b.dataset.plano));
                 else if (b.dataset.acao === "novoPlano") abrirPlano(null);
+                else if (b.dataset.acao === "visivel") trocarVisibilidade();
+                else if (b.dataset.acao === "suporte") abrirSuporte();
             });
             el.addEventListener("input", e => { if (e.target.id === "assBusca") { estado.busca = e.target.value; desenharLista(); } });
         }
@@ -126,6 +135,29 @@
                 <span class="assCartaoMeio"><span class="assPlano">${esc(p.descricao || "")}</span><span class="assPreco"><b class="assValor">${rs(p.valorMensal)}</b><small>por mês</small></span></span>
                 <span class="assUso"><span>${p.limiteUsuarios ? "até " + p.limiteUsuarios + " usuários" : "usuários ilimitados"}</span><span>${p.fazendas} fazenda(s) neste plano</span></span>
             </button>`).join("")}</div>`;
+    }
+
+    // ---------- o cliente vê ou não o próprio plano ----------
+    async function trocarVisibilidade() {
+        let ligar = !estado.config.mostrarPlano;
+        let pergunta = ligar
+            ? "Mostrar o plano para os clientes agora?\n\nO administrador de cada fazenda (menos a sua) passa a ver o plano e o valor dele em Minha conta e recebe um aviso no sininho."
+            : "Esconder o plano dos clientes?\n\nEles deixam de ver o plano em Minha conta e param de receber avisos de mudança.";
+        if (!confirm(pergunta)) return;
+        try {
+            let r = await api("/api/sistema/assinaturas-config", "PUT", { mostrarPlano: ligar });
+            if (typeof avisoRapidoTela === "function") avisoRapidoTela(ligar ? `Pronto: ${r.avisadas} fazenda(s) avisada(s).` : "Plano escondido dos clientes.");
+            await window.abrirTelaAssinaturas();
+        } catch (e) { alert(e.message); }
+    }
+    function abrirSuporte() {
+        let m = janela("WhatsApp do suporte", `
+            <p class="assTextoFraco">Aparece como botão "Falar com o suporte" no plano de cada cliente.</p>
+            <label class="assCampo"><span>Número com DDD</span><input id="asZap" inputmode="tel" value="${esc(telefone(estado.config.suporteWhatsapp))}" placeholder="(64) 99999-9999"></label>`,
+            async () => {
+                await api("/api/sistema/assinaturas-config", "PUT", { suporteWhatsapp: m.q("#asZap").value });
+                await window.abrirTelaAssinaturas();
+            });
     }
 
     // ---------- janela: plano ----------
@@ -279,6 +311,13 @@
         #assConteudo { max-width: 1100px; }
         #assConteudo h2 { margin: 0; }
         .assCabecalho small { display: block; margin-top: 4px; color: var(--ink-muted); }
+        .assVisivel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(148,163,184,0.08); border: 1px dashed rgba(148,163,184,0.45); }
+        .assVisivel > div:first-child { flex: 1 1 320px; min-width: 0; }
+        .assVisivel b { display: block; color: var(--ink); }
+        .assVisivel small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-muted); }
+        .assVisivelOn { background: rgba(74,222,128,0.09); border: 1px solid rgba(74,222,128,0.45); }
+        .assVisivelOn b { color: #4ade80; }
+        .assVisivelAcoes { display: flex; flex-wrap: wrap; gap: 8px; }
         .assKpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 16px; }
         .assKpi { padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
         .assKpi span { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-muted); }
