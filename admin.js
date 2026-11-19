@@ -6612,7 +6612,9 @@ async function enviarCadastroFazenda() {
         prepararDadosLocaisParaFazenda(dados.token);
         localStorage.setItem("sessionToken", dados.token);
         localStorage.setItem("usuarioNome", dados.nome);
+        localStorage.setItem("usuarioLogin", dados.usuario || "");
         localStorage.setItem("usuarioPapel", dados.papel);
+        localStorage.setItem("permClientes", dados.permissaoClientes || "nenhum");
         localStorage.setItem("permTipoPesagem", dados.permissaoTipoPesagem || "ambos");
         localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
         localStorage.setItem("permRelatorios", dados.permissaoRelatorios || "geral");

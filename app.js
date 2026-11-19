@@ -3772,6 +3772,9 @@ function atualizarMarcaFazenda(){
     if(slogan) slogan.style.display = (!logado || schemaDoTokenLocal(obterToken()) === "public") ? "" : "none";
     let navFazendas = document.querySelector('[data-tela="telaFazendas"]');
     if(navFazendas) navFazendas.style.display = (logado && ehDonoSistemaLocal()) ? "" : "none";
+    let navAssinaturas = document.querySelector('[data-tela="telaAssinaturas"]');
+    if(navAssinaturas) navAssinaturas.style.display = (logado && ehDonoSistemaLocal()) ? "" : "none";
+    if(typeof atualizarBotaoMinhaConta === "function") atualizarBotaoMinhaConta();
 }
 
 // sessões abertas antes desta versão não têm o nome da fazenda guardado
@@ -3785,6 +3788,7 @@ async function atualizarDadosFazendaDoServidor(){
             guardarDadosFazenda(dados);
             // permissão de Clientes vale sem precisar sair e entrar de novo
             if(dados.permissaoClientes) localStorage.setItem("permClientes", dados.permissaoClientes);
+            if(dados.usuario) localStorage.setItem("usuarioLogin", dados.usuario);
             if(typeof aplicarPermissaoMenuClientes === "function") aplicarPermissaoMenuClientes();
         }
     }catch(e){}
@@ -3832,6 +3836,7 @@ async function enviarLogin(){
         }
         localStorage.setItem("sessionToken", dados.token);
         localStorage.setItem("usuarioNome", dados.nome);
+        localStorage.setItem("usuarioLogin", dados.usuario || usuario);
         localStorage.setItem("usuarioPapel", dados.papel);
         localStorage.setItem("permTipoPesagem", dados.permissaoTipoPesagem || "ambos");
         localStorage.setItem("permDashboard", dados.permissaoDashboard || "geral");
@@ -3861,6 +3866,7 @@ function sair(){
     }
     localStorage.removeItem("sessionToken");
     localStorage.removeItem("usuarioNome");
+    localStorage.removeItem("usuarioLogin");
     localStorage.removeItem("usuarioPapel");
     localStorage.removeItem("permTipoPesagem");
     localStorage.removeItem("permDashboard");
