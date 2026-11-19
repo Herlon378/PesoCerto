@@ -3137,13 +3137,19 @@ async function prepararImpressao(){
         let lista = registro.pesos || [];
         let nColunas = 4 + (colunaExtra ? 1 : 0);
         let cabecalho = `<th>Nº</th><th>Peso</th>${colunaExtra}<th>Valor</th><th>Obs.</th>`;
-        let subtotal = "";
+        // lista longa (passa de uma página): faixa em branco no topo e no pé
+        // de CADA página impressa -- o thead/tfoot da tabela se repete em toda
+        // página. Sem isso, com "Margens: Nenhumas" no Chrome a lista encostava
+        // na borda do papel. Lista curta não ganha (gastaria papel à toa).
+        let longa = lista.length > 40;
+        let espacoTopo = cols => longa ? `<tr class="folhaEspaco"><td colspan="${cols}"></td></tr>` : "";
+        let espacoBase = cols => longa ? `<tfoot><tr class="folhaEspaco folhaEspacoBase"><td colspan="${cols}"></td></tr></tfoot>` : "";
         let linhasDupla = "";
         for(let i = 0; i < lista.length; i += 2){
             linhasDupla += `<tr>${celulas(lista[i], i)}<td class="folhaDivisor"></td>${celulas(lista[i + 1], i + 1)}</tr>`;
         }
-        html += `<table class="folhaTabela folhaTabelaDupla"><thead><tr>${cabecalho}<th class="folhaDivisor"></th>${cabecalho}</tr></thead><tbody>${linhasDupla}</tbody>${subtotal.replace("__COLS__", nColunas * 2 + 1)}</table>`;
-        html += `<table class="folhaTabela folhaTabelaSimples"><thead><tr>${cabecalho}</tr></thead><tbody>${lista.map((p, i) => `<tr>${celulas(p, i)}</tr>`).join("")}</tbody>${subtotal.replace("__COLS__", nColunas)}</table>`;
+        html += `<table class="folhaTabela folhaTabelaDupla"><thead>${espacoTopo(nColunas * 2 + 1)}<tr>${cabecalho}<th class="folhaDivisor"></th>${cabecalho}</tr></thead><tbody>${linhasDupla}</tbody>${espacoBase(nColunas * 2 + 1)}</table>`;
+        html += `<table class="folhaTabela folhaTabelaSimples"><thead>${espacoTopo(nColunas)}<tr>${cabecalho}</tr></thead><tbody>${lista.map((p, i) => `<tr>${celulas(p, i)}</tr>`).join("")}</tbody>${espacoBase(nColunas)}</table>`;
     });
 
     if(multiplos){
