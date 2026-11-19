@@ -2793,3 +2793,14 @@ input.npValor:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,1
     /* respiro dos lados mesmo com "Margens: Nenhumas" no Chrome */
     #folhaRelatorio { padding: 0 4mm !important; }
 }
+
+/* títulos da folha: o gerenciamento tem "body.modoDesktop .tela h2" (22px e
+   18px de margem) que passava por cima e inchava a folha impressa de lá */
+#folhaRelatorio .folhaSecao { font-size: 17px; font-weight: 800; letter-spacing: 0; margin: 20px 0 6px; }
+#folhaRelatorio .folhaLoteTopo .folhaSecao { font-size: 15px; margin: 0; }
+#folhaRelatorio .folhaSecaoGeral { margin-top: 26px; }
+#folhaRelatorio .folhaPagamento h2 { font-size: 11.5px; font-weight: 800; letter-spacing: 1px; margin: 0 0 6px; }
+@media print {
+    #folhaRelatorio .folhaLoteTopo .folhaSecao { font-size: 14px; }
+    #folhaRelatorio .folhaSecaoGeral { margin-top: 14px; }
+}

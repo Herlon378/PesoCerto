@@ -460,7 +460,7 @@
     window.htmlPagamentoFolha = function (p) {
         if (!p || !p.conta) return "";
         let dados = linhasDadosPagamento(p).map(([r, v]) => `<div><span>${esc(r)}</span><b>${esc(v)}</b></div>`).join("");
-        let qr = p.qr ? `<div class="folhaPixQrCaixa">${svgDoQr(p.qr, 150)}<small>Aponte a câmera do app do banco</small></div>` : "";
+        let qr = p.qr ? `<div class="folhaPixQrCaixa">${svgDoQr(p.qr, 104)}<small>PIX com o valor</small></div>` : "";
         return `<section class="folhaPagamento">
             <h2>Dados para pagamento</h2>
             <div class="folhaPagamentoCorpo">
@@ -468,7 +468,7 @@
                     <div class="folhaPagamentoValor"><span>Valor a pagar</span><b>R$ ${moeda(p.valor)}</b></div>
                 </div>${qr}
             </div>
-            ${p.copiaECola ? `<div class="folhaPixCopia"><span>PIX copia e cola</span><code>${esc(p.copiaECola)}</code></div>` : ""}
+            ${p.copiaECola ? `<div class="folhaPixCopia"><span>PIX copia e cola:</span> <code>${esc(p.copiaECola)}</code></div>` : ""}
         </section>`;
     };
     window.textoPagamentoWhatsApp = function (p) {
@@ -482,37 +482,41 @@
     // desenha no PDF (jsPDF, mm) a partir de y; devolve o novo y
     window.desenharPagamentoPdf = function (pdf, p, y, L, R, garantir) {
         if (!p || !p.conta) return y;
-        let dados = linhasDadosPagamento(p);
-        let comQr = !!p.qr, tamQr = 40;
-        let alturaTexto = 12 + dados.length * 6 + 12;
-        let altura = Math.max(alturaTexto, comQr ? tamQr + 14 : 0) + (p.copiaECola ? 14 : 0);
-        y = garantir(altura + 4);
-        pdf.setDrawColor(43, 90, 163); pdf.setLineWidth(0.5);
-        pdf.roundedRect(L, y, R - L, altura, 2, 2, "S");
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(10.5); pdf.setTextColor(43, 90, 163);
-        pdf.text("DADOS PARA PAGAMENTO", L + 4, y + 7);
-        let yy = y + 14, xValor = L + 4, larguraTexto = (R - L) - (comQr ? tamQr + 16 : 8);
-        dados.forEach(([r, v]) => {
-            pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.5); pdf.setTextColor(107, 114, 128);
-            pdf.text(r, xValor, yy);
-            pdf.setFont("helvetica", "bold"); pdf.setFontSize(10); pdf.setTextColor(29, 36, 51);
-            pdf.text(String(v), xValor + 44, yy, { maxWidth: larguraTexto - 44 });
-            yy += 6;
+        // compacto: dados em 3 colunas (rótulo pequeno em cima, valor embaixo),
+        // o valor a pagar é mais um item, QR menor à direita, copia e cola em 2 linhas
+        let itens = linhasDadosPagamento(p).concat([["Valor a pagar", "R$ " + moeda(p.valor), true]]);
+        let comQr = !!p.qr, tamQr = 27;
+        let areaTexto = (R - L) - 8 - (comQr ? tamQr + 6 : 0);
+        let colunas = 3, larguraCol = areaTexto / colunas, alturaLinha = 8;
+        let linhas = Math.ceil(itens.length / colunas);
+        let copia = p.copiaECola ? pdf.splitTextToSize("PIX copia e cola: " + p.copiaECola, (R - L) - 8).slice(0, 2) : [];
+        let corpo = Math.max(linhas * alturaLinha, comQr ? tamQr + 3 : 0);
+        let altura = 8 + corpo + (copia.length ? copia.length * 2.6 + 2 : 0) + 1;
+        y = garantir(altura + 3);
+        pdf.setDrawColor(43, 90, 163); pdf.setLineWidth(0.4);
+        pdf.roundedRect(L, y, R - L, altura, 1.8, 1.8, "S");
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(8.5); pdf.setTextColor(43, 90, 163);
+        pdf.text("DADOS PARA PAGAMENTO", L + 4, y + 5.2);
+        itens.forEach(([rotulo, valor, destaque], i) => {
+            let x = L + 4 + (i % colunas) * larguraCol, yy = y + 8 + Math.floor(i / colunas) * alturaLinha;
+            pdf.setFont("helvetica", "bold"); pdf.setFontSize(6); pdf.setTextColor(107, 114, 128);
+            pdf.text(rotulo.toUpperCase(), x, yy + 2.6);
+            pdf.setFont("helvetica", "bold"); pdf.setFontSize(destaque ? 10 : 8.8);
+            if (destaque) pdf.setTextColor(22, 101, 52); else pdf.setTextColor(29, 36, 51);
+            let texto = String(valor);
+            while (texto.length > 3 && pdf.getTextWidth(texto) > larguraCol - 2) texto = texto.slice(0, -2) + "…";
+            pdf.text(texto, x, yy + 6.4);
         });
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(12); pdf.setTextColor(22, 101, 52);
-        pdf.text("Valor a pagar: R$ " + moeda(p.valor), xValor, yy + 4);
         if (comQr) {
-            let x0 = R - 6 - tamQr, y0 = y + 8, total = p.qr.modulos, m = tamQr / total;
+            let x0 = R - 4 - tamQr, y0 = y + 3, total = p.qr.modulos, m = tamQr / total;
             pdf.setFillColor(0, 0, 0);
             p.qr.quadrados.forEach(q => pdf.rect(x0 + q[0] * m, y0 + q[1] * m, q[2] * m, q[3] * m, "F"));
-            pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor(107, 114, 128);
-            pdf.text("PIX com o valor", x0 + tamQr / 2, y0 + tamQr + 4, { align: "center" });
         }
-        if (p.copiaECola) {
-            pdf.setFont("courier", "normal"); pdf.setFontSize(6.5); pdf.setTextColor(55, 65, 81);
-            pdf.text(pdf.splitTextToSize("PIX copia e cola: " + p.copiaECola, (R - L) - 8).slice(0, 3), L + 4, y + altura - 10);
+        if (copia.length) {
+            pdf.setFont("courier", "normal"); pdf.setFontSize(6); pdf.setTextColor(55, 65, 81);
+            pdf.text(copia, L + 4, y + 8 + corpo + 1.6);
         }
-        return y + altura + 4;
+        return y + altura + 3;
     };
 
     // ---------- tela Clientes ----------
@@ -885,21 +889,21 @@
             .cliContaForm .cliCampo:not(.cliCurto) { grid-column: 1 / -1; }
         }
         /* folha impressa: dados para pagamento */
-        .folhaPagamento { margin-top: 18px; padding: 14px 16px; border: 2px solid #2b5aa3; border-radius: 10px; break-inside: avoid; page-break-inside: avoid; }
-        .folhaPagamento h2 { margin: 0 0 10px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; color: #2b5aa3 !important; }
-        .folhaPagamentoCorpo { display: flex; gap: 18px; align-items: flex-start; }
-        .folhaPagamentoDados { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; min-width: 0; }
+        /* compacto: 3 colunas, valor a pagar como mais um item, QR pequeno */
+        .folhaPagamento { margin-top: 10px; padding: 8px 12px; border: 1.5px solid #2b5aa3; border-radius: 8px; break-inside: avoid; page-break-inside: avoid; }
+        .folhaPagamento h2 { margin: 0 0 6px; font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: #2b5aa3 !important; }
+        .folhaPagamentoCorpo { display: flex; gap: 12px; align-items: center; }
+        .folhaPagamentoDados { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px 12px; min-width: 0; }
         .folhaPagamentoDados div { display: flex; flex-direction: column; min-width: 0; }
-        .folhaPagamentoDados span { font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #6b7280 !important; }
-        .folhaPagamentoDados b { font-size: 14px; overflow-wrap: anywhere; }
-        .folhaPagamentoValor { grid-column: 1 / -1; padding-top: 8px; border-top: 1px dashed #cbd5e1; }
-        .folhaPagamentoValor b { font-size: 20px; color: #166534 !important; }
-        .folhaPixQrCaixa { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
-        .folhaPixQrCaixa small { font-size: 10.5px; color: #6b7280 !important; }
-        .folhaPixCopia { margin-top: 10px; }
-        .folhaPixCopia span { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #6b7280 !important; }
-        .folhaPixCopia code { display: block; margin-top: 3px; font-size: 10px; line-height: 1.35; word-break: break-all; color: #374151 !important; }
-        @media (max-width: 600px) { .folhaPagamentoCorpo { flex-direction: column; align-items: stretch; } .folhaPixQrCaixa { align-self: center; } .folhaPagamentoDados { grid-template-columns: minmax(0, 1fr); } }
+        .folhaPagamentoDados span { font-size: 8.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #6b7280 !important; }
+        .folhaPagamentoDados b { font-size: 12px; overflow-wrap: anywhere; }
+        .folhaPagamentoValor b { font-size: 14px; color: #166534 !important; }
+        .folhaPixQrCaixa { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; }
+        .folhaPixQrCaixa small { font-size: 8.5px; color: #6b7280 !important; }
+        .folhaPixCopia { margin-top: 5px; font-size: 8px; line-height: 1.3; word-break: break-all; }
+        .folhaPixCopia span { font-weight: 700; color: #6b7280 !important; }
+        .folhaPixCopia code { font-size: 8px; color: #374151 !important; }
+        @media (max-width: 600px) { .folhaPagamentoCorpo { flex-direction: column; align-items: stretch; } .folhaPixQrCaixa { align-self: center; } .folhaPagamentoDados { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         `;
         document.head.appendChild(s);
     }
